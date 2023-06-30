@@ -32,7 +32,8 @@ void init_python(int calls, const char* cambToolsPath){
     PyRun_SimpleString("import sys");
     char tmp[400];
     sprintf(tmp,"sys.path.append(\"%s\")",cambToolsPath);
-    PyRun_SimpleString("sys.path.append(\"/home/hqureshi/HACC_GPM/cambTools\")");
+    printf("%s   cambToolsPath %s\n",indent,cambToolsPath);
+    PyRun_SimpleString(tmp);
     // Build the name object
     pName = PyUnicode_FromString((char*)"cambpy");
 

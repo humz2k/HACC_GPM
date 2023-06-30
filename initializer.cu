@@ -114,7 +114,7 @@ __global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_ve
     d_vel[idx] = my_vel;
 }
 
-void GenerateFourierAmplitudes(const char* params_file, deviceFFT_t* d_grid1, int ng, double rl, double z, int seed, int blockSize, int calls){
+void GenerateFourierAmplitudes(const char* params_file, const char* cambToolsPath, deviceFFT_t* d_grid1, int ng, double rl, double z, int seed, int blockSize, int calls){
     int numBlocks = (ng*ng*ng)/blockSize;
 
     getIndent(calls);
@@ -154,7 +154,7 @@ void GenerateFourierAmplitudes(const char* params_file, deviceFFT_t* d_grid1, in
     printf("%s   Getting Pk from Camb...\n",indent);
     #endif
 
-    init_python(calls + 1);
+    init_python(calls + 1,cambToolsPath);
     
     get_pk(params_file,h_tmp,z,ng,rl,calls+1);
 
@@ -186,7 +186,7 @@ void GenerateFourierAmplitudes(const char* params_file, deviceFFT_t* d_grid1, in
     #endif
 }
 
-void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int calls){
+void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, const char* cambToolsPath, HACCGPM::serial::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int calls){
     int numBlocks = (ng*ng*ng)/blockSize;
     getIndent(calls);
 
@@ -195,7 +195,7 @@ void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::s
     printf("%s   Calling GenerateFourierAmplitudes...\n",indent);
     #endif
 
-    GenerateFourierAmplitudes(params_file,mem->d_grid, ng, rl, z, seed, blockSize, calls+1);
+    GenerateFourierAmplitudes(params_file, cambToolsPath, mem->d_grid, ng, rl, z, seed, blockSize, calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Called GenerateFourierAmplitudes.\n",indent);

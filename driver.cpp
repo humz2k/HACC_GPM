@@ -2,6 +2,9 @@
 #include <stdio.h>
 //#include <string.h>
 #include "haccgpm.hpp"
+#define GPU
+#define alltoall
+#include "swfft-all-to-all/include/swfft.hpp"
 
 int main(int argc, char** argv){
 

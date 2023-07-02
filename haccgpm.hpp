@@ -1,3 +1,4 @@
+#include <cuda_runtime.h>
 #include <cufft.h>
 #include <stdio.h>
 #include <time.h>

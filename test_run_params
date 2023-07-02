@@ -13,7 +13,6 @@ N_EFF_MASSLESS 3.04
 N_EFF_MASSIVE 0.0
 
 OUTPUT_BASE_NAME runs/test
-CAMB_TOOLS /home/hqureshi/HACC_GPM/cambTools/
 
 Z_IN 200
 Z_FIN 0

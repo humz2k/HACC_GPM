@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "cambpy.h"
+
 #define getIndent(calls) char indent[50] = ""; for (int i = 0; i < (calls*6); i++){strcat(indent," ");}
 //#include "ccamb.h"
 
@@ -16,7 +18,7 @@ int FIND_ME(){
     return 1;
 }
 
-void init_python(int calls, const char* cambToolsPath){
+void init_python(int calls){
     getIndent(calls);
 
     #ifdef VerboseCCamb
@@ -29,13 +31,15 @@ void init_python(int calls, const char* cambToolsPath){
     printf("%s   Initialized Python.\n",indent);
     #endif
 
-    PyRun_SimpleString("import sys");
-    char tmp[400];
-    sprintf(tmp,"sys.path.append(\"%s\")",cambToolsPath);
-    printf("%s   cambToolsPath %s\n",indent,cambToolsPath);
-    PyRun_SimpleString(tmp);
+    //PyRun_SimpleString("import sys");
+    //char tmp[400];
+    //sprintf(tmp,"sys.path.append(\"%s\")",cambToolsPath);
+    //printf("%s   cambToolsPath %s\n",indent,cambToolsPath);
+    //PyRun_SimpleString(tmp);
+    char cambpystr[] = CAMBPYSTR;
+    PyRun_SimpleString(cambpystr);
     // Build the name object
-    pName = PyUnicode_FromString((char*)"cambpy");
+    pName = PyUnicode_FromString((char*)"cambpymodule");
 
     #ifdef VerboseCCamb
     printf("%sImporting Numpy...\n",indent);

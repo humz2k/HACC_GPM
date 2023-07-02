@@ -5,15 +5,15 @@ import scipy.integrate
 import scipy.misc
 import warnings
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings('ignore')
 
 def read_params(fname):
-    with open(fname,"r") as f:
+    with open(fname,'r') as f:
         raw = f.read().splitlines()
 
     data = {}
     for i in raw:
-        if (len(i.strip()) == 0) or (i.strip().startswith("#")):
+        if (len(i.strip()) == 0) or (i.strip().startswith('#')):
             pass
         else:
             try:
@@ -29,34 +29,34 @@ def read_params(fname):
     return data
 
 def hacc2camb(params):
-    h = params["HUBBLE"]
-    Om_c = params["OMEGA_CDM"]
-    Om_b = params["DEUT"] / (h**2)
-    Om_nu = params["OMEGA_NU"]
-    n_eff_massless = params["N_EFF_MASSLESS"]
-    n_eff_massive = params["N_EFF_MASSIVE"]
-    w_0 = params["W_DE"]
-    w_a = params["WA_DE"]
-    T_cmb = params["T_CMB"]
-    n_s = params["NS"]
+    h = params['HUBBLE']
+    Om_c = params['OMEGA_CDM']
+    Om_b = params['DEUT'] / (h**2)
+    Om_nu = params['OMEGA_NU']
+    n_eff_massless = params['N_EFF_MASSLESS']
+    n_eff_massive = params['N_EFF_MASSIVE']
+    w_0 = params['W_DE']
+    w_a = params['WA_DE']
+    T_cmb = params['T_CMB']
+    n_s = params['NS']
     
     omch2 = Om_c * (h**2)
     ombh2 = Om_b * (h**2)
     omnuh2 = Om_nu * (h**2)
     h = h * 100
-    return {"H0": h,"ombh2": ombh2,"omch2":omch2}, n_s
+    return {'H0': h,'ombh2': ombh2,'omch2':omch2}, n_s
 
 def hacc2cosmology(params):
-    h = params["HUBBLE"]
-    Om_c = params["OMEGA_CDM"]
-    Om_b = params["DEUT"] / (h**2)
-    Om_nu = params["OMEGA_NU"]
-    n_eff_massless = params["N_EFF_MASSLESS"]
-    n_eff_massive = params["N_EFF_MASSIVE"]
-    w_0 = params["W_DE"]
-    w_a = params["WA_DE"]
-    T_cmb = params["T_CMB"]
-    n_s = params["NS"]
+    h = params['HUBBLE']
+    Om_c = params['OMEGA_CDM']
+    Om_b = params['DEUT'] / (h**2)
+    Om_nu = params['OMEGA_NU']
+    n_eff_massless = params['N_EFF_MASSLESS']
+    n_eff_massive = params['N_EFF_MASSIVE']
+    w_0 = params['W_DE']
+    w_a = params['WA_DE']
+    T_cmb = params['T_CMB']
+    n_s = params['NS']
     
     omch2 = Om_c * (h**2)
     ombh2 = Om_b * (h**2)
@@ -65,9 +65,9 @@ def hacc2cosmology(params):
     return omch2,ombh2,omnuh2
 
 def initcambpy():
-    fname = "params"
+    fname = 'params'
     #global PK
-    #print("Initializing Camb")
+    #print('Initializing Camb')
     #haccparams = read_params(fname)
     #cambparams,ns = hacc2camb(haccparams)
     #pars = camb.CAMBparams()
@@ -80,7 +80,7 @@ def initcambpy():
     return None
 
 def get_pk(z,k,ng,rl,fname):
-    #print("FNAME:",fname)
+    #print('FNAME:',fname)
     haccparams = read_params(fname)
     cambparams,ns = hacc2camb(haccparams)
     pars = camb.CAMBparams()
@@ -134,7 +134,7 @@ def f(z,OmM,OmL):
     return (top/bottom)**(4/7)
 
 def get_delta_and_dotDelta(z,z1,fname):
-    #print("FNAME:",fname)
+    #print('FNAME:',fname)
     haccparams = read_params(fname)
     cambparams,ns = hacc2camb(haccparams)
     pars = camb.CAMBparams()
@@ -150,3 +150,10 @@ def get_delta_and_dotDelta(z,z1,fname):
     return np.array([d,d_dot],dtype=np.float64)
 
 #print(get_delta_and_dotDelta(0))
+
+context = { 'initcambpy': initcambpy, 'get_pk': get_pk, 'get_delta_and_dotDelta': get_delta_and_dotDelta}
+import types
+test_context_module = types.ModuleType('cambpymodule', 'Module created to provide a context for tests')
+test_context_module.__dict__.update(context)
+import sys
+sys.modules['cambpymodule'] = test_context_module

@@ -23,7 +23,7 @@ int main(int argc, char** argv){
     ts.setInitialZ(params.z_ini);
     ts.reverseHalfStep();
 
-    HACCGPM::serial::GenerateDisplacementIC(argv[1],params.cambToolsPath,&mem,params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize);
+    HACCGPM::serial::GenerateDisplacementIC(argv[1],&mem,params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize);
     HACCGPM::serial::InitGreens(mem.d_greens,params.ng,params.blockSize);
 
     char stepstr[400];

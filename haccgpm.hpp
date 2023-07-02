@@ -53,7 +53,6 @@ namespace HACCGPM{
         int nsteps;
         double deltaT;
         char prefix[200];
-        char cambToolsPath[400];
         double m_hubble;
         double m_omega_cdm;
         double m_omega_nu;
@@ -159,7 +158,7 @@ namespace HACCGPM{
 
         void GetFinerPowerSpectrum(float4* d_temp_pos, int ng, double rl, int nbins, int fftNg, const char* fname, int blockSize);
 
-        void GenerateDisplacementIC(const char* params_file, const char* cambToolsPath, HACCGPM::serial::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int calls = 0);
+        void GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int calls = 0);
 
         void Solve(deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls = 0);
 

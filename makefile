@@ -11,6 +11,7 @@ $(RECAP_BUILD_DIR):
 	mkdir -p $(RECAP_BUILD_DIR)
 
 $(RECAP_BUILD_DIR)/ccamb.o: cambTools/ccamb.c | $(RECAP_BUILD_DIR)
+	python3 cambTools/package_cambpy.py
 	gcc $< $(PY_C_FLAGS) -o $@ $(PY_LD_FLAGS) -lpython3.9 -I$(PY_NP_FLAGS) -c -O3 -Wno-unused-but-set-variable -Wno-return-type
 
 $(RECAP_BUILD_DIR)/%.o: %.cu | $(RECAP_BUILD_DIR)

@@ -107,8 +107,6 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
                         out.dumps[val] = true;
                         token = strtok(NULL, ",");
                     }
-                } else if (strcmp(parameter,"CAMB_TOOLS") == 0){
-                    strcpy(out.cambToolsPath,value);
                 }
             }
         }

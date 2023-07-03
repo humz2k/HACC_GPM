@@ -13,12 +13,62 @@
 
 PyObject* pName;
 PyObject* pModule;
+PyObject* pAnalysis;
+PyObject* pAnalysisName;
+int do_analysis;
+PyObject* pAnalysisFunc;
 
 int FIND_ME(){
     return 1;
 }
 
+void import_analysis_module(const char* path, const char* name){
+    do_analysis = 1;
+    char tmp[400];
+    sprintf(tmp,"sys.path.append(\"%s\")\nimport %s",path,name);
+    printf("Importing Analysis Module: %s/%s\n",path,name);
+    PyRun_SimpleString(tmp);
+    PyErr_Print();
+    pAnalysisName = PyUnicode_FromString((char*)name);
+    PyErr_Print();
+    pAnalysis = PyImport_Import(pAnalysisName);
+    PyErr_Print();
+    PyObject* pDict = PyModule_GetDict(pAnalysis);
+    //PyErr_Print();
+    // pFunc is also a borrowed reference
+    pAnalysisFunc = PyDict_GetItemString(pDict,(char*)"onAnalysisStep");
+}
+
+void call_analysis(int step, double z, double a, float* particles, int n_particles, int ng, double rl){
+    PyObject* args = PyTuple_New(0);
+
+    npy_intp dims[2];
+    dims[0] = n_particles;
+    dims[1] = 4;
+    int ND = 2;
+    
+    PyArrayObject* particles_array = PyArray_SimpleNewFromData(ND, dims, NPY_FLOAT, (void*)(particles));
+    PyErr_Print();
+
+    PyObject* kwargs = Py_BuildValue("{s:i, s:f, s:f, s:O, s:i, s:f}",
+          "step", step, "z", z, "a", a, "particles", particles_array, "ng", ng, "rl", rl);
+
+    if (PyCallable_Check(pAnalysisFunc)){
+        PyObject* myResult = PyObject_Call(pAnalysisFunc, args, kwargs);
+        PyErr_Print();
+    }
+    else{
+        PyErr_Print();
+    }
+    Py_DECREF(args);
+    Py_DECREF(kwargs);
+    PyErr_Print();
+}
+
 void init_python(int calls){
+
+    do_analysis = 0;
+
     getIndent(calls);
 
     #ifdef VerboseCCamb
@@ -31,7 +81,7 @@ void init_python(int calls){
     printf("%s   Initialized Python.\n",indent);
     #endif
 
-    //PyRun_SimpleString("import sys");
+    PyRun_SimpleString("import sys");
     //char tmp[400];
     //sprintf(tmp,"sys.path.append(\"%s\")",cambToolsPath);
     //printf("%s   cambToolsPath %s\n",indent,cambToolsPath);
@@ -72,6 +122,12 @@ void finalize_python(int calls){
 
     Py_DECREF(pModule);
     Py_DECREF(pName);
+
+    if(do_analysis){
+        printf("%s   Releasing pAnalysis and pAnalysisName\n",indent);
+        Py_DECREF(pAnalysis);
+        Py_DECREF(pAnalysisName);
+    }
 
     Py_FinalizeEx();
 

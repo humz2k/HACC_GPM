@@ -53,7 +53,7 @@ namespace HACCGPM{
         double z_fin;
         int nsteps;
         double deltaT;
-        char prefix[200];
+        char prefix[300];
         double m_hubble;
         double m_omega_cdm;
         double m_omega_nu;
@@ -73,6 +73,10 @@ namespace HACCGPM{
         double m_f_nu_massive;
         bool pks[MAX_STEPS];
         bool dumps[MAX_STEPS];
+        bool analysis[MAX_STEPS];
+        char analysis_dir[300];
+        char analysis_py[300];
+        bool do_analysis;
         int lastStep;
         int pkFolds;
     };
@@ -98,6 +102,21 @@ namespace HACCGPM{
 
             void reverseHalfStep();
     };
+
+    namespace parallel{
+        class MemoryManager{
+            float4* d_pos;
+            float4* d_vel;
+            float4* d_grad;
+            hostFFT_t* d_greens;
+            deviceFFT_t* d_grid1;
+            deviceFFT_t* d_grid2;
+
+            MemoryManager(HACCGPM::Params params);
+
+            ~MemoryManager();
+        };
+    }
 
     namespace serial{
 

@@ -15,9 +15,12 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
 
     HACCGPM::Params out;
 
+    out.do_analysis = false;
+
     for (int i = 0; i < MAX_STEPS; i++){
         out.pks[i] = false;
         out.dumps[i] = false;
+        out.analysis[i] = false;
     }
 
     out.lastStep = -1;
@@ -107,6 +110,26 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
                         out.dumps[val] = true;
                         token = strtok(NULL, ",");
                     }
+                } else if (strcmp(parameter,"ANALYSIS_STEPS") == 0){
+                    //printf("ANALYSIS: %s\n",value);
+                    if (strcmp(value,"all") == 0){
+                        for (int i = 0; i < MAX_STEPS; i++){
+                            out.analysis[i] = true;
+                        }
+                    } else{
+                        char* token = strtok(value, ",");
+                        while (token != NULL) {
+                            int val = atoi(token);
+                            out.analysis[val] = true;
+                            token = strtok(NULL, ",");
+                        }
+                    }
+                } else if (strcmp(parameter,"ANALYSIS_DIR") == 0){
+                    strcpy(out.analysis_dir,value);
+                } else if (strcmp(parameter,"ANALYSIS_PY") == 0){
+                    strcpy(out.analysis_py,value);
+                } else if (strcmp(parameter,"DO_ANALYSIS") == 0){
+                    out.do_analysis = true;
                 }
             }
         }

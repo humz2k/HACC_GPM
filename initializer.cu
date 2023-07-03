@@ -154,7 +154,7 @@ void GenerateFourierAmplitudes(const char* params_file, deviceFFT_t* d_grid1, in
     printf("%s   Getting Pk from Camb...\n",indent);
     #endif
 
-    init_python(calls + 1);
+    //init_python(calls + 1);
     
     get_pk(params_file,h_tmp,z,ng,rl,calls+1);
 
@@ -219,7 +219,7 @@ void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::s
 
     printf("%s      Delta %g, dotDelta %g\n",indent,delta,dotDelta);
 
-    finalize_python(calls+1);
+    //finalize_python(calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Called get_delta_and_dotDelta.\n",indent);

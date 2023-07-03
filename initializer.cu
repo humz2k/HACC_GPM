@@ -261,3 +261,92 @@ void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::s
     printf("%s      Freed d_sx, d_sy, d_sz.\n",indent);
     #endif
 }
+
+
+void GenerateFourierAmplitudesParallel(const char* params_file, deviceFFT_t* d_grid1, deviceFFT_t* d_grid2, int ng, double rl, double z, int seed, int blockSize, int world_rank, int world_size, int nlocal, int calls){
+    int numBlocks = (nlocal)/blockSize;
+
+    getIndent(calls);
+
+    #ifdef VerboseInitializer
+    if(world_rank == 0)printf("%sGenerateFourierAmplitudesParallel was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   z %g\n",indent,indent,blockSize,indent,numBlocks,indent,z);
+    if(world_rank == 0)printf("%s   Allocating rngState, h_tmp, d_pkScale...\n",indent);
+    #endif
+
+    curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*nlocal);
+    hostFFT_t* h_tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*nlocal);
+    hostFFT_t* d_pkScale; cudaCall(cudaMalloc,&d_pkScale,sizeof(hostFFT_t)*nlocal);
+
+    #ifdef VerboseInitializer
+    if(world_rank == 0)printf("%s      Allocated rngState, h_tmp, d_pkScale.\n",indent);
+    if(world_rank == 0)printf("%s   Calling initRNG...\n",indent);
+    #endif
+
+    InvokeGPUKernelParallel(initRNG,numBlocks,blockSize,rngState,seed);
+
+    #ifdef VerboseInitializer
+    if(world_rank == 0)printf("%s      Called initRNG.\n",indent);
+    if(world_rank == 0)printf("%s   Calling GenerateRealRandom...\n",indent);
+    #endif
+
+    InvokeGPUKernelParallel(GenerateRealRandom,numBlocks,blockSize,rngState,d_grid1);
+
+    #ifdef VerboseInitializer
+    if(world_rank == 0)printf("%s      Called GenerateRealRandom.\n",indent);
+    if(world_rank == 0)printf("%s   Doing Forward FFT...\n",indent);
+    #endif
+
+    //return;
+
+    //HACCGPM::serial::forward_fft(d_grid1,ng,calls+1);
+
+    #ifdef VerboseInitializer
+    if(world_rank == 0)printf("%s      Done Forward FFT...\n",indent);
+    if(world_rank == 0)printf("%s   Getting Pk from Camb...\n",indent);
+    #endif
+
+    //init_python(calls + 1);
+    
+    //get_pk(params_file,h_tmp,z,ng,rl,calls+1);
+
+    #ifdef VerboseInitializer
+    if(world_rank == 0)printf("%s      Got Pk from Camb.\n",indent);
+    if(world_rank == 0)printf("%s   Copying Pk from host to device...\n",indent);
+    #endif
+
+    //cudaCall(cudaMemcpy, d_pkScale, h_tmp, sizeof(hostFFT_t)*ng*ng*ng, cudaMemcpyHostToDevice);
+    
+    #ifdef VerboseInitializer
+    if(world_rank == 0)printf("%s      Copied Pk from host to device.\n",indent);
+    if(world_rank == 0)printf("%s   Scaling Amplitudes...\n",indent);
+    #endif
+
+    //InvokeGPUKernel(ScaleAmplitudes,numBlocks,blockSize,d_grid1,d_pkScale);
+
+    #ifdef VerboseInitializer
+    if(world_rank == 0)printf("%s      Scaled Amplitudes.\n",indent);
+    if(world_rank == 0)printf("%s   Freeing rngState, h_tmp, d_pkScale...\n",indent);
+    #endif
+
+    free(h_tmp);
+    cudaFree(d_pkScale);
+    cudaFree(rngState);
+
+    #ifdef VerboseInitializer
+    if(world_rank == 0)printf("%s      Freed rngState, h_tmp, d_pkScale.\n",indent);
+    #endif
+}
+
+void HACCGPM::parallel::GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int calls){
+
+    int numBlocks = (nlocal)/blockSize;
+    getIndent(calls);
+
+    #ifdef VerboseInitializer
+    if (world_rank == 0)printf("%sGenerateDisplacementIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   params %s\n",indent,indent,blockSize,indent,numBlocks,indent,params_file);
+    if (world_rank == 0)printf("%s   Calling GenerateFourierAmplitudesParallel...\n",indent);
+    #endif
+
+    GenerateFourierAmplitudesParallel(params_file, mem->d_grid1, mem->d_grid2, ng, rl, z, seed, blockSize, world_rank, world_size, nlocal, calls+1);
+
+}

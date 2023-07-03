@@ -23,7 +23,7 @@ int serial(const char* params_file){
     ts.setInitialZ(params.z_ini);
     ts.reverseHalfStep();
 
-    init_python(0);
+    init_python(0,0);
 
     if (params.do_analysis){
         import_analysis_module(params.analysis_dir,params.analysis_py);
@@ -117,13 +117,28 @@ int parallel(const char* params_file){
 
     HACCGPM::Params params = HACCGPM::read_params(params_file);
 
-    Distribution dist(MPI_COMM_WORLD,params.ng,params.blockSize);
-    Dfft dfft(dist);
+    HACCGPM::parallel::FFTManager swfft(params);
 
-    int world_rank = dist.world_rank;
-    int nlocal = dist.nlocal;
+    //Distribution dist(MPI_COMM_WORLD,params.ng,params.blockSize);
+    //Dfft dfft(dist);
 
-    printf("world_rank %d, nlocal %d\n",world_rank,nlocal);
+    //params.nlocal = dist.nlocal;
+    //params.world_rank = dist.world_rank;
+    //params.world_size = dist.world_size;
+
+    //HACCGPM::parallel::MemoryManager mem(params);
+
+    //dfft.makePlans(mem.d_grid2);
+
+    //HACCGPM::Timestepper ts(params);
+    //ts.setInitialZ(params.z_ini);
+    //ts.reverseHalfStep();
+
+    //init_python(0,params.world_rank);
+
+    //HACCGPM::parallel::GenerateDisplacementIC(params_file,&mem,params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize,params.world_rank,params.world_size,params.nlocal);
+
+    //finalize_python(0);
 
 
     return 0;

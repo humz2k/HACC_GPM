@@ -27,6 +27,7 @@ double HACCGPM::serial::get_fscal(double m_aa, double m_adot, double m_omega_cb)
 
 
 HACCGPM::Timestepper::Timestepper(HACCGPM::Params iparams){
+    world_rank = iparams.world_rank;
     deltaT = (((1/(iparams.z_fin + 1)) - (1/(iparams.z_ini + 1))) / (double)iparams.nsteps);
     params = iparams;
 }
@@ -43,7 +44,7 @@ void HACCGPM::Timestepper::setInitialZ(double z){
     aa = 1.0/(z+1.0);
     adot = HACCGPM::serial::get_adot(aa,params.m_w_de,params.m_wa_de,params.m_omega_cb,params.m_omega_radiation,params.m_f_nu_massless,params.m_f_nu_massive,params.m_omega_matter,params.m_omega_nu);
     fscal = HACCGPM::serial::get_fscal(aa,adot,params.m_omega_cb);
-    printf("Timestepper: a=%g, z=%g, adot=%g, fscal=%g\n",aa,z,adot,fscal);
+    if(world_rank == 0)printf("Timestepper: a=%g, z=%g, adot=%g, fscal=%g\n",aa,z,adot,fscal);
 }
 
 void HACCGPM::Timestepper::advanceHalfStep(){
@@ -51,7 +52,7 @@ void HACCGPM::Timestepper::advanceHalfStep(){
     z = (1.0f/aa) - 1;
     adot = HACCGPM::serial::get_adot(aa,params.m_w_de,params.m_wa_de,params.m_omega_cb,params.m_omega_radiation,params.m_f_nu_massless,params.m_f_nu_massive,params.m_omega_matter,params.m_omega_nu);
     fscal = HACCGPM::serial::get_fscal(aa,adot,params.m_omega_cb);
-    printf("Timestepper: a=%g, z=%g, adot=%g, fscal=%g\n",aa,z,adot,fscal);
+    if(world_rank == 0)printf("Timestepper: a=%g, z=%g, adot=%g, fscal=%g\n",aa,z,adot,fscal);
 }
 
 void HACCGPM::Timestepper::reverseHalfStep(){

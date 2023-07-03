@@ -37,6 +37,9 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 #define InvokeGPUKernel(func,numBlocks,blockSize,...) ({printf("%s   Invoked %s\n",indent,TOSTRING(func));CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start;printf("%s      %s took %llu us\n",indent,TOSTRING(func),t); t;})
 
+#define InvokeGPUKernelParallel(func,numBlocks,blockSize,...) ({if(world_rank == 0)printf("%s   Invoked %s\n",indent,TOSTRING(func));CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start;if(world_rank == 0)printf("%s      %s took %llu us\n",indent,TOSTRING(func),t); t;})
+
+
 #define hostFFT_t double
 #define deviceFFT_t cufftDoubleComplex
 
@@ -79,6 +82,10 @@ namespace HACCGPM{
         bool do_analysis;
         int lastStep;
         int pkFolds;
+        int nlocal;
+        float frac;
+        int world_rank;
+        int world_size;
     };
 
     Params read_params(const char* fname);
@@ -91,6 +98,7 @@ namespace HACCGPM{
             double deltaT;
             double adot;
             double fscal;
+            int world_rank;
 
             Timestepper(Params iparams);
 
@@ -105,17 +113,32 @@ namespace HACCGPM{
 
     namespace parallel{
         class MemoryManager{
-            float4* d_pos;
-            float4* d_vel;
-            float4* d_grad;
-            hostFFT_t* d_greens;
-            deviceFFT_t* d_grid1;
-            deviceFFT_t* d_grid2;
+            public:
+                int world_rank;
+                float4* d_pos;
+                float4* d_vel;
+                float4* d_grad;
+                hostFFT_t* d_greens;
+                deviceFFT_t* d_grid1;
+                deviceFFT_t* d_grid2;
 
-            MemoryManager(HACCGPM::Params params);
+                MemoryManager(HACCGPM::Params params);
 
-            ~MemoryManager();
+                ~MemoryManager();
         };
+
+        class FFTManager{
+            public:
+                int world_rank;
+                int world_size;
+                FFTManager(HACCGPM::Params params);
+                ~FFTManager();
+                void forward_fft(deviceFFT_t* d_grid, int ng);
+                void backward_fft(deviceFFT_t* d_grid, int ng);
+
+        };
+
+        void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int calls = 0);
     }
 
     namespace serial{

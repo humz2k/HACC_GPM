@@ -8,7 +8,7 @@ HACCGPM_BUILD_DIR ?= build
 
 CUDA_DIR ?= /usr/local/cuda
 
-main: driver.cpp $(HACCGPM_BUILD_DIR)/ccamb.o $(HACCGPM_BUILD_DIR)/cic.o $(HACCGPM_BUILD_DIR)/initializer.o $(HACCGPM_BUILD_DIR)/io.o $(HACCGPM_BUILD_DIR)/power.o $(HACCGPM_BUILD_DIR)/greens.o $(HACCGPM_BUILD_DIR)/solver.o $(HACCGPM_BUILD_DIR)/params.o $(HACCGPM_BUILD_DIR)/timestepper.o $(HACCGPM_BUILD_DIR)/mmanager.o $(HACCGPM_BUILD_DIR)/ffts.o | swfft
+main: driver.cpp swfftmanager.cpp $(HACCGPM_BUILD_DIR)/ccamb.o $(HACCGPM_BUILD_DIR)/cic.o $(HACCGPM_BUILD_DIR)/initializer.o $(HACCGPM_BUILD_DIR)/io.o $(HACCGPM_BUILD_DIR)/power.o $(HACCGPM_BUILD_DIR)/greens.o $(HACCGPM_BUILD_DIR)/solver.o $(HACCGPM_BUILD_DIR)/params.o $(HACCGPM_BUILD_DIR)/timestepper.o $(HACCGPM_BUILD_DIR)/mmanager.o $(HACCGPM_BUILD_DIR)/ffts.o | swfft
 #	nvcc $^ -lcufft -lineinfo -Xptxas -v $(PY_LD_FLAGS) -lpython3.9 -Xcompiler -fPIC,-O3,-fopenmp,-g, -gencode arch=compute_60,code=sm_60 -o haccgpm
 	mpicxx $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft $(PY_LD_FLAGS) -lpython3.9 -I$(CUDA_DIR)/include -fPIC -O3 -fopenmp -g -o haccgpm
 

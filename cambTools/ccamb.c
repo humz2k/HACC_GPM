@@ -17,6 +17,7 @@ PyObject* pAnalysis;
 PyObject* pAnalysisName;
 int do_analysis;
 PyObject* pAnalysisFunc;
+int world_rank;
 
 int FIND_ME(){
     return 1;
@@ -65,20 +66,22 @@ void call_analysis(int step, double z, double a, float* particles, int n_particl
     PyErr_Print();
 }
 
-void init_python(int calls){
+void init_python(int calls, int world_rank_){
+
+    world_rank = world_rank_;
 
     do_analysis = 0;
 
     getIndent(calls);
 
     #ifdef VerboseCCamb
-    printf("%sInitializing Python...\n",indent);
+    if(world_rank == 0)printf("%sInitializing Python...\n",indent);
     #endif
 
     Py_Initialize();
 
     #ifdef VerboseCCamb
-    printf("%s   Initialized Python.\n",indent);
+    if(world_rank == 0)printf("%s   Initialized Python.\n",indent);
     #endif
 
     PyRun_SimpleString("import sys");
@@ -92,29 +95,29 @@ void init_python(int calls){
     pName = PyUnicode_FromString((char*)"cambpymodule");
 
     #ifdef VerboseCCamb
-    printf("%sImporting Numpy...\n",indent);
+    if(world_rank == 0)printf("%sImporting Numpy...\n",indent);
     #endif
 
     import_array();
 
     #ifdef VerboseCCamb
-    printf("%s   Imported Numpy.\n",indent);
+    if(world_rank == 0)printf("%s   Imported Numpy.\n",indent);
     // Load the module object
 
-    printf("%sImporting Camb...\n",indent);
+    if(world_rank == 0)printf("%sImporting Camb...\n",indent);
     #endif
     
     pModule = PyImport_Import(pName);
     
     #ifdef VerboseCCamb
-    printf("%s   Imported Camb.\n",indent);
+    if(world_rank == 0)printf("%s   Imported Camb.\n",indent);
     #endif
 }
 
 void finalize_python(int calls){
     getIndent(calls);
     #ifdef VerboseCCamb
-    printf("%sFinalizing Python...\n",indent);
+    if(world_rank == 0)printf("%sFinalizing Python...\n",indent);
     #endif
 
     //Py_DECREF(pModule);
@@ -124,7 +127,7 @@ void finalize_python(int calls){
     Py_DECREF(pName);
 
     if(do_analysis){
-        printf("%s   Releasing pAnalysis and pAnalysisName\n",indent);
+        if(world_rank == 0)printf("%s   Releasing pAnalysis and pAnalysisName\n",indent);
         Py_DECREF(pAnalysis);
         Py_DECREF(pAnalysisName);
     }
@@ -132,14 +135,14 @@ void finalize_python(int calls){
     Py_FinalizeEx();
 
     #ifdef VerboseCCamb
-    printf("%s   Finalized Python.\n",indent);
+    if(world_rank == 0)printf("%s   Finalized Python.\n",indent);
     #endif
 }
 
 void get_pk(const char* params_file, double* grid, double z, int ng, double rl, int calls){
     getIndent(calls);
     #ifdef VerboseCCamb
-    printf("%sFilling grid...\n",indent);
+    if(world_rank == 0)printf("%sFilling grid...\n",indent);
     #endif
     //double delK = (2*M_PI)/((double)ng);
     //double delK2 = delK*delK;
@@ -170,9 +173,9 @@ void get_pk(const char* params_file, double* grid, double z, int ng, double rl, 
         }
     }
     #ifdef VerboseCCamb
-    printf("%s   Filled grid.\n",indent);
+    if(world_rank == 0)printf("%s   Filled grid.\n",indent);
 
-    printf("%sGetting Functions...\n",indent);
+    if(world_rank == 0)printf("%sGetting Functions...\n",indent);
     #endif
 
     // pDict is a borrowed reference 
@@ -189,17 +192,17 @@ void get_pk(const char* params_file, double* grid, double z, int ng, double rl, 
     PyObject* args;
 
     #ifdef VerboseCCamb
-    printf("%s   Got Functions.\n",indent);
-    printf("%sCalling pFuncInit...\n",indent);
+    if(world_rank == 0)printf("%s   Got Functions.\n",indent);
+    if(world_rank == 0)printf("%sCalling pFuncInit...\n",indent);
     #endif
 
     presult=PyObject_CallFunctionObjArgs(pFuncInit,NULL);
     PyErr_Print();
 
     #ifdef VerboseCCamb
-    printf("%s   Called pFuncInit.\n",indent);
+    if(world_rank == 0)printf("%s   Called pFuncInit.\n",indent);
 
-    printf("%sPacking into numpy array...\n",indent);
+    if(world_rank == 0)printf("%sPacking into numpy array...\n",indent);
     #endif
 
     npy_intp dims[1];
@@ -210,16 +213,16 @@ void get_pk(const char* params_file, double* grid, double z, int ng, double rl, 
     PyErr_Print();
 
     #ifdef VerboseCCamb
-    printf("%s   Packed into numpy array.\n",indent);
+    if(world_rank == 0)printf("%s   Packed into numpy array.\n",indent);
 
-    printf("%sCalling pGetPk...\n",indent);
+    if(world_rank == 0)printf("%sCalling pGetPk...\n",indent);
     #endif
     args = PyTuple_Pack(5,PyFloat_FromDouble(z),test,PyFloat_FromDouble((double)ng),PyFloat_FromDouble(rl),_PyUnicode_FromASCII(params_file,strlen(params_file)*sizeof(char)));
     pPkResult = PyObject_CallObject(pGetPk,args);
     PyErr_Print();
     Py_DECREF(args);
     #ifdef VerboseCCamb
-    printf("%s   Called pGetPk.\n",indent);
+    if(world_rank == 0)printf("%s   Called pGetPk.\n",indent);
     #endif
 
     double* c_out = (double*)(PyArray_DATA(pPkResult));
@@ -248,7 +251,7 @@ void get_delta_and_dotDelta(const char* params_file, double z, double z1, double
     PyObject* args;
 
     #ifdef VerboseCCamb
-    printf("%sCalling pGetDeltaAndDotDelta...\n",indent);
+    if(world_rank == 0)printf("%sCalling pGetDeltaAndDotDelta...\n",indent);
     #endif
 
     args = PyTuple_Pack(3,PyFloat_FromDouble(z),PyFloat_FromDouble(z1),_PyUnicode_FromASCII(params_file,strlen(params_file)*sizeof(char)));
@@ -256,7 +259,7 @@ void get_delta_and_dotDelta(const char* params_file, double z, double z1, double
     PyErr_Print();
     Py_DECREF(args);
     #ifdef VerboseCCamb
-    printf("%s   Called pGetDeltaAndDotDelta.\n",indent);
+    if(world_rank == 0)printf("%s   Called pGetDeltaAndDotDelta.\n",indent);
     #endif
 
     double* c_out = (double*)(PyArray_DATA(pPkResult));

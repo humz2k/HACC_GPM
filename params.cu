@@ -16,6 +16,8 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
     HACCGPM::Params out;
 
     out.do_analysis = false;
+    out.frac = 1.5;
+    out.world_rank = 0;
 
     for (int i = 0; i < MAX_STEPS; i++){
         out.pks[i] = false;

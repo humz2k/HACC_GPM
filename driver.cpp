@@ -117,7 +117,7 @@ int parallel(const char* params_file){
 
     HACCGPM::Params params = HACCGPM::read_params(params_file);
 
-    HACCGPM::parallel::FFTManager swfft(params);
+    HACCGPM::parallel::init_swfft(params);
 
     //Distribution dist(MPI_COMM_WORLD,params.ng,params.blockSize);
     //Dfft dfft(dist);

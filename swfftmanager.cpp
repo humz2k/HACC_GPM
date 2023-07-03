@@ -6,13 +6,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-HACCGPM::parallel::FFTManager::FFTManager(HACCGPM::Params params){
+class FFTManager{
+    public:
+        Distribution dist;
+        Dfft dfft;
+        FFTManager(HACCGPM::Params params) : dist(MPI_COMM_WORLD,params.ng,params.blockSize), dfft(dist) {
+            
+        } 
+};
 
-    //world_rank = params.world_rank;
-    //world_size = params.world_size;
-    //if(world_rank == 0)printf("INITIALIZING SWFFT\n");
-}
+FFTManager* ffts;
 
-HACCGPM::parallel::FFTManager::~FFTManager(){
-    //if(world_rank == 0)printf("FINALIZING SWFFT\n");
+void HACCGPM::parallel::init_swfft(HACCGPM::Params params){
+    FFTManager tmp(params);
+    ffts = &tmp;
 }

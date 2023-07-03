@@ -127,16 +127,9 @@ namespace HACCGPM{
                 ~MemoryManager();
         };
 
-        class FFTManager{
-            public:
-                int world_rank;
-                int world_size;
-                FFTManager(HACCGPM::Params params);
-                ~FFTManager();
-                void forward_fft(deviceFFT_t* d_grid, int ng);
-                void backward_fft(deviceFFT_t* d_grid, int ng);
-
-        };
+        void init_swfft(HACCGPM::Params params);
+        void forward_fft(deviceFFT_t* d_grid, int ng);
+        void backward_fft(deviceFFT_t* d_grid, int ng);
 
         void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int calls = 0);
     }

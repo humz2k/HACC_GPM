@@ -11,7 +11,7 @@ class FFTManager{
         Distribution dist;
         Dfft dfft;
         FFTManager(HACCGPM::Params params) : dist(MPI_COMM_WORLD,params.ng,params.blockSize), dfft(dist) {
-            
+
         } 
 };
 
@@ -21,3 +21,5 @@ void HACCGPM::parallel::init_swfft(HACCGPM::Params params){
     FFTManager tmp(params);
     ffts = &tmp;
 }
+
+

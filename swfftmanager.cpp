@@ -1,3 +1,6 @@
+
+#define GPU
+#define alltoall
 #include "swfft-all-to-all/include/swfft.hpp"
 #include "haccgpm.hpp"
 #include <stdio.h>

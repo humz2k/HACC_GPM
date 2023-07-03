@@ -119,26 +119,19 @@ int parallel(const char* params_file){
 
     HACCGPM::parallel::init_swfft(params);
 
-    //Distribution dist(MPI_COMM_WORLD,params.ng,params.blockSize);
-    //Dfft dfft(dist);
+    HACCGPM::parallel::MemoryManager mem(params);
 
-    //params.nlocal = dist.nlocal;
-    //params.world_rank = dist.world_rank;
-    //params.world_size = dist.world_size;
+    HACCGPM::Timestepper ts(params);
+    ts.setInitialZ(params.z_ini);
+    ts.reverseHalfStep();
 
-    //HACCGPM::parallel::MemoryManager mem(params);
+    init_python(0,params.world_rank);
 
-    //dfft.makePlans(mem.d_grid2);
+    HACCGPM::parallel::GenerateDisplacementIC(params_file,&mem,params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize,params.world_rank,params.world_size,params.nlocal,params.local_grid_size);
 
-    //HACCGPM::Timestepper ts(params);
-    //ts.setInitialZ(params.z_ini);
-    //ts.reverseHalfStep();
+    finalize_python(0);
 
-    //init_python(0,params.world_rank);
-
-    //HACCGPM::parallel::GenerateDisplacementIC(params_file,&mem,params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize,params.world_rank,params.world_size,params.nlocal);
-
-    //finalize_python(0);
+    HACCGPM::parallel::finalize_swfft();
 
 
     return 0;

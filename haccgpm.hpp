@@ -86,6 +86,8 @@ namespace HACCGPM{
         float frac;
         int world_rank;
         int world_size;
+        int local_grid_start[3];
+        int local_grid_size[3];
     };
 
     Params read_params(const char* fname);
@@ -119,19 +121,58 @@ namespace HACCGPM{
                 float4* d_vel;
                 float4* d_grad;
                 hostFFT_t* d_greens;
-                deviceFFT_t* d_grid1;
-                deviceFFT_t* d_grid2;
+                deviceFFT_t* d_grid;
+                //deviceFFT_t* d_grid2;
 
                 MemoryManager(HACCGPM::Params params);
 
                 ~MemoryManager();
         };
 
-        void init_swfft(HACCGPM::Params params);
-        void forward_fft(deviceFFT_t* d_grid, int ng);
-        void backward_fft(deviceFFT_t* d_grid, int ng);
+        __device__ __forceinline__ int3 get_local_index(int idx, int nx, int ny, int nz){
+            int3 out;
+            out.x = idx/(ny*nz);
+            out.y = (idx - (out.x*ny*nz))/nz;
+            out.z = (idx - (out.x*ny*nz)) - out.y*nz;
+            return out;
+        }
 
-        void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int calls = 0);
+        __device__ __forceinline__ int3 get_global_index(int idx, int ng, int nlocal, int world_rank){
+            int3 out;
+            idx += nlocal * world_rank;
+            out.x = idx/(ng*ng);
+            out.y = (idx - (out.x*ng*ng))/ng;
+            out.z = (idx - (out.x*ng*ng)) - out.y*ng;
+            return out;
+        }
+
+        __device__ __forceinline__ float3 get_kmodes(int3 idx3d, int ng, double d){
+            float l = idx3d.x;
+            if (idx3d.x > ((ng/2)-1)){
+                l = -(ng - idx3d.x);
+            }
+            l *= d;
+
+            float m = idx3d.y;
+            if (idx3d.y > ((ng/2)-1)){
+                m = -(ng - idx3d.y);
+            }
+            m *= d;
+
+            float n = idx3d.z;
+            if (idx3d.z > ((ng/2)-1)){
+                n = -(ng - idx3d.z);
+            }
+            n *= d;
+            return make_float3(l,m,n);
+        }
+
+        void init_swfft(HACCGPM::Params& params);
+        void finalize_swfft();
+        void forward_fft(deviceFFT_t* d_grid, int ng, int calls = 0);
+        void backward_fft(deviceFFT_t* d_grid, int ng, int calls = 0);
+
+        void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int calls = 0);
     }
 
     namespace serial{

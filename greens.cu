@@ -66,13 +66,13 @@ void HACCGPM::serial::InitGreens(hostFFT_t* d_greens, int ng, int blockSize, int
 
     #ifdef VerboseGreens
     printf("%sInitGreens was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
-    printf("   Calling getGreens...\n");
+    printf("%s   Calling getGreens...\n",indent);
     #endif
 
     InvokeGPUKernel(getGreens,numBlocks,blockSize,d_greens,ng);
 
     #ifdef VerboseGreens
-    printf("      Called getGreens...\n");
+    printf("%s      Called getGreens...\n",indent);
     #endif
 
 }

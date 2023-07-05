@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
+#include <cstring>
 #define USECPSEC 1000000ULL
 
 #define STRINGIFY(x) #x
@@ -175,9 +176,18 @@ namespace HACCGPM{
         void forward_fft(deviceFFT_t* d_grid, int ng, int calls = 0);
         void backward_fft(deviceFFT_t* d_grid, int ng, int calls = 0);
 
-        void loadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps, float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls = 0);
+        void timing_stats(CPUTimer_t t, CPUTimer_t* mint, CPUTimer_t* maxt, CPUTimer_t* meant);
+
+        CPUTimer_t loadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps, float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls = 0);
+
+        void transferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls = 0);
+        CPUTimer_t insertParticles(float4* d_pos, float4* d_vel, float4* new_pos, float4* new_vel, int n_new, int remaining, int n_particles, int blockSize, int world_rank, int calls = 0);
 
         void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int calls = 0);
+    
+        void printTransferTimes(int world_rank);
+
+        void printTransferBytes(int world_rank);
     }
 
     namespace serial{

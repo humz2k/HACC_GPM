@@ -3,6 +3,8 @@
 #include "haccgpm.hpp"
 #include "bdwgc/include/gc.h"
 
+#define VerboseSwap
+
 __global__ void swap_set_invalid(float4* __restrict d_pos, int mem_frac){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     if (idx >= mem_frac) return;
@@ -81,15 +83,68 @@ __global__ void load_buffer(float4* __restrict d_pos, float4* __restrict d_vel, 
     }
 }
 
-void HACCGPM::parallel::loadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps,float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls){
+__global__ void findDuplicates(const float4* __restrict d_pos, float4* __restrict new_particles, int n_new, int n_particles){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if (idx >= n_particles)return;
+    float4 my_particle = __ldg(&d_pos[idx]);
+    for (int i = 0; i < n_new; i++){
+        float4 other_particle = __ldg(&new_particles[i]);
+        if (my_particle.w == other_particle.w){
+            new_particles[i] = make_float4(0,0,0,-10);
+            return;
+        }
+    }
+}
+
+__global__ void combineParticles(float4* __restrict d_pos, float4* __restrict d_vel, const float4* __restrict new_pos, const float4* __restrict new_vel, int n_new, int remaining, int n_particles){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if (idx >= n_new)return;
+    float4 my_particle = __ldg(&new_pos[idx]);
+    if (my_particle.w < -1)return;
+    float4 my_vel = __ldg(&new_vel[idx]);
+    int dest = idx + remaining;
+    d_pos[dest] = my_particle;
+    d_vel[dest] = my_vel;
+}
+
+CPUTimer_t HACCGPM::parallel::insertParticles(float4* d_pos, float4* d_vel, float4* new_pos, float4* new_vel, int n_new, int remaining, int n_particles, int blockSize, int world_rank, int calls){
+    int numBlocks = (n_particles + blockSize - 1) / blockSize;
+    getIndent(calls);
+
+    #ifdef VerboseSwap
+    if(world_rank == 0)printf("%sinsertParticles was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    if(world_rank == 0)printf("%s   Copying to device\n",indent);
+    #endif
+
+    float4* d_new_pos; cudaCall(cudaMalloc,&d_new_pos,sizeof(float4)*n_new);
+    float4* d_new_vel; cudaCall(cudaMalloc,&d_new_vel,sizeof(float4)*n_new);
+    cudaCall(cudaMemcpy,d_new_pos,new_pos,sizeof(float4)*n_new,cudaMemcpyHostToDevice);
+    cudaCall(cudaMemcpy,d_new_vel,new_vel,sizeof(float4)*n_new,cudaMemcpyHostToDevice);
+    #ifdef VerboseSwap
+    if(world_rank == 0)printf("%s      Copied to device\n",indent);
+    #endif
+    CPUTimer_t gpu_time = 0;
+    gpu_time += InvokeGPUKernelParallel(findDuplicates,numBlocks,blockSize,d_pos,d_new_pos,n_new,n_particles);
+    gpu_time += InvokeGPUKernelParallel(combineParticles,numBlocks,blockSize,d_pos,d_vel,d_new_pos,d_new_vel,n_new,remaining,n_particles);
+    return gpu_time;
+}
+
+CPUTimer_t HACCGPM::parallel::loadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps,float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls){
     int numBlocks = (n_particles + blockSize - 1) / blockSize;
 
     getIndent(calls);
 
+    #ifdef VerboseSwap
+    if(world_rank == 0)printf("%sloadIntoBuffers was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    #endif
+
+    CPUTimer_t start = CPUTimer();
+    CPUTimer_t gpu_time = 0;
+
     int* d_ns; cudaCall(cudaMalloc,&d_ns,sizeof(int)*27);
     cudaCall(cudaMemset,d_ns,0,sizeof(int)*27);
     int* h_ns = (int*)malloc(sizeof(int) * 27);
-    InvokeGPUKernelParallel(count_buffer,numBlocks,blockSize,d_ns,d_pos,n_particles,local_grid_size);
+    gpu_time += InvokeGPUKernelParallel(count_buffer,numBlocks,blockSize,d_ns,d_pos,n_particles,local_grid_size);
     cudaCall(cudaMemcpy, h_ns, d_ns, sizeof(int)*27, cudaMemcpyDeviceToHost);
     int tmp_size = 0;
     int* h_starts = (int*)malloc(sizeof(int) * 27);
@@ -115,11 +170,11 @@ void HACCGPM::parallel::loadIntoBuffers(float4** swap_pos, float4** swap_vel, in
     float4* d_vel_swap; cudaCall(cudaMalloc,&d_vel_swap,sizeof(float4)*tmp_size);
     float4* d_tmppos; cudaCall(cudaMalloc,&d_tmppos,sizeof(float4)*n_particles);
     float4* d_tmpvel; cudaCall(cudaMalloc,&d_tmpvel,sizeof(float4)*n_particles);
-    InvokeGPUKernelParallel(copy,numBlocks,blockSize,d_tmppos,d_pos,d_tmpvel,d_vel,n_particles);
-    InvokeGPUKernelParallel(swap_set_invalid,numBlocks,blockSize,d_pos,n_particles);
+    gpu_time += InvokeGPUKernelParallel(copy,numBlocks,blockSize,d_tmppos,d_pos,d_tmpvel,d_vel,n_particles);
+    gpu_time += InvokeGPUKernelParallel(swap_set_invalid,numBlocks,blockSize,d_pos,n_particles);
 
     cudaCall(cudaMemset,d_ns,0,sizeof(int)*27);
-    InvokeGPUKernelParallel(load_buffer,numBlocks,blockSize,d_pos,d_vel,d_pos_swap,d_vel_swap,d_ns,d_starts,d_tmppos,d_tmpvel,local_grid_size,n_particles,world_rank);
+    gpu_time += InvokeGPUKernelParallel(load_buffer,numBlocks,blockSize,d_pos,d_vel,d_pos_swap,d_vel_swap,d_ns,d_starts,d_tmppos,d_tmpvel,local_grid_size,n_particles,world_rank);
 
     float4* h_pos_swap = (float4*)GC_MALLOC(sizeof(float4)*tmp_size);
     float4* h_vel_swap = (float4*)GC_MALLOC(sizeof(float4)*tmp_size);
@@ -143,4 +198,10 @@ void HACCGPM::parallel::loadIntoBuffers(float4** swap_pos, float4** swap_vel, in
     cudaCall(cudaFree,d_ns);
     free(h_ns);
     free(h_starts);
+
+    CPUTimer_t end = CPUTimer();
+    CPUTimer_t total_time = end-start;
+
+    if(world_rank == 0)printf("%s   loadIntoBuffers took %llu us\n",indent,total_time);
+    return gpu_time;
 }

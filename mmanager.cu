@@ -2,6 +2,12 @@
 #include "stdio.h"
 #include "haccgpm.hpp"
 
+__global__ void set_invalid(float4* __restrict d_pos, int mem_frac){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if (idx >= mem_frac) return;
+    d_pos[idx] = make_float4(0,0,0,-10);
+}
+
 HACCGPM::parallel::MemoryManager::MemoryManager(HACCGPM::Params params){
     world_rank = params.world_rank;
     if (params.world_rank == 0)printf("MemoryManager:\n   Allocating d_vel,d_pos,d_greens,d_grid1,d_grad...\n");
@@ -12,6 +18,12 @@ HACCGPM::parallel::MemoryManager::MemoryManager(HACCGPM::Params params){
 
     cudaCall(cudaMalloc,&d_pos,sizeof(float4)*mem_frac);
     if (params.world_rank == 0)printf("   Allocated d_pos: %lu bytes.\n",sizeof(float4)*mem_frac);
+
+    int blockSize = params.blockSize;
+    int numBlocks = (mem_frac + blockSize - 1) / blockSize;
+    getIndent(0);
+    InvokeGPUKernelParallel(set_invalid,numBlocks,blockSize,d_pos,mem_frac);
+    if (params.world_rank == 0)printf("   set_invalid d_pos\n");
 
     cudaCall(cudaMalloc,&d_greens,sizeof(hostFFT_t)*params.nlocal);
     if (params.world_rank == 0)printf("   Allocated d_greens: %lu bytes.\n",sizeof(hostFFT_t)*params.nlocal);

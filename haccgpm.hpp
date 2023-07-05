@@ -88,6 +88,9 @@ namespace HACCGPM{
         int world_size;
         int local_grid_start[3];
         int local_grid_size[3];
+        int grid_dims[3];
+        int grid_coords[3];
+        int n_particles;
     };
 
     Params read_params(const char* fname);
@@ -171,6 +174,8 @@ namespace HACCGPM{
         void finalize_swfft();
         void forward_fft(deviceFFT_t* d_grid, int ng, int calls = 0);
         void backward_fft(deviceFFT_t* d_grid, int ng, int calls = 0);
+
+        void loadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps, float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls = 0);
 
         void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int calls = 0);
     }

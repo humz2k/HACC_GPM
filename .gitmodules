@@ -1,3 +1,6 @@
 [submodule "swfft-all-to-all"]
 	path = swfft-all-to-all
 	url = https://git.cels.anl.gov/hqureshi/swfft-all-to-all.git
+[submodule "bdwgc"]
+	path = bdwgc
+	url = https://github.com/ivmai/bdwgc.git

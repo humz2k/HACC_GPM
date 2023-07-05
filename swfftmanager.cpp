@@ -28,6 +28,13 @@ class FFTManager{
             params.local_grid_size[0] = dist.local_grid_size[0];
             params.local_grid_size[1] = dist.local_grid_size[1];
             params.local_grid_size[2] = dist.local_grid_size[2];
+            params.grid_dims[0] = dist.dims[0];
+            params.grid_dims[1] = dist.dims[1];
+            params.grid_dims[2] = dist.dims[2];
+            params.n_particles = params.frac * params.nlocal;
+            params.grid_coords[0] = dist.coords[0];
+            params.grid_coords[1] = dist.coords[1];
+            params.grid_coords[2] = dist.coords[2];
             //printf("world_rank %d, world_size %d\n",params.world_rank,params.world_size);
         }
         ~FFTManager(){

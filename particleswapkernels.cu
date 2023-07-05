@@ -1,0 +1,146 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include "haccgpm.hpp"
+#include "bdwgc/include/gc.h"
+
+__global__ void swap_set_invalid(float4* __restrict d_pos, int mem_frac){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if (idx >= mem_frac) return;
+    d_pos[idx] = make_float4(0,0,0,-10);
+}
+
+__global__ void copy(float4* __restrict dest1, const float4* __restrict source1, float4* __restrict dest2, const float4* __restrict source2, int n){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if (idx >= n)return;
+    float4 my_particle = __ldg(&source1[idx]);
+    float4 my_vel = __ldg(&source2[idx]);
+    dest1[idx] = my_particle;
+    dest2[idx] = my_vel;
+}
+
+__global__ void count_buffer(int* ns, const float4* __restrict d_pos, int n_particles, int3 local_grid_size){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if (idx >= n_particles)return;
+    float4 my_particle = __ldg(&d_pos[idx]);
+    if (my_particle.w < -1)return;
+    for (int i = 0; i < 27; i++){
+        int x = (i/3)/3;
+        int y = (i - x*3*3)/3;
+        int z = i - x*3*3 - y*3;
+        x = (x-1)*local_grid_size.x;
+        y = (y-1)*local_grid_size.y;
+        z = (z-1)*local_grid_size.z;
+        float3 tmp_particle = make_float3(my_particle.x - x, my_particle.y - y, my_particle.z - z);
+        if ((tmp_particle.x > -1 && tmp_particle.x < local_grid_size.x) && 
+            (tmp_particle.y > -1 && tmp_particle.y < local_grid_size.y) &&
+            (tmp_particle.z > -1 && tmp_particle.z < local_grid_size.z)){
+                //printf("Particle %g %g %g %g going to idx %d\n",my_particle.x,my_particle.y,my_particle.z,my_particle.w,i);
+                atomicAdd(&ns[i],1);
+            }
+
+    }
+}
+
+__global__ void load_buffer(float4* __restrict d_pos, float4* __restrict d_vel, float4* __restrict d_pos_swap, float4* __restrict d_vel_swap, int* count, int* starts, const float4* __restrict d_tmppos, const float4* __restrict d_tmpvel, int3 local_grid_size, int n_particles, int world_rank){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if (idx >= n_particles)return;
+    float4 my_particle = __ldg(&d_tmppos[idx]);
+    if (my_particle.w < -1)return;
+    float4 my_vel = __ldg(&d_tmpvel[idx]);
+    for (int i = 0; i < 27; i++){
+        int x = (i/3)/3;
+        int y = (i - x*3*3)/3;
+        int z = i - x*3*3 - y*3;
+        x = (x-1)*local_grid_size.x;
+        y = (y-1)*local_grid_size.y;
+        z = (z-1)*local_grid_size.z;
+        float4 tmp_particle = make_float4(my_particle.x - x, my_particle.y - y, my_particle.z - z, my_particle.w);
+        if ((tmp_particle.x > -1 && tmp_particle.x < local_grid_size.x) && 
+            (tmp_particle.y > -1 && tmp_particle.y < local_grid_size.y) &&
+            (tmp_particle.z > -1 && tmp_particle.z < local_grid_size.z)){
+                //printf("Particle %g %g %g %g going to idx %d\n",my_particle.x,my_particle.y,my_particle.z,my_particle.w,i);
+                float4* pos_dest;
+                float4* vel_dest;
+                pos_dest = d_pos;
+                vel_dest = d_vel;
+                if (i != 13){
+                    int start = starts[i];
+                    pos_dest = &d_pos_swap[start];
+                    vel_dest = &d_vel_swap[start];
+                }
+                int j = atomicAdd(&count[i],1);
+                pos_dest[j] = tmp_particle;
+                vel_dest[j] = my_vel;
+                /*if (i > 13){
+                    if (world_rank == 0){
+                        printf("i=%d j=%d [%g %g %g %g]\n",i,j,pos_dest[j].x,pos_dest[j].y,pos_dest[j].z,pos_dest[j].w);
+                    }
+                }*/
+            }
+
+    }
+}
+
+void HACCGPM::parallel::loadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps,float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls){
+    int numBlocks = (n_particles + blockSize - 1) / blockSize;
+
+    getIndent(calls);
+
+    int* d_ns; cudaCall(cudaMalloc,&d_ns,sizeof(int)*27);
+    cudaCall(cudaMemset,d_ns,0,sizeof(int)*27);
+    int* h_ns = (int*)malloc(sizeof(int) * 27);
+    InvokeGPUKernelParallel(count_buffer,numBlocks,blockSize,d_ns,d_pos,n_particles,local_grid_size);
+    cudaCall(cudaMemcpy, h_ns, d_ns, sizeof(int)*27, cudaMemcpyDeviceToHost);
+    int tmp_size = 0;
+    int* h_starts = (int*)malloc(sizeof(int) * 27);
+    int* d_starts; cudaCall(cudaMalloc,&d_starts,sizeof(int)*27);
+    h_starts[0] = 0;
+    for (int x = -1; x < 2; x++){
+        for (int y = -1; y < 2; y++){
+            for (int z = -1; z < 2; z++){
+                int i = (x+1)*3*3 + (y+1)*3 + (z+1);
+                if (i != 13){
+                    tmp_size += h_ns[i];
+                    h_starts[i] = 0;
+                    for (int j = 0; j < i; j++){
+                        if (j != 13)h_starts[i] += h_ns[j];
+                    }
+                }
+                //printf("RANK %d: Going to (%d %d %d): %d\n",world_rank,x,y,z,h_ns[i]);
+            }
+        }
+    }
+    cudaCall(cudaMemcpy, d_starts, h_starts, sizeof(int)*27, cudaMemcpyHostToDevice);
+    float4* d_pos_swap; cudaCall(cudaMalloc,&d_pos_swap,sizeof(float4)*tmp_size);
+    float4* d_vel_swap; cudaCall(cudaMalloc,&d_vel_swap,sizeof(float4)*tmp_size);
+    float4* d_tmppos; cudaCall(cudaMalloc,&d_tmppos,sizeof(float4)*n_particles);
+    float4* d_tmpvel; cudaCall(cudaMalloc,&d_tmpvel,sizeof(float4)*n_particles);
+    InvokeGPUKernelParallel(copy,numBlocks,blockSize,d_tmppos,d_pos,d_tmpvel,d_vel,n_particles);
+    InvokeGPUKernelParallel(swap_set_invalid,numBlocks,blockSize,d_pos,n_particles);
+
+    cudaCall(cudaMemset,d_ns,0,sizeof(int)*27);
+    InvokeGPUKernelParallel(load_buffer,numBlocks,blockSize,d_pos,d_vel,d_pos_swap,d_vel_swap,d_ns,d_starts,d_tmppos,d_tmpvel,local_grid_size,n_particles,world_rank);
+
+    float4* h_pos_swap = (float4*)GC_MALLOC(sizeof(float4)*tmp_size);
+    float4* h_vel_swap = (float4*)GC_MALLOC(sizeof(float4)*tmp_size);
+    cudaCall(cudaMemcpy, h_pos_swap, d_pos_swap, sizeof(float4)*tmp_size, cudaMemcpyDeviceToHost);
+    cudaCall(cudaMemcpy, h_vel_swap, d_vel_swap, sizeof(float4)*tmp_size, cudaMemcpyDeviceToHost);
+
+    for (int i = 0; i < tmp_size; i++){
+        //if(world_rank == 0)printf("i %d: %g %g %g %g\n",i,h_pos_swap[i].x,h_pos_swap[i].y,h_pos_swap[i].z,h_pos_swap[i].w);
+    }
+
+    for (int i = 0; i < 27; i++){
+        n_swaps[i] = h_ns[i];
+        swap_pos[i] = &h_pos_swap[h_starts[i]];
+        swap_vel[i] = &h_vel_swap[h_starts[i]];
+    }
+
+    cudaCall(cudaFree,d_pos_swap);
+    cudaCall(cudaFree,d_vel_swap);
+    cudaCall(cudaFree,d_tmppos);
+    cudaCall(cudaFree,d_tmpvel);
+    cudaCall(cudaFree,d_ns);
+    free(h_ns);
+    free(h_starts);
+}

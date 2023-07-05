@@ -15,6 +15,13 @@ __global__ void initRNG(curandState *state, int seed){
 
 }
 
+__global__ void initRNG(curandState *state, int seed, int nlocal, int world_rank){
+
+  int idx = threadIdx.x+blockDim.x*blockIdx.x;
+  curand_init(seed, idx + nlocal * world_rank, 0, &state[idx]);
+
+}
+
 __global__ void GenerateRealRandom(curandState* state, deviceFFT_t* __restrict grid){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     hostFFT_t amp = curand_normal_double(state + idx);
@@ -353,7 +360,7 @@ void GenerateFourierAmplitudesParallel(const char* params_file, deviceFFT_t* d_g
     if(world_rank == 0)printf("%s   Calling initRNG...\n",indent);
     #endif
 
-    InvokeGPUKernelParallel(initRNG,numBlocks,blockSize,rngState,seed);
+    InvokeGPUKernelParallel(initRNG,numBlocks,blockSize,rngState,seed,nlocal,world_rank);
 
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Called initRNG.\n",indent);

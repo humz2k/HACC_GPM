@@ -266,7 +266,7 @@ void HACCGPM::parallel::printTransferTimes(int world_rank){
     HACCGPM::parallel::timing_stats(TRANSFER_GPU_TIME,&gpu_min,&gpu_max,&gpu_mean);
     HACCGPM::parallel::timing_stats(TRANSFER_MPI_TIME,&mpi_min,&mpi_max,&mpi_mean);
     if (world_rank != 0)return;
-    printf("   transferParticles  -> calls: %10d\n",TRANSFER_CALLS);
+    printf("   transferParticles  -> calls: %d\n",TRANSFER_CALLS);
     printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
     printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",(total_mean-gpu_mean) - mpi_mean,(total_max - gpu_max) - mpi_max, (total_min - gpu_min) - mpi_min);
     printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);

@@ -10,7 +10,7 @@ __global__ void set_invalid(float4* __restrict d_pos, int mem_frac){
 
 HACCGPM::parallel::MemoryManager::MemoryManager(HACCGPM::Params params){
     world_rank = params.world_rank;
-    if (params.world_rank == 0)printf("MemoryManager:\n   Allocating d_vel,d_pos,d_greens,d_grid1,d_grad...\n");
+    if (params.world_rank == 0)printf("MemoryManager:\n   Allocating d_vel,d_pos,d_greens,d_grid,d_grad,d_extragrid...\n");
     int mem_frac = params.nlocal * params.frac;
     if (params.world_rank == 0)printf("   Mem frac: %d / %d\n",mem_frac,params.nlocal);
     cudaCall(cudaMalloc,&d_vel,sizeof(float4)*mem_frac);
@@ -31,6 +31,16 @@ HACCGPM::parallel::MemoryManager::MemoryManager(HACCGPM::Params params){
     cudaCall(cudaMalloc,&d_grid,sizeof(deviceFFT_t)*params.nlocal);
     if (params.world_rank == 0)printf("   Allocated d_grid: %lu bytes.\n",sizeof(deviceFFT_t)*params.nlocal);
 
+    int x = params.local_grid_size[0];
+    int y = params.local_grid_size[1];
+    int z = params.local_grid_size[2];
+
+    int extra_grid_size = (x+1)*(y+1)*(z+1) - (x*y*z);
+    cudaCall(cudaMalloc,&d_extragrid,sizeof(deviceFFT_t)*extra_grid_size);
+    if (params.world_rank == 0)printf("   Allocated d_extragrid: %lu bytes.\n",sizeof(deviceFFT_t)*extra_grid_size);
+
+    //cudaCall(cudaMalloc,&d_extragrid,sizeof(deviceFFT_t)*(params.ng));
+
     //cudaCall(cudaMalloc,&d_grid2,sizeof(deviceFFT_t)*params.nlocal);
     //if (params.world_rank == 0)printf("   Allocated d_grid: %lu bytes.\n",sizeof(deviceFFT_t)*params.nlocal);
 
@@ -39,16 +49,16 @@ HACCGPM::parallel::MemoryManager::MemoryManager(HACCGPM::Params params){
 }
 
 HACCGPM::parallel::MemoryManager::~MemoryManager(){
-    if (world_rank == 0)printf("MemoryManager:\n   Freeing d_vel,d_pos,d_greens,d_grid1,d_grid2,d_grad...\n");
+    if (world_rank == 0)printf("MemoryManager:\n   Freeing d_vel,d_pos,d_greens,d_grid,d_grad,d_extragrid...\n");
     
     cudaCall(cudaFree,d_pos);
     cudaCall(cudaFree,d_vel);
     cudaCall(cudaFree,d_greens);
     cudaCall(cudaFree,d_grid);
-    //cudaCall(cudaFree,d_grid2);
+    cudaCall(cudaFree,d_extragrid);
     cudaCall(cudaFree,d_grad);
 
-    if (world_rank == 0)printf("      Freed d_vel,d_pos,d_greens,d_grid1,d_grid2,d_grad.\n");
+    if (world_rank == 0)printf("      Freed d_vel,d_pos,d_greens,d_grid,d_grad,d_extragrid.\n");
 }
 
 HACCGPM::serial::MemoryManager::MemoryManager(HACCGPM::Params params){

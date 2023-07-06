@@ -126,6 +126,7 @@ namespace HACCGPM{
                 float4* d_grad;
                 hostFFT_t* d_greens;
                 deviceFFT_t* d_grid;
+                deviceFFT_t* d_extragrid;
                 //deviceFFT_t* d_grid2;
 
                 MemoryManager(HACCGPM::Params params);
@@ -188,6 +189,8 @@ namespace HACCGPM{
         void printTransferTimes(int world_rank);
 
         void printTransferBytes(int world_rank);
+
+        void printFFTStats(int world_rank);
     }
 
     namespace serial{

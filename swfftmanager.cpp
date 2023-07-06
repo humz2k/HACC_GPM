@@ -8,6 +8,11 @@
 
 #define VerboseFFT
 
+CPUTimer_t FORWARD_FFT_TIME = 0;
+int FORWARD_FFT_CALLS = 0;
+CPUTimer_t BACKWARD_FFT_TIME = 0;
+int BACKWARD_FFT_CALLS = 0;
+
 class FFTManager{
     public:
         Distribution dist;
@@ -62,6 +67,8 @@ void HACCGPM::parallel::forward_fft(deviceFFT_t* d_grid, int ng, int calls){
     CPUTimer_t start = CPUTimer();
     ffts->dfft.forward(d_grid);
     CPUTimer_t end = CPUTimer();
+    FORWARD_FFT_CALLS++;
+    FORWARD_FFT_TIME += end-start;
     if(ffts->dist.world_rank == 0)printf("%s   forward_fft took %llu us\n",indent,end - start);
 }
 
@@ -73,7 +80,22 @@ void HACCGPM::parallel::backward_fft(deviceFFT_t* d_grid, int ng, int calls){
     CPUTimer_t start = CPUTimer();
     ffts->dfft.backward(d_grid);
     CPUTimer_t end = CPUTimer();
+    BACKWARD_FFT_CALLS++;
+    BACKWARD_FFT_TIME += end-start;
     if(ffts->dist.world_rank == 0)printf("%s   backward_fft took %llu us\n",indent,end - start);
 }
 
+void HACCGPM::parallel::printFFTStats(int world_rank){
+    CPUTimer_t forward_mean,forward_min,forward_max;
+    CPUTimer_t backward_mean,backward_min,backward_max;
+    HACCGPM::parallel::timing_stats(FORWARD_FFT_TIME,&forward_min,&forward_max,&forward_mean);
+    HACCGPM::parallel::timing_stats(BACKWARD_FFT_TIME,&backward_min,&backward_max,&backward_mean);
+    if (world_rank != 0)return;
+    printf("   forward_fft        -> calls: %d\n",FORWARD_FFT_CALLS);
+    printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",forward_mean,forward_max,forward_min);
+    printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",forward_mean / FORWARD_FFT_CALLS,forward_max / FORWARD_FFT_CALLS,forward_min / FORWARD_FFT_CALLS);
+    printf("   backward_fft       -> calls: %d\n",BACKWARD_FFT_CALLS);
+    printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",backward_mean,backward_max,backward_min);
+    printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",backward_mean / BACKWARD_FFT_CALLS,backward_max / BACKWARD_FFT_CALLS,backward_min / BACKWARD_FFT_CALLS);
+}
 

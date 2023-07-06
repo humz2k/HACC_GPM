@@ -35,9 +35,9 @@ HACCGPM::parallel::MemoryManager::MemoryManager(HACCGPM::Params params){
     int y = params.local_grid_size[1];
     int z = params.local_grid_size[2];
 
-    int extra_grid_size = (x+1)*(y+1)*(z+1) - (x*y*z);
-    cudaCall(cudaMalloc,&d_extragrid,sizeof(deviceFFT_t)*extra_grid_size);
-    if (params.world_rank == 0)printf("   Allocated d_extragrid: %lu bytes.\n",sizeof(deviceFFT_t)*extra_grid_size);
+    int extra_grid_size = (x+1)*(y+1)*(z+1);
+    cudaCall(cudaMalloc,&d_extragrid,sizeof(float)*extra_grid_size);
+    if (params.world_rank == 0)printf("   Allocated d_extragrid: %lu bytes.\n",sizeof(float)*extra_grid_size);
 
     //cudaCall(cudaMalloc,&d_extragrid,sizeof(deviceFFT_t)*(params.ng));
 

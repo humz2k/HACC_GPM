@@ -126,7 +126,7 @@ namespace HACCGPM{
                 float4* d_grad;
                 hostFFT_t* d_greens;
                 deviceFFT_t* d_grid;
-                deviceFFT_t* d_extragrid;
+                float* d_extragrid;
                 //deviceFFT_t* d_grid2;
 
                 MemoryManager(HACCGPM::Params params);
@@ -186,6 +186,8 @@ namespace HACCGPM{
 
         void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int calls = 0);
     
+        void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int3 local_grid_size, int blockSize, int calls = 0);
+
         void printTransferTimes(int world_rank);
 
         void printTransferBytes(int world_rank);

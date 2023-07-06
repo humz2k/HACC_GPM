@@ -128,6 +128,65 @@ __global__ void CICKernel(deviceFFT_t* __restrict grid, const float4* __restrict
 
 }
 
+__global__ void CICKernelParallel(float* __restrict d_grid, const float4* __restrict d_pos, int ng, int3 local_grid_size, float mass){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    float4 my_particle = __ldg(&d_pos[idx]);
+    int i = my_particle.x;
+    int j = my_particle.y;
+    int k = my_particle.z;
+
+    float diffx = (my_particle.x - (float)i);
+    float diffy = (my_particle.y - (float)j);
+    float diffz = (my_particle.z - (float)k);
+
+    for (int x = 0; x < 2; x++){
+        for (int y = 0; y < 2; y++){
+            for (int z = 0; z < 2; z++){
+
+                int nx = (i + x);
+                int ny = (j + y);
+                int nz = (k + z);
+
+                int indx = (nx)*local_grid_size.y*local_grid_size.z + (ny)*local_grid_size.z + nz;
+
+                float dx = diffx;
+                if (x == 0){
+                    dx = 1 - dx;
+                }
+                float dy = diffy;
+                if (y == 0){
+                    dy = 1 - dy;
+                }
+                float dz = diffz;
+                if (z == 0){
+                    dz = 1 - dz;
+                }
+
+                float mul = dx*dy*dz*mass; //* (1.0f/(ng*ng*ng));
+
+                atomicAdd(&d_grid[indx],mul);
+
+            }
+        }
+    }
+}
+
+void HACCGPM::parallel::CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int3 local_grid_size, int blockSize, int calls){
+    CPUTimer_t start = CPUTimer();
+    int numBlocks = (n_particles*n_particles*n_particles)/blockSize;
+    getIndent(calls);
+    #ifdef VerboseUpdate
+    printf("%sCIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    #endif
+    cudaCall(cudaMemset,d_extragrid,0,sizeof(float)*(local_grid_size.x+1)*(local_grid_size.y+1)*(local_grid_size.z+1));
+    CIC_KERNEL_TIME += InvokeGPUKernel(CICKernelParallel,numBlocks,blockSize,d_extragrid,d_pos,ng,local_grid_size,1.0f);
+    CPUTimer_t end = CPUTimer();
+    CPUTimer_t t = end-start;
+    printf("%s   CIC took %llu us\n",indent,t);
+    CIC_TIME += t;
+    CIC_CALLS += 1;
+}
+
 void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float4* d_pos, int ng, int blockSize, int calls){
     CPUTimer_t start = CPUTimer();
     int numBlocks = (ng*ng*ng)/blockSize;

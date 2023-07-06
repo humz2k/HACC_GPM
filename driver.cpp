@@ -150,7 +150,9 @@ int parallel(const char* params_file){
 
     HACCGPM::parallel::transferParticles(params,mem);
 
-    HACCGPM::parallel::transferParticles(params,mem);
+    //HACCGPM::parallel::CIC(mem.d_grid,mem.d_extragrid,mem.d_pos,params.ng,params.n_particles,params.local_grid_size,params.blockSize);
+
+    //HACCGPM::parallel::transferParticles(params,mem);
 
     finalize_python(0);
 

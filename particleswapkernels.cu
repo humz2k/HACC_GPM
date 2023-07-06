@@ -108,6 +108,105 @@ __global__ void combineParticles(float4* __restrict d_pos, float4* __restrict d_
     d_vel[dest] = my_vel;
 }
 
+__global__ void loadGridBuffersKernel(float* __restrict d_out, const float* __restrict d_grid, int3 local_grid_size, int n_extra){
+    int idx = threadIdx.x+blockDim.x+blockIdx.x;
+    if (idx >= n_extra)return;
+    //int3 start = make_int3(0,0,0);
+    int x = local_grid_size.x;
+    int y = local_grid_size.y;
+    int z = local_grid_size.z;
+    int tmp_idx = idx;
+
+    for (int i = 1; i < 8; i++){
+        int l = i/4;
+        int m = (i - l*4)/2;
+        int n = (i - l*4) - m*2;
+
+        int l_mul = ((l+1)%2)*x;
+        int m_mul = ((m+1)%2)*y;
+        int n_mul = ((n+1)%2)*z;
+        if (l_mul == 0){
+            l_mul = 1;
+        }
+        if (m_mul == 0){
+            m_mul == 1;
+        }
+        if (n_mul == 0){
+            n_mul == 1;
+        }
+
+        int bin_size = l_mul*m_mul*n_mul;
+
+        if (tmp_idx < bin_size){
+            ///THIS IS WRONG!!!! PLEASE FIX. THE INDEXES ARE NOT ALWAYS CONTIGUOUS...
+            int global_index = x * l * (y+1)*(z+1) + y * m * (z+1) + (z+1) * n + tmp_idx;
+            float my_cell = __ldg(&d_grid[global_index]);
+            d_out[idx] = my_cell;
+            return;
+        }
+
+        tmp_idx -= bin_size;
+
+    }
+
+    /*if (0 <= tmp_idx < z*y){
+        start.z = z;
+    } else{
+        tmp_idx -= z*y;
+        if (0 <= tmp_idx < y*x){
+            start.y = y;
+        } else {
+            tmp_idx -= y*x;
+            if (0 <= tmp_idx < y){
+                start.y = y;
+                start.z = z;
+            } else {
+                tmp_idx -= y;
+                if (0 <= tmp_idx < z*x){
+                    start.x = x;
+                } else {
+                    tmp_idx -= z*x;
+                    if (0 <= tmp_idx < z){
+                        start.x = x;
+                        start.z = z;
+                    } else {
+                        tmp_idx -= z;
+                        if (0 <= tmp_idx < x){
+                            start.x = x;
+                            start.y = y;
+                        } else{
+                            start.x = x;
+                            start.y = y;
+                            start.z = z;
+                        }}}}}}*/
+
+    /*int global_index = start.x * (y+1)*(z+1) + start.y * (z+1) + start.z + 1 + tmp_idx;
+    float my_cell = __ldg(&d_grid[global_index]);
+    d_out[idx] = my_cell;*/
+
+}
+
+CPUTimer_t HACCGPM::parallel::loadGridBuffers(float* d_extragrid, float* h_transfer, int3 local_grid_size, int blockSize, int world_rank, int calls){
+    int n_extra = (local_grid_size.x+1)*(local_grid_size.y+1)*(local_grid_size.z+1) - (local_grid_size.x*local_grid_size.y*local_grid_size.z);
+    int numBlocks = (n_extra + (blockSize - 1))/blockSize;
+
+    getIndent(calls);
+
+    #ifdef VerboseSwap
+    if(world_rank == 0)printf("%sloadGridBuffers was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    #endif
+    
+    float* d_transfer; cudaCall(cudaMalloc,&d_transfer,sizeof(float)*n_extra);
+
+    CPUTimer_t gpu_time = InvokeGPUKernelParallel(loadGridBuffersKernel,numBlocks,blockSize,d_transfer,d_extragrid,local_grid_size,n_extra);
+
+    cudaCall(cudaMemcpy,h_transfer,d_transfer,sizeof(float)*n_extra,cudaMemcpyDeviceToHost);
+
+    cudaCall(cudaFree,d_transfer);
+
+    return gpu_time;
+}
+
 CPUTimer_t HACCGPM::parallel::insertParticles(float4* d_pos, float4* d_vel, float4* new_pos, float4* new_vel, int n_new, int remaining, int n_particles, int blockSize, int world_rank, int calls){
     int numBlocks = (n_particles + blockSize - 1) / blockSize;
     getIndent(calls);

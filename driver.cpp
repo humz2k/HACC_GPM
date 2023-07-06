@@ -150,7 +150,11 @@ int parallel(const char* params_file){
 
     HACCGPM::parallel::transferParticles(params,mem);
 
-    //HACCGPM::parallel::CIC(mem.d_grid,mem.d_extragrid,mem.d_pos,params.ng,params.n_particles,params.local_grid_size,params.blockSize);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    //printf("NP: %d\n",params.n_particles);
+    
+    HACCGPM::parallel::CIC(mem.d_grid,mem.d_extragrid,mem.d_pos,params.ng,params.n_particles,params.local_grid_size,params.blockSize,params.world_rank, params.world_size);
 
     //HACCGPM::parallel::transferParticles(params,mem);
 

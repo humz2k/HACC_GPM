@@ -184,9 +184,13 @@ namespace HACCGPM{
         void transferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls = 0);
         CPUTimer_t insertParticles(float4* d_pos, float4* d_vel, float4* new_pos, float4* new_vel, int n_new, int remaining, int n_particles, int blockSize, int world_rank, int calls = 0);
 
+        CPUTimer_t loadGridBuffers(float* d_extragrid, float* h_transfer, int3 local_grid_size, int blockSize, int world_rank, int calls = 0);
+
         void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int calls = 0);
     
-        void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int3 local_grid_size, int blockSize, int calls = 0);
+        void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int* local_grid_size, int blockSize, int world_rank, int world_size, int calls = 0);
+
+        void gridExchange(float* d_extragrid, int3 local_grid_size, int world_rank, int world_size, int blockSize, int calls = 0);
 
         void printTransferTimes(int world_rank);
 

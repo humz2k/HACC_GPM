@@ -128,9 +128,13 @@ __global__ void CICKernel(deviceFFT_t* __restrict grid, const float4* __restrict
 
 }
 
-__global__ void CICKernelParallel(float* __restrict d_grid, const float4* __restrict d_pos, int ng, int3 local_grid_size, float mass){
+__global__ void CICKernelParallel(float* __restrict d_grid, const float4* __restrict d_pos, int ng, int3 local_grid_size, int n_particles, float mass){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if (idx >= n_particles)return;
+
     float4 my_particle = __ldg(&d_pos[idx]);
+    if (my_particle.w < -1)return;
+
     int i = my_particle.x;
     int j = my_particle.y;
     int k = my_particle.z;
@@ -147,7 +151,7 @@ __global__ void CICKernelParallel(float* __restrict d_grid, const float4* __rest
                 int ny = (j + y);
                 int nz = (k + z);
 
-                int indx = (nx)*local_grid_size.y*local_grid_size.z + (ny)*local_grid_size.z + nz;
+                int indx = (nx)*(local_grid_size.y+1)*(local_grid_size.z+1) + (ny)*(local_grid_size.z+1) + nz;
 
                 float dx = diffx;
                 if (x == 0){
@@ -171,18 +175,22 @@ __global__ void CICKernelParallel(float* __restrict d_grid, const float4* __rest
     }
 }
 
-void HACCGPM::parallel::CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int3 local_grid_size, int blockSize, int calls){
+void HACCGPM::parallel::CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int* local_grid_size_, int blockSize, int world_rank, int world_size, int calls){
     CPUTimer_t start = CPUTimer();
-    int numBlocks = (n_particles*n_particles*n_particles)/blockSize;
+    int numBlocks = (n_particles + (blockSize - 1))/blockSize;
+    int3 local_grid_size = make_int3(local_grid_size_[0],local_grid_size_[1],local_grid_size_[2]);
     getIndent(calls);
     #ifdef VerboseUpdate
-    printf("%sCIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    if (world_rank == 0)printf("%sCIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
     cudaCall(cudaMemset,d_extragrid,0,sizeof(float)*(local_grid_size.x+1)*(local_grid_size.y+1)*(local_grid_size.z+1));
-    CIC_KERNEL_TIME += InvokeGPUKernel(CICKernelParallel,numBlocks,blockSize,d_extragrid,d_pos,ng,local_grid_size,1.0f);
+    CIC_KERNEL_TIME += InvokeGPUKernelParallel(CICKernelParallel,numBlocks,blockSize,d_extragrid,d_pos,ng,local_grid_size,n_particles,1.0f);
+    
+    HACCGPM::parallel::gridExchange(d_extragrid,local_grid_size,world_rank,world_size,blockSize);
+    
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
-    printf("%s   CIC took %llu us\n",indent,t);
+    if (world_rank == 0)printf("%s   CIC took %llu us\n",indent,t);
     CIC_TIME += t;
     CIC_CALLS += 1;
 }

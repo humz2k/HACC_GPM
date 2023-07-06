@@ -150,6 +150,8 @@ int parallel(const char* params_file){
 
     HACCGPM::parallel::transferParticles(params,mem);
 
+    HACCGPM::parallel::transferParticles(params,mem);
+
     finalize_python(0);
 
     HACCGPM::parallel::finalize_swfft();

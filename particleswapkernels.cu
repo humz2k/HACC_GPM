@@ -33,9 +33,9 @@ __global__ void count_buffer(int* ns, const float4* __restrict d_pos, int n_part
         y = (y-1)*local_grid_size.y;
         z = (z-1)*local_grid_size.z;
         float3 tmp_particle = make_float3(my_particle.x - x, my_particle.y - y, my_particle.z - z);
-        if ((tmp_particle.x > -1 && tmp_particle.x < local_grid_size.x) && 
-            (tmp_particle.y > -1 && tmp_particle.y < local_grid_size.y) &&
-            (tmp_particle.z > -1 && tmp_particle.z < local_grid_size.z)){
+        if ((tmp_particle.x >= 0.0f && tmp_particle.x < local_grid_size.x) && 
+            (tmp_particle.y >= 0.0f && tmp_particle.y < local_grid_size.y) &&
+            (tmp_particle.z >= 0.0f && tmp_particle.z < local_grid_size.z)){
                 //printf("Particle %g %g %g %g going to idx %d\n",my_particle.x,my_particle.y,my_particle.z,my_particle.w,i);
                 atomicAdd(&ns[i],1);
             }
@@ -57,9 +57,9 @@ __global__ void load_buffer(float4* __restrict d_pos, float4* __restrict d_vel, 
         y = (y-1)*local_grid_size.y;
         z = (z-1)*local_grid_size.z;
         float4 tmp_particle = make_float4(my_particle.x - x, my_particle.y - y, my_particle.z - z, my_particle.w);
-        if ((tmp_particle.x > -1 && tmp_particle.x < local_grid_size.x) && 
-            (tmp_particle.y > -1 && tmp_particle.y < local_grid_size.y) &&
-            (tmp_particle.z > -1 && tmp_particle.z < local_grid_size.z)){
+        if ((tmp_particle.x >= 0.0f && tmp_particle.x < local_grid_size.x) && 
+            (tmp_particle.y >= 0.0f && tmp_particle.y < local_grid_size.y) &&
+            (tmp_particle.z >= 0.0f && tmp_particle.z < local_grid_size.z)){
                 //printf("Particle %g %g %g %g going to idx %d\n",my_particle.x,my_particle.y,my_particle.z,my_particle.w,i);
                 float4* pos_dest;
                 float4* vel_dest;
@@ -90,6 +90,7 @@ __global__ void findDuplicates(const float4* __restrict d_pos, float4* __restric
     for (int i = 0; i < n_new; i++){
         float4 other_particle = __ldg(&new_particles[i]);
         if (my_particle.w == other_particle.w){
+            //printf("DUPLICATE!!!\n");
             new_particles[i] = make_float4(0,0,0,-10);
             return;
         }
@@ -124,7 +125,7 @@ CPUTimer_t HACCGPM::parallel::insertParticles(float4* d_pos, float4* d_vel, floa
     if(world_rank == 0)printf("%s      Copied to device\n",indent);
     #endif
     CPUTimer_t gpu_time = 0;
-    gpu_time += InvokeGPUKernelParallel(findDuplicates,numBlocks,blockSize,d_pos,d_new_pos,n_new,n_particles);
+    //gpu_time += InvokeGPUKernelParallel(findDuplicates,numBlocks,blockSize,d_pos,d_new_pos,n_new,n_particles);
     gpu_time += InvokeGPUKernelParallel(combineParticles,numBlocks,blockSize,d_pos,d_vel,d_new_pos,d_new_vel,n_new,remaining,n_particles);
     return gpu_time;
 }
@@ -150,21 +151,16 @@ CPUTimer_t HACCGPM::parallel::loadIntoBuffers(float4** swap_pos, float4** swap_v
     int* h_starts = (int*)malloc(sizeof(int) * 27);
     int* d_starts; cudaCall(cudaMalloc,&d_starts,sizeof(int)*27);
     h_starts[0] = 0;
-    for (int x = -1; x < 2; x++){
-        for (int y = -1; y < 2; y++){
-            for (int z = -1; z < 2; z++){
-                int i = (x+1)*3*3 + (y+1)*3 + (z+1);
-                if (i != 13){
-                    tmp_size += h_ns[i];
-                    h_starts[i] = 0;
-                    for (int j = 0; j < i; j++){
-                        if (j != 13)h_starts[i] += h_ns[j];
-                    }
-                }
-                //printf("RANK %d: Going to (%d %d %d): %d\n",world_rank,x,y,z,h_ns[i]);
-            }
+    for (int i = 0; i < 27; i++){
+        if (i == 13)continue;
+        tmp_size += h_ns[i];
+        h_starts[i] = 0;
+        for (int j = 0; j < i; j++){
+            if (j == 13)continue;
+            h_starts[i] += h_ns[j];
         }
     }
+
     cudaCall(cudaMemcpy, d_starts, h_starts, sizeof(int)*27, cudaMemcpyHostToDevice);
     float4* d_pos_swap; cudaCall(cudaMalloc,&d_pos_swap,sizeof(float4)*tmp_size);
     float4* d_vel_swap; cudaCall(cudaMalloc,&d_vel_swap,sizeof(float4)*tmp_size);
@@ -180,10 +176,6 @@ CPUTimer_t HACCGPM::parallel::loadIntoBuffers(float4** swap_pos, float4** swap_v
     float4* h_vel_swap = (float4*)GC_MALLOC(sizeof(float4)*tmp_size);
     cudaCall(cudaMemcpy, h_pos_swap, d_pos_swap, sizeof(float4)*tmp_size, cudaMemcpyDeviceToHost);
     cudaCall(cudaMemcpy, h_vel_swap, d_vel_swap, sizeof(float4)*tmp_size, cudaMemcpyDeviceToHost);
-
-    for (int i = 0; i < tmp_size; i++){
-        //if(world_rank == 0)printf("i %d: %g %g %g %g\n",i,h_pos_swap[i].x,h_pos_swap[i].y,h_pos_swap[i].z,h_pos_swap[i].w);
-    }
 
     for (int i = 0; i < 27; i++){
         n_swaps[i] = h_ns[i];

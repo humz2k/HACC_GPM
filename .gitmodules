@@ -4,6 +4,9 @@
 [submodule "bdwgc"]
 	path = bdwgc
 	url = https://github.com/ivmai/bdwgc.git
+[submodule "libatomic_ops"]
+	path = bdwgc/libatomic_ops
+	url = https://github.com/ivmai/libatomic_ops.git
 [submodule "HACC_GPM-Docs"]
 	path = HACC_GPM-Docs
 	url = https://github.com/humz2k/HACC_GPM-Docs.git

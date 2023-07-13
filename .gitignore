@@ -29,6 +29,10 @@ haccgpm
 
 log.txt
 
+docs/html
+docs/latex
+docs.tar
+
 frames
 
 *.jpg

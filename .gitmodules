@@ -4,3 +4,6 @@
 [submodule "bdwgc"]
 	path = bdwgc
 	url = https://github.com/ivmai/bdwgc.git
+[submodule "HACC_GPM-Docs"]
+	path = HACC_GPM-Docs
+	url = https://github.com/humz2k/HACC_GPM-Docs.git

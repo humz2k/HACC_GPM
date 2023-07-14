@@ -91,6 +91,7 @@ void init_python(int calls, int world_rank_){
     //PyRun_SimpleString(tmp);
     char cambpystr[] = CAMBPYSTR;
     PyRun_SimpleString(cambpystr);
+    PyErr_Print();
     // Build the name object
     pName = PyUnicode_FromString((char*)"cambpymodule");
 

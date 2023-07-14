@@ -18,8 +18,31 @@ __global__ void scalePower(const deviceFFT_t* __restrict data, hostFFT_t* __rest
 
 }
 
+__global__ void scalePower(const deviceFFT_t* __restrict data, hostFFT_t* __restrict out, double ng, double rl, int nlocal){
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (idx >= nlocal)return;
+
+    double scale = (1.0f/(ng*ng*ng)) * (rl/ng);
+    deviceFFT_t old = __ldg(&data[idx]);
+    hostFFT_t absVal = old.x*old.x + old.y*old.y;
+    out[idx] = absVal * scale;
+
+}
+
 __global__ void scalePower(deviceFFT_t* __restrict data, double ng, double rl){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    double scale = (1.0f/(ng*ng*ng)) * (rl/ng);
+    deviceFFT_t old = __ldg(&data[idx]);
+    old.x = (old.x * old.x + old.y * old.y) * scale;
+    data[idx] = old;
+
+}
+
+__global__ void scalePower(deviceFFT_t* __restrict data, double ng, double rl, int nlocal){
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx >= nlocal)return;
 
     double scale = (1.0f/(ng*ng*ng)) * (rl/ng);
     deviceFFT_t old = __ldg(&data[idx]);
@@ -61,6 +84,41 @@ __global__ void PkCICFilter(double* __restrict grid, int ng, int folds){
     my_grid *= filter;
     grid[idx] = my_grid;
     
+}
+
+__global__ void PkCICFilterParallel(deviceFFT_t* __restrict grid, int ng, int folds, int nlocal, int world_rank){
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx >= nlocal)return;
+    double d = ((2*M_PI)/(((double)(ng))));
+
+    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,nlocal,world_rank);
+    float3 kmodes = HACCGPM::parallel::get_kmodes(idx3d,ng,d);
+
+    float filt1 = sinf(0.5f * kmodes.x) / (0.5 * kmodes.x);
+    filt1 = filt1*filt1;
+    filt1 = __frcp_rn(filt1 * filt1);
+    if (kmodes.x == 0){
+        filt1 = 1.0;
+    }
+
+    float filt2 = sinf(0.5f * kmodes.y) / (0.5 * kmodes.y);
+    filt2 = filt2*filt2;
+    filt2 = __frcp_rn(filt2 * filt2);
+    if (kmodes.y == 0){
+        filt2 = 1.0;
+    }
+
+    float filt3 = sinf(0.5f * kmodes.z) / (0.5 * kmodes.z);
+    filt3 = filt3*filt3;
+    filt3 = __frcp_rn(filt3 * filt3);
+    if (kmodes.z == 0){
+        filt3 = 1.0;
+    }
+    double filter = filt1 * filt2 * filt3;
+
+    deviceFFT_t my_grid = __ldg(&grid[idx]);
+    my_grid.x *= filter;
+    grid[idx] = my_grid;
 }
 
 __global__ void PkCICFilter(deviceFFT_t* __restrict grid, int ng, int folds){
@@ -190,6 +248,35 @@ __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restric
 
 }
 
+__global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng, int nlocal, int world_rank){
+
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx >= nlocal)return;
+    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,nlocal,world_rank);
+    int global_idx = idx3d.x*ng*ng + idx3d.y*ng + idx3d.z;
+    if (global_idx == 0){
+        return;
+    }
+    if (global_idx == ((ng/2)*(ng)*(ng) + (ng/2)*ng + (ng/2))){
+        return;
+    }
+
+    double d = ((2*M_PI)/(((double)(rl))));
+
+    //int3 idx3d = HACCGPM::serial::get_index(idx,ng);
+    float3 kmodes = HACCGPM::parallel::get_kmodes(idx3d,ng,d);
+
+    deviceFFT_t this_val = __ldg(&d_grid[idx]);
+
+    float kbin = sqrtf(kmodes.x*kmodes.x + kmodes.y*kmodes.y + kmodes.z*kmodes.z) - minK;
+    int indx = (int)(kbin/binDelta);
+
+    atomicAdd(&d_binVals[indx],this_val.x);
+    atomicAdd(&d_binCounts[indx],1);
+
+
+}
+
 /*void HACCGPM::serial::GetFinerPowerSpectrum(float4* d_temp_pos, int ng, double rl, int nbins, int fftNg, const char* fname, int blockSize){
     int baseNumBlocks = (ng*ng*ng)/blockSize;
     int finalNumBlocks = (fftNg * fftNg * fftNg)/blockSize;
@@ -295,6 +382,110 @@ __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restric
     free(binVals);
 
 }*/
+
+void HACCGPM::parallel::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int n_particles, int* local_grid_size, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls){
+    CPUTimer_t start = CPUTimer();
+
+    int numBlocks = (n_particles + (blockSize - 1))/blockSize;
+
+    getIndent(calls);
+
+    #ifdef VerbosePower
+    if(world_rank == 0)printf("%sGetPowerSpectrum was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    if(world_rank == 0)printf("%s   Allocating kBins, binCounts, binVals, d_binCounts, d_binVals\n",indent);
+    #endif
+    
+    double* kBins = (double*)malloc(sizeof(double)*nbins);
+    int* binCounts = (int*)malloc(sizeof(int)*(nbins));
+    double* binVals = (double*)malloc(sizeof(double)*nbins);
+
+    int* d_binCounts; cudaCall(cudaMalloc,&d_binCounts,sizeof(int)*nbins);
+    double* d_binVals; cudaCall(cudaMalloc,&d_binVals,sizeof(double)*nbins);
+
+    #ifdef VerbosePower
+    if(world_rank == 0)printf("%s      Allocated kBins, binCounts, binVals, d_binCounts, d_binVals\n",indent);
+    if(world_rank == 0)printf("%s   Filling kBins\n",indent);
+    #endif
+
+    double new_rl = (rl/(pow(2,nfolds)));
+
+    double d = (2*M_PI)/(new_rl);
+    double d3 = sqrt(3*d*d);
+    
+    double minK = d;
+
+    double maxK = sqrt(3*((ng/2)*(ng/2)*d*d));
+
+    double binDelta = (maxK - minK)/((double)nbins);
+
+    for (int i = 0; i < nbins; i++){
+        kBins[i] = minK + binDelta * (((float)i) + 0.5f);
+    }
+
+    new_rl = rl;
+
+    d = (2*M_PI)/(new_rl);
+
+    #ifdef VerbosePower
+    if(world_rank == 0)printf("%s      Filled kBins: minK = %g, maxK = %g, binDelta = %g, nbins = %d\n",indent,minK,maxK,binDelta,nbins);
+    if(world_rank == 0)printf("%s   Calling CIC\n",indent);
+    #endif
+
+    HACCGPM::parallel::CIC(d_grid,d_tempgrid,d_pos,ng,n_particles,local_grid_size,blockSize,world_rank, world_size,calls+1);
+
+    #ifdef VerbosePower
+    if(world_rank == 0)printf("%s      Called CIC\n",indent);
+    if(world_rank == 0)printf("%s   Calculating PK\n",indent);
+    #endif
+
+    HACCGPM::parallel::forward_fft(d_grid,ng,calls+1);
+
+    InvokeGPUKernelParallel(scalePower,numBlocks,blockSize,d_grid,(double)ng,rl,nlocal);
+    //InvokeGPUKernelParallel(PkCICFilterParallel,numBlocks,blockSize,d_grid,ng,0,nlocal,world_rank);
+    cudaCall(cudaMemset,d_binCounts,0,sizeof(int)*nbins);
+    cudaCall(cudaMemset,d_binVals,0,sizeof(double)*nbins);
+    InvokeGPUKernelParallel(BinPower,numBlocks,blockSize,d_grid,d_binVals,d_binCounts,minK,binDelta,new_rl,ng,nlocal,world_rank);
+
+    #ifdef VerbosePower
+    if(world_rank == 0)printf("%s      Calculated PK\n",indent);
+    if(world_rank == 0)printf("%s   Sending values\n",indent);
+    #endif
+
+    cudaCall(cudaMemcpy, binVals, d_binVals, sizeof(double)*nbins, cudaMemcpyDeviceToHost);
+    cudaCall(cudaMemcpy, binCounts, d_binCounts, sizeof(int)*nbins, cudaMemcpyDeviceToHost);
+
+    HACCGPM::parallel::sendPower(binCounts,binVals,nbins,world_rank,world_size,calls+1);
+
+    #ifdef VerbosePower
+    if(world_rank == 0)printf("%s      Sent values\n",indent);
+    //if(world_rank == 0)printf("%s   Sending values\n",indent);
+    #endif
+
+    //for (int i = 0; i < nbins; i++){
+    //    printf("rank %d: %d %d %g\n",world_rank,i,binCounts[i],binVals[i]);
+    //}
+    if (world_rank == 0){
+        char fname2[400];
+        sprintf(fname2, "%s.fold.%d", fname, 0);
+        FILE *fp;
+        fp = fopen(fname2, "w+");
+        for (int i = 0; i < nbins; i++){
+            double out = binVals[i]/((double)binCounts[i]);
+            if ((out == out) && (binCounts[i] != 0) && (out != 0)){
+                fprintf(fp,"%g,%g,%d\n",kBins[i],out,binCounts[i]);
+            }
+            //binVals[i] = 0;
+            //binCounts[i] = 0;
+        }
+        fclose(fp);
+    }
+    
+    free(kBins);
+    free(binCounts);
+    free(binVals);
+    cudaFree(d_binCounts);
+    cudaFree(d_binVals);
+}
 
 void HACCGPM::serial::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, int ng, double rl, int nbins, const char* fname, int nfolds, int blockSize, int calls){
 

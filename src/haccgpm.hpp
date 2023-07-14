@@ -191,7 +191,11 @@ namespace HACCGPM{
     
         void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int* local_grid_size, int blockSize, int world_rank, int world_size, int calls = 0);
 
+        void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int n_particles, int* local_grid_size, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls=0);
+
         void gridExchange(float* d_extragrid, int3 local_grid_size, int world_rank, int world_size, int blockSize, int calls = 0);
+
+        void sendPower(int* binCounts, double* binVals, int nbins, int world_rank, int world_size, int calls = 0);
 
         void printTransferTimes(int world_rank);
         void printCICTimes(int world_rank);

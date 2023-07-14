@@ -293,6 +293,58 @@ void HACCGPM::parallel::initTransferParticles(HACCGPM::Params& params,HACCGPM::p
     #endif
 }
 
+void HACCGPM::parallel::sendPower(int* binCounts, double* binVals, int nbins, int world_rank, int world_size, int calls){
+    getIndent(calls);
+    #ifdef VerboseTransfer
+    if(world_rank == 0)printf("%ssendPower was called\n",indent);
+    if(world_rank == 0)printf("%s   Waiting for all\n",indent);
+    #endif
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    #ifdef VerboseTransfer
+    if(world_rank == 0)printf("%s      Waited for all\n",indent);
+    if(world_rank == 0)printf("%s   Allocating binCountsOut, binValsOut\n",indent);
+    #endif
+
+    int* binCountsOut = (int*)malloc(sizeof(int)*nbins);
+    double* binValsOut = (double*)malloc(sizeof(int)*nbins);
+
+    #ifdef VerboseTransfer
+    if(world_rank == 0)printf("%s      Allocated binCountsOut, binValsOut\n",indent);
+    if(world_rank == 0)printf("%s   Doing reduce\n",indent);
+    #endif
+
+    MPI_Reduce(binCounts,binCountsOut,nbins,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+    MPI_Reduce(binVals,binValsOut,nbins,MPI_DOUBLE,MPI_SUM,0,MPI_COMM_WORLD);
+
+    #ifdef VerboseTransfer
+    if(world_rank == 0)printf("%s      Done return\n",indent);
+    if(world_rank == 0)printf("%s   Copying to rank 0\n",indent);
+    #endif
+
+    if(world_rank == 0){
+        for (int i = 0; i < nbins; i++){
+            binCounts[i] = binCountsOut[i];
+            binVals[i] = binValsOut[i];
+        }
+    }
+    
+    #ifdef VerboseTransfer
+    if(world_rank == 0)printf("%s      Copied to rank 0\n",indent);
+    if(world_rank == 0)printf("%s   Freeing binCountsOut, binValsOut\n",indent);
+    #endif
+
+    free(binCountsOut);
+    free(binValsOut);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    #ifdef VerboseTransfer
+    if(world_rank == 0)printf("%s      Freed binCountsOut, binValsOut\n",indent);
+    //if(world_rank == 0)printf("%s   Freeing binCountsOut, binValsOut\n",indent);
+    #endif
+}
+
 void HACCGPM::parallel::printTransferBytes(int world_rank){
     MPI_Barrier(MPI_COMM_WORLD);
     unsigned long long my_bytes = TRANSFER_BYTES;

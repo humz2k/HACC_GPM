@@ -46,9 +46,14 @@ void init_python(int calls, int world_rank_){
     //sprintf(tmp,"sys.path.append(\"%s\")",cambToolsPath);
     //printf("%s   cambToolsPath %s\n",indent,cambToolsPath);
     //PyRun_SimpleString(tmp);
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+
     char cambpystr[] = CAMBPYSTR;
     PyRun_SimpleString(cambpystr);
     PyErr_Print();
+
+    PyGILState_Release(gstate);
     // Build the name object
     pName = PyUnicode_FromString((char*)"cambpymodule");
 
@@ -155,6 +160,9 @@ void get_pk_parallel(const char* params_file, double* grid, double z, int ng, do
     if(world_rank == 0)printf("%sCalling pFuncInit...\n",indent);
     #endif
 
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+
     presult=PyObject_CallFunctionObjArgs(pFuncInit,NULL);
     PyErr_Print();
 
@@ -183,7 +191,7 @@ void get_pk_parallel(const char* params_file, double* grid, double z, int ng, do
     #ifdef VerboseCCamb
     if(world_rank == 0)printf("%s   Called pGetPk.\n",indent);
     #endif
-
+    PyGILState_Release(gstate);
     double* c_out = (double*)(PyArray_DATA(pPkResult));
     PyErr_Print();
     grid[0] = 0;

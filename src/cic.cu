@@ -168,8 +168,9 @@ __global__ void CICKernel(float* __restrict grid, const float4* __restrict my_po
     }
 }
 
-__global__ void float2complex(deviceFFT_t* __restrict d_out, const float* __restrict d_in){
+__global__ void float2complex(deviceFFT_t* __restrict d_out, const float* __restrict d_in, int n){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if(idx >= n)return;
     float my_grid = __ldg(&d_in[idx]);
     deviceFFT_t out;
     out.x = my_grid;
@@ -235,7 +236,9 @@ void HACCGPM::parallel::CIC(deviceFFT_t* d_grid, float* d_tempgrid, float4* d_po
     #endif
     cudaCall(cudaMemset,d_tempgrid,0,sizeof(float)*(local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z));
     CIC_KERNEL_TIME += InvokeGPUKernelParallel(CICKernelParallel,numBlocks,blockSize,d_tempgrid,d_pos,ng,local_grid_size,n_particles,1.0f);
-    
+    numBlocks = (local_grid_size.x*local_grid_size.y*local_grid_size.z + (blockSize - 1))/blockSize;
+    InvokeGPUKernelParallel(float2complex,numBlocks,blockSize,d_grid,d_tempgrid,local_grid_size.x*local_grid_size.y*local_grid_size.z);
+
     //HACCGPM::parallel::gridExchange(d_extragrid,local_grid_size,world_rank,world_size,blockSize);
     
     CPUTimer_t end = CPUTimer();
@@ -301,7 +304,7 @@ void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int
     #endif
     cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
     CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
-    CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp);
+    CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
     printf("%s   CIC (complex,float) took %llu us\n",indent,t);

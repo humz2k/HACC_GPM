@@ -5,9 +5,9 @@
 #define GPU
 #define alltoall
 #include <mpi.h>
-#include "swfft-all-to-all/include/swfft.hpp"
-#include "cambTools/ccamb.h"
-#include "bdwgc/include/gc.h"
+#include "../swfft-all-to-all/include/swfft.hpp"
+#include "../cambTools/ccamb.h"
+#include "../bdwgc/include/gc.h"
 
 int serial(const char* params_file){
 

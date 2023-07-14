@@ -1,5 +1,5 @@
-#include "stdlib.h"
-#include "stdio.h"
+#include <stdlib.h>
+#include <stdio.h>
 #include "haccgpm.hpp"
 
 __global__ void set_invalid(float4* __restrict d_pos, int mem_frac){

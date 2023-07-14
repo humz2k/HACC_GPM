@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "haccgpm.hpp"
-#include "bdwgc/include/gc.h"
+#include "../bdwgc/include/gc.h"
 
 #define VerboseSwap
 

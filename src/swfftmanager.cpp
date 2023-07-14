@@ -3,7 +3,7 @@
 #include "haccgpm.hpp"
 #define GPU
 #define alltoall
-#include "swfft-all-to-all/include/swfft.hpp"
+#include "../swfft-all-to-all/include/swfft.hpp"
 #include <cstring>
 
 #define VerboseFFT

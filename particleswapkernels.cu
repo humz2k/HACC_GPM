@@ -20,7 +20,7 @@ __global__ void copy(float4* __restrict dest1, const float4* __restrict source1,
     dest2[idx] = my_vel;
 }
 
-__global__ void count_buffer(int* ns, const float4* __restrict d_pos, int n_particles, int3 local_grid_size){
+__global__ void init_count_buffer(int* ns, const float4* __restrict d_pos, int n_particles, int3 local_grid_size){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     if (idx >= n_particles)return;
     float4 my_particle = __ldg(&d_pos[idx]);
@@ -33,9 +33,9 @@ __global__ void count_buffer(int* ns, const float4* __restrict d_pos, int n_part
         y = (y-1)*local_grid_size.y;
         z = (z-1)*local_grid_size.z;
         float3 tmp_particle = make_float3(my_particle.x - x, my_particle.y - y, my_particle.z - z);
-        if ((tmp_particle.x >= 0.0f && tmp_particle.x < local_grid_size.x) && 
-            (tmp_particle.y >= 0.0f && tmp_particle.y < local_grid_size.y) &&
-            (tmp_particle.z >= 0.0f && tmp_particle.z < local_grid_size.z)){
+        if ((tmp_particle.x > -1.0f && tmp_particle.x < local_grid_size.x) && 
+            (tmp_particle.y > -1.0f && tmp_particle.y < local_grid_size.y) &&
+            (tmp_particle.z > -1.0f && tmp_particle.z < local_grid_size.z)){
                 //printf("Particle %g %g %g %g going to idx %d\n",my_particle.x,my_particle.y,my_particle.z,my_particle.w,i);
                 atomicAdd(&ns[i],1);
             }
@@ -43,7 +43,7 @@ __global__ void count_buffer(int* ns, const float4* __restrict d_pos, int n_part
     }
 }
 
-__global__ void load_buffer(float4* __restrict d_pos, float4* __restrict d_vel, float4* __restrict d_pos_swap, float4* __restrict d_vel_swap, int* count, int* starts, const float4* __restrict d_tmppos, const float4* __restrict d_tmpvel, int3 local_grid_size, int n_particles, int world_rank){
+__global__ void init_load_buffer(float4* __restrict d_pos, float4* __restrict d_vel, float4* __restrict d_pos_swap, float4* __restrict d_vel_swap, int* count, int* starts, const float4* __restrict d_tmppos, const float4* __restrict d_tmpvel, int3 local_grid_size, int n_particles, int world_rank){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     if (idx >= n_particles)return;
     float4 my_particle = __ldg(&d_tmppos[idx]);
@@ -57,9 +57,9 @@ __global__ void load_buffer(float4* __restrict d_pos, float4* __restrict d_vel, 
         y = (y-1)*local_grid_size.y;
         z = (z-1)*local_grid_size.z;
         float4 tmp_particle = make_float4(my_particle.x - x, my_particle.y - y, my_particle.z - z, my_particle.w);
-        if ((tmp_particle.x >= 0.0f && tmp_particle.x < local_grid_size.x) && 
-            (tmp_particle.y >= 0.0f && tmp_particle.y < local_grid_size.y) &&
-            (tmp_particle.z >= 0.0f && tmp_particle.z < local_grid_size.z)){
+        if ((tmp_particle.x > -1.0f && tmp_particle.x < local_grid_size.x) && 
+            (tmp_particle.y > -1.0f && tmp_particle.y < local_grid_size.y) &&
+            (tmp_particle.z > -1.0f && tmp_particle.z < local_grid_size.z)){
                 //printf("Particle %g %g %g %g going to idx %d\n",my_particle.x,my_particle.y,my_particle.z,my_particle.w,i);
                 float4* pos_dest;
                 float4* vel_dest;
@@ -229,13 +229,13 @@ CPUTimer_t HACCGPM::parallel::insertParticles(float4* d_pos, float4* d_vel, floa
     return gpu_time;
 }
 
-CPUTimer_t HACCGPM::parallel::loadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps,float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls){
+CPUTimer_t HACCGPM::parallel::initLoadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps,float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls){
     int numBlocks = (n_particles + blockSize - 1) / blockSize;
 
     getIndent(calls);
 
     #ifdef VerboseSwap
-    if(world_rank == 0)printf("%sloadIntoBuffers was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    if(world_rank == 0)printf("%sinitLoadIntoBuffers was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
 
     CPUTimer_t start = CPUTimer();
@@ -244,7 +244,7 @@ CPUTimer_t HACCGPM::parallel::loadIntoBuffers(float4** swap_pos, float4** swap_v
     int* d_ns; cudaCall(cudaMalloc,&d_ns,sizeof(int)*27);
     cudaCall(cudaMemset,d_ns,0,sizeof(int)*27);
     int* h_ns = (int*)malloc(sizeof(int) * 27);
-    gpu_time += InvokeGPUKernelParallel(count_buffer,numBlocks,blockSize,d_ns,d_pos,n_particles,local_grid_size);
+    gpu_time += InvokeGPUKernelParallel(init_count_buffer,numBlocks,blockSize,d_ns,d_pos,n_particles,local_grid_size);
     cudaCall(cudaMemcpy, h_ns, d_ns, sizeof(int)*27, cudaMemcpyDeviceToHost);
     int tmp_size = 0;
     int* h_starts = (int*)malloc(sizeof(int) * 27);
@@ -269,7 +269,7 @@ CPUTimer_t HACCGPM::parallel::loadIntoBuffers(float4** swap_pos, float4** swap_v
     gpu_time += InvokeGPUKernelParallel(swap_set_invalid,numBlocks,blockSize,d_pos,n_particles);
 
     cudaCall(cudaMemset,d_ns,0,sizeof(int)*27);
-    gpu_time += InvokeGPUKernelParallel(load_buffer,numBlocks,blockSize,d_pos,d_vel,d_pos_swap,d_vel_swap,d_ns,d_starts,d_tmppos,d_tmpvel,local_grid_size,n_particles,world_rank);
+    gpu_time += InvokeGPUKernelParallel(init_load_buffer,numBlocks,blockSize,d_pos,d_vel,d_pos_swap,d_vel_swap,d_ns,d_starts,d_tmppos,d_tmpvel,local_grid_size,n_particles,world_rank);
 
     float4* h_pos_swap = (float4*)GC_MALLOC(sizeof(float4)*tmp_size);
     float4* h_vel_swap = (float4*)GC_MALLOC(sizeof(float4)*tmp_size);
@@ -293,6 +293,6 @@ CPUTimer_t HACCGPM::parallel::loadIntoBuffers(float4** swap_pos, float4** swap_v
     CPUTimer_t end = CPUTimer();
     CPUTimer_t total_time = end-start;
 
-    if(world_rank == 0)printf("%s   loadIntoBuffers took %llu us\n",indent,total_time);
+    if(world_rank == 0)printf("%s   initLoadIntoBuffers took %llu us\n",indent,total_time);
     return gpu_time;
 }

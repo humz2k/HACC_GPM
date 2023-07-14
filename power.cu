@@ -402,6 +402,112 @@ void HACCGPM::serial::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, int n
 
 }
 
+void HACCGPM::serial::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int nbins, const char* fname, int nfolds, int blockSize, int calls){
+
+    CPUTimer_t start = CPUTimer();
+
+    int numBlocks = (ng*ng*ng)/blockSize;
+    getIndent(calls);
+    #ifdef VerbosePower
+    printf("%sGetPowerSpectrum was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    printf("%s   Allocating d_temp_pos, kBins, binCounts, binVals, d_binCounts, d_binVals\n",indent);
+    #endif
+
+    float4* d_temp_pos; cudaCall(cudaMalloc,&d_temp_pos,sizeof(float4)*ng*ng*ng);
+    //hostFFT_t* d_powerSpectrum; cudaCall(cudaMalloc,&d_powerSpectrum,sizeof(hostFFT_t)*ng*ng*ng);
+
+    double* kBins = (double*)malloc(sizeof(double)*nbins);
+    int* binCounts = (int*)malloc(sizeof(int)*(nbins));
+    double* binVals = (double*)malloc(sizeof(double)*nbins);
+
+    int* d_binCounts; cudaCall(cudaMalloc,&d_binCounts,sizeof(int)*nbins);
+    double* d_binVals; cudaCall(cudaMalloc,&d_binVals,sizeof(double)*nbins);
+
+    //hostFFT_t* tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*ng*ng*ng);
+
+    POWER_KERNEL_TIME += InvokeGPUKernel(cpy,numBlocks,blockSize,d_temp_pos,d_pos);
+
+    double new_rl = (rl/(pow(2,nfolds)));
+
+    double d = (2*M_PI)/(new_rl);
+    double d3 = sqrt(3*d*d);
+    
+    double minK = d;
+
+    double maxK = sqrt(3*((ng/2)*(ng/2)*d*d));
+
+    double binDelta = (maxK - minK)/((double)nbins);
+
+    for (int i = 0; i < nbins; i++){
+        kBins[i] = minK + binDelta * (((float)i) + 0.5f);
+    }
+
+    new_rl = rl;
+
+    for (int current_fold = 0; current_fold < nfolds + 1; current_fold++){
+
+        cudaCall(cudaMemset,d_binCounts,0,sizeof(int)*nbins);
+        cudaCall(cudaMemset,d_binVals,0,sizeof(double)*nbins);
+
+        new_rl = (rl/(pow(2,current_fold)));
+
+        d = (2*M_PI)/(new_rl);
+
+        if (current_fold > 0){
+            POWER_KERNEL_TIME += InvokeGPUKernel(foldParticles,numBlocks,blockSize,d_temp_pos,(double)ng);
+        }
+
+        CPUTimer_t start_extras = CPUTimer();
+
+        HACCGPM::serial::CIC(d_grid,d_tempgrid,d_temp_pos,ng,blockSize,calls+1);
+
+        HACCGPM::serial::forward_fft(d_grid,ng,calls + 1);
+
+        CPUTimer_t end_extras = CPUTimer();
+
+        POWER_KERNEL_TIME += end_extras - start_extras;
+
+        POWER_KERNEL_TIME += InvokeGPUKernel(scalePower,numBlocks,blockSize,d_grid,(double)ng,rl);
+
+        POWER_KERNEL_TIME += InvokeGPUKernel(PkCICFilter,numBlocks,blockSize,d_grid,ng,current_fold);
+
+        POWER_KERNEL_TIME += InvokeGPUKernel(BinPower,numBlocks,blockSize,d_grid,d_binVals,d_binCounts,minK,binDelta,new_rl,ng);
+
+        cudaCall(cudaMemcpy, binVals, d_binVals, sizeof(double)*nbins, cudaMemcpyDeviceToHost);
+        cudaCall(cudaMemcpy, binCounts, d_binCounts, sizeof(int)*nbins, cudaMemcpyDeviceToHost);
+ 
+        char fname2[400];
+        sprintf(fname2, "%s.fold.%d", fname, current_fold);
+        FILE *fp;
+        fp = fopen(fname2, "w+");
+        for (int i = 0; i < nbins; i++){
+            double out = binVals[i]/((double)binCounts[i]);
+            if ((out == out) && (binCounts[i] != 0) && (out != 0)){
+                fprintf(fp,"%g,%g,%d\n",kBins[i],out,binCounts[i]);
+            }
+            binVals[i] = 0;
+            binCounts[i] = 0;
+        }
+        fclose(fp);
+
+    }
+    free(kBins);
+    free(binCounts);
+    free(binVals);
+    cudaCall(cudaFree,d_temp_pos);
+    cudaCall(cudaFree,d_binCounts);
+    cudaCall(cudaFree,d_binVals);
+
+    CPUTimer_t end = CPUTimer();
+
+    CPUTimer_t t = end-start;
+    POWER_CALLS++;
+    POWER_TIME += t;
+
+    printf("%s   GetPowerSpectrum took %llu us\n",indent,t);
+
+}
+
 void HACCGPM::serial::printPowerTimes(){
     printf("   GetPowerSpectrum  -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",POWER_CALLS,POWER_TIME,POWER_TIME - POWER_KERNEL_TIME,POWER_KERNEL_TIME,((float)POWER_TIME)/((float)(POWER_CALLS)));
 }

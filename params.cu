@@ -18,6 +18,8 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
     out.do_analysis = false;
     out.frac = 1.5;
     out.world_rank = 0;
+    out.dump_init = false;
+    out.dump_final = false;
 
     for (int i = 0; i < MAX_STEPS; i++){
         out.pks[i] = false;
@@ -132,6 +134,10 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
                     strcpy(out.analysis_py,value);
                 } else if (strcmp(parameter,"DO_ANALYSIS") == 0){
                     out.do_analysis = true;
+                } else if (strcmp(parameter,"DUMP_INIT") == 0){
+                    out.dump_init = true;
+                } else if (strcmp(parameter,"DUMP_FINAL") == 0){
+                    out.dump_final = true;
                 }
             }
         }

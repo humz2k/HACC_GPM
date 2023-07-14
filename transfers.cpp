@@ -116,19 +116,26 @@ CPUTimer_t send_recv_data(int world_size, int world_rank, int* n_sends, int* n_r
             vel_recvs[i] = (float4*)GC_MALLOC(sizeof(float4)*n_recvs[i]);
         }
     }
-    #ifdef VerboseTransfer
-    if(world_rank == 0)printf("%s   Sending/Recieving particles\n",indent);
-    #endif
     MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Request request[world_size*2];
+    #ifdef VerboseTransfer
+    if(world_rank == 0)printf("%s   Sending particles\n",indent);
+    #endif
     for (int i = 0; i < world_size; i++){
+        //printf("rank %d, i=%d\n",world_rank,i);
         if (i != world_rank){
             if (n_sends[i] != 0){
-                MPI_Send(pos_sends[i],n_sends[i]*4,MPI_FLOAT,i,0,MPI_COMM_WORLD);
-                MPI_Send(vel_sends[i],n_sends[i]*4,MPI_FLOAT,i,1,MPI_COMM_WORLD);
+                //printf("world_rank %d, i %d, %d\n",n_sends[i],world_rank,i);
+                MPI_Isend(pos_sends[i],n_sends[i]*4,MPI_FLOAT,i,0,MPI_COMM_WORLD,&request[i*2]);
+                MPI_Isend(vel_sends[i],n_sends[i]*4,MPI_FLOAT,i,1,MPI_COMM_WORLD,&request[i*2+1]);
                 TRANSFER_BYTES += n_sends[i] * 4 * sizeof(float) * 2;
             }
         }
     }
+    #ifdef VerboseTransfer
+    if(world_rank == 0)printf("%s      Sent particles\n",indent);
+    if(world_rank == 0)printf("%s   Recieving particles\n",indent);
+    #endif
     for (int i = 0; i < world_size; i++){
         if (i != world_rank){
             if (n_recvs[i] != 0){
@@ -137,9 +144,17 @@ CPUTimer_t send_recv_data(int world_size, int world_rank, int* n_sends, int* n_r
             }
         }
     }
+    for (int i = 0; i < world_size; i++){
+        if (i != world_rank){
+            if (n_sends[i] != 0){
+                MPI_Wait(&request[i*2],MPI_STATUS_IGNORE);
+                MPI_Wait(&request[i*2+1],MPI_STATUS_IGNORE);
+            }
+        }
+    }
     MPI_Barrier(MPI_COMM_WORLD);
     #ifdef VerboseTransfer
-    if(world_rank == 0)printf("%s      Sent/Recieved particles\n",indent);
+    if(world_rank == 0)printf("%s      Recieved particles\n",indent);
     #endif
     CPUTimer_t end_particles = CPUTimer();
     CPUTimer_t count_time = end_counts - start_counts;
@@ -177,7 +192,7 @@ void HACCGPM::parallel::gridExchange(float* d_extragrid, int3 local_grid_size, i
     #endif
 }
 
-void HACCGPM::parallel::transferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls){
+void HACCGPM::parallel::initTransferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls){
 
     getIndent(calls);
 
@@ -202,7 +217,7 @@ void HACCGPM::parallel::transferParticles(HACCGPM::Params& params,HACCGPM::paral
     #endif
 
     CPUTimer_t gpu_time = 0;
-    gpu_time += HACCGPM::parallel::loadIntoBuffers(tmp_swap_pos,tmp_swap_vel,n_swaps,mem.d_pos,mem.d_vel,params.nlocal,local_grid_size,n_particles,params.blockSize,params.world_rank,calls+1);
+    gpu_time += HACCGPM::parallel::initLoadIntoBuffers(tmp_swap_pos,tmp_swap_vel,n_swaps,mem.d_pos,mem.d_vel,params.nlocal,local_grid_size,n_particles,params.blockSize,params.world_rank,calls+1);
 
     #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s      Loaded buffers\n",indent);
@@ -222,9 +237,9 @@ void HACCGPM::parallel::transferParticles(HACCGPM::Params& params,HACCGPM::paral
     sends_per_rank(n_sends,n_swaps,grid_coords,global_grid_size);
 
     combine_sends(pos_sends,vel_sends,tmp_swap_pos,tmp_swap_vel,n_sends,n_swaps,grid_coords,global_grid_size,params.world_size,params.world_rank);
-    
+    MPI_Barrier(MPI_COMM_WORLD);
     CPUTimer_t mpi_time = send_recv_data(params.world_size,params.world_rank,n_sends,n_recvs,pos_recvs,vel_recvs,pos_sends,vel_sends,calls+1);
-
+    MPI_Barrier(MPI_COMM_WORLD);
     int total_recieved = 0;
     for (int i = 0; i < params.world_size; i++){
         total_recieved += n_recvs[i];

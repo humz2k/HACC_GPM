@@ -91,6 +91,8 @@ namespace HACCGPM{
         int grid_dims[3];
         int grid_coords[3];
         int n_particles;
+        bool dump_init;
+        bool dump_final;
     };
 
     Params read_params(const char* fname);
@@ -125,7 +127,7 @@ namespace HACCGPM{
                 float4* d_grad;
                 hostFFT_t* d_greens;
                 deviceFFT_t* d_grid;
-                float* d_extragrid;
+                float* d_tempgrid;
                 //deviceFFT_t* d_grid2;
 
                 MemoryManager(HACCGPM::Params params);
@@ -178,9 +180,9 @@ namespace HACCGPM{
 
         void timing_stats(CPUTimer_t t, CPUTimer_t* mint, CPUTimer_t* maxt, CPUTimer_t* meant);
 
-        CPUTimer_t loadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps, float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls = 0);
+        CPUTimer_t initLoadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps, float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls = 0);
 
-        void transferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls = 0);
+        void initTransferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls = 0);
         CPUTimer_t insertParticles(float4* d_pos, float4* d_vel, float4* new_pos, float4* new_vel, int n_new, int remaining, int n_particles, int blockSize, int world_rank, int calls = 0);
 
         CPUTimer_t loadGridBuffers(float* d_extragrid, float* h_transfer, int3 local_grid_size, int blockSize, int world_rank, int calls = 0);
@@ -192,6 +194,7 @@ namespace HACCGPM{
         void gridExchange(float* d_extragrid, int3 local_grid_size, int world_rank, int world_size, int blockSize, int calls = 0);
 
         void printTransferTimes(int world_rank);
+        void printCICTimes(int world_rank);
 
         void printTransferBytes(int world_rank);
 
@@ -207,6 +210,7 @@ namespace HACCGPM{
                 float4* d_grad;
                 hostFFT_t* d_greens;
                 deviceFFT_t* d_grid;
+                float* d_tempgrid;
 
                 MemoryManager(HACCGPM::Params params);
 
@@ -248,6 +252,10 @@ namespace HACCGPM{
 
         void CIC(deviceFFT_t* d_grid, float4* d_pos, int ng, int blockSize, int calls = 0);
 
+        void CIC(float* d_grid, float4* d_pos, int ng, int blockSize, int calls = 0);
+
+        void CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls = 0);
+
         double get_fscal(double m_aa, double m_adot, double m_omega_cb);
 
         double get_adot(double m_aa, double m_w, double m_wa, double m_omega_cb, double m_omega_radiation, double m_f_nu_massless, double m_f_nu_massive, double m_omega_matter, double m_omega_nu);
@@ -255,6 +263,8 @@ namespace HACCGPM{
         void writeOutput(char* fname, float4* d_pos, float4* d_vel, int ng, int calls = 0);
 
         void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, int ng, double rl, int nbins, const char* fname, int nfolds, int blockSize, int calls = 0);
+
+        void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int nbins, const char* fname, int nfolds, int blockSize, int calls = 0);
 
         void GetFinerPowerSpectrum(float4* d_temp_pos, int ng, double rl, int nbins, int fftNg, const char* fname, int blockSize);
 

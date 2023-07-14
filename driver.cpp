@@ -45,10 +45,12 @@ int serial(const char* params_file){
 
     char stepstr[400];
     sprintf(stepstr, "%s.pk.ini", params.prefix);
-    HACCGPM::serial::GetPowerSpectrum(mem.d_pos,mem.d_grid,params.ng,params.rl,221,stepstr,params.pkFolds,params.blockSize);
+    HACCGPM::serial::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,221,stepstr,params.pkFolds,params.blockSize);
 
-    sprintf(stepstr, "%s.particles.ini", params.prefix);
-    HACCGPM::serial::writeOutput(stepstr,mem.d_pos,mem.d_vel,params.ng);
+    if (params.dump_init){
+        sprintf(stepstr, "%s.particles.ini", params.prefix);
+        HACCGPM::serial::writeOutput(stepstr,mem.d_pos,mem.d_vel,params.ng);
+    }
 
     ts.advanceHalfStep();
 
@@ -58,7 +60,7 @@ int serial(const char* params_file){
 
         HACCGPM::serial::UpdatePositions(mem.d_pos,mem.d_vel,ts,0.5,params.ng,params.blockSize);
 
-        HACCGPM::serial::CIC(mem.d_grid,mem.d_pos,params.ng,params.blockSize);
+        HACCGPM::serial::CIC(mem.d_grid,mem.d_tempgrid,mem.d_pos,params.ng,params.blockSize);
         HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,params.ng,params.blockSize);
 
         ts.advanceHalfStep();
@@ -71,7 +73,7 @@ int serial(const char* params_file){
 
         if (params.pks[step]){
             sprintf(stepstr, "%s.pk.%d", params.prefix,step);
-            HACCGPM::serial::GetPowerSpectrum(mem.d_pos,mem.d_grid,params.ng,params.rl,221,stepstr,params.pkFolds,params.blockSize);
+            HACCGPM::serial::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,221,stepstr,params.pkFolds,params.blockSize);
         }
 
         if (params.dumps[step]){
@@ -93,10 +95,12 @@ int serial(const char* params_file){
     }
 
     sprintf(stepstr, "%s.pk.fin", params.prefix);
-    HACCGPM::serial::GetPowerSpectrum(mem.d_pos,mem.d_grid,params.ng,params.rl,221,stepstr,params.pkFolds,params.blockSize);
+    HACCGPM::serial::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,221,stepstr,params.pkFolds,params.blockSize);
 
-    sprintf(stepstr, "%s.particles.fin", params.prefix);
-    HACCGPM::serial::writeOutput(stepstr,mem.d_pos,mem.d_vel,params.ng);
+    if(params.dump_final){
+        sprintf(stepstr, "%s.particles.fin", params.prefix);
+        HACCGPM::serial::writeOutput(stepstr,mem.d_pos,mem.d_vel,params.ng);
+    }
 
     if (params.do_analysis){
         finalize_python(0);
@@ -144,18 +148,15 @@ int parallel(const char* params_file){
     CPUTimer_t start_init = CPUTimer();
 
     HACCGPM::parallel::GenerateDisplacementIC(params_file,&mem,params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize,params.world_rank,params.world_size,params.nlocal,params.local_grid_size);
-
+    HACCGPM::parallel::initTransferParticles(params,mem);
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
-
-    HACCGPM::parallel::transferParticles(params,mem);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
     //printf("NP: %d\n",params.n_particles);
     
-    HACCGPM::parallel::CIC(mem.d_grid,mem.d_extragrid,mem.d_pos,params.ng,params.n_particles,params.local_grid_size,params.blockSize,params.world_rank, params.world_size);
-
+    HACCGPM::parallel::CIC(mem.d_grid,mem.d_tempgrid,mem.d_pos,params.ng,params.n_particles,params.local_grid_size,params.blockSize,params.world_rank, params.world_size);
     //HACCGPM::parallel::transferParticles(params,mem);
 
     finalize_python(0);
@@ -177,6 +178,7 @@ int parallel(const char* params_file){
     if (params.world_rank == 0)printf("\n\n=========\nTimers:\n");
     HACCGPM::parallel::printTransferTimes(params.world_rank);
     HACCGPM::parallel::printFFTStats(params.world_rank);
+    HACCGPM::parallel::printCICTimes(params.world_rank);
     if (params.world_rank == 0)printf("   Initialization: mean %llu us, min %llu us, max %llu us (%5.2g minutes)\n",init_mean,init_min,init_max,((double)(init_mean)) * 1.66667e-8);
     if (params.world_rank == 0)printf("   Total: %5.2g minutes\n",((double)(end-start)) * 1.66667e-8);
     if (params.world_rank == 0)printf("=========\n\n");

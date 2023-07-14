@@ -10,3 +10,6 @@
 [submodule "HACC_GPM-Docs"]
 	path = HACC_GPM-Docs
 	url = https://github.com/humz2k/HACC_GPM-Docs.git
+[submodule "pycosmotools"]
+	path = pycosmotools
+	url = https://git.cels.anl.gov/hqureshi/pycosmotools.git

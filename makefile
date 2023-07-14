@@ -4,6 +4,7 @@ PY_NP_FLAGS := $(shell python3 -c "import numpy as np;print(np.get_include())")
 
 SWFFT_DIR := swfft-all-to-all
 BDWGC_DIR := bdwgc
+PYCOSMO_DIR := pycosmotools
 
 HACCGPM_BUILD_DIR ?= build
 
@@ -13,11 +14,14 @@ CUDA_ARCH_FLAGS ?= -arch=sm_60 -gencode=arch=compute_60,code=sm_60 -gencode=arch
 
 PY_LIB ?= -lpython3.9
 
-main: src/driver.cpp $(HACCGPM_BUILD_DIR)/swfftmanager.o $(HACCGPM_BUILD_DIR)/transfers.o $(HACCGPM_BUILD_DIR)/timers.o $(HACCGPM_BUILD_DIR)/ccamb.o $(HACCGPM_BUILD_DIR)/cic.o $(HACCGPM_BUILD_DIR)/initializer.o $(HACCGPM_BUILD_DIR)/io.o $(HACCGPM_BUILD_DIR)/power.o $(HACCGPM_BUILD_DIR)/greens.o $(HACCGPM_BUILD_DIR)/solver.o $(HACCGPM_BUILD_DIR)/params.o $(HACCGPM_BUILD_DIR)/timestepper.o $(HACCGPM_BUILD_DIR)/mmanager.o $(HACCGPM_BUILD_DIR)/ffts.o $(HACCGPM_BUILD_DIR)/particleswapkernels.o | swfft 
-	mpicxx $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a bdwgc/libgc.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft $(PY_LD_FLAGS) $(PY_LIB) -I$(CUDA_DIR)/include -fPIC -O3 -fopenmp -g -o haccgpm
+main: src/driver.cpp $(HACCGPM_BUILD_DIR)/swfftmanager.o $(HACCGPM_BUILD_DIR)/transfers.o $(HACCGPM_BUILD_DIR)/timers.o $(HACCGPM_BUILD_DIR)/ccamb.o $(HACCGPM_BUILD_DIR)/cic.o $(HACCGPM_BUILD_DIR)/initializer.o $(HACCGPM_BUILD_DIR)/io.o $(HACCGPM_BUILD_DIR)/power.o $(HACCGPM_BUILD_DIR)/greens.o $(HACCGPM_BUILD_DIR)/solver.o $(HACCGPM_BUILD_DIR)/params.o $(HACCGPM_BUILD_DIR)/timestepper.o $(HACCGPM_BUILD_DIR)/mmanager.o $(HACCGPM_BUILD_DIR)/ffts.o $(HACCGPM_BUILD_DIR)/particleswapkernels.o | swfft pycosmo
+	mpicxx $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a bdwgc/libgc.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft $(PY_LD_FLAGS) $(PY_LIB) -L$(PYCOSMO_DIR)/lib -lpycosmo -I$(CUDA_DIR)/include -fPIC -O3 -fopenmp -g -o haccgpm
 
 swfft:
 	cd $(SWFFT_DIR) && $(MAKE)
+
+pycosmo:
+	cd $(PYCOSMO_DIR) && $(MAKE) PY_LIB=$(PY_LIB)
 
 bdwgc:
 	cd $(BDWGC_DIR) && $(MAKE) -f Makefile.direct check
@@ -39,4 +43,4 @@ $(HACCGPM_BUILD_DIR)/%.o: src/%.cu | $(HACCGPM_BUILD_DIR)
 clean:
 	rm -f haccgpm
 	rm -rf $(HACCGPM_BUILD_DIR)
-	cd $(SWFFT_DIR) && $(MAKE) clean
+# cd $(SWFFT_DIR) && $(MAKE) clean

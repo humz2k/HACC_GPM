@@ -118,6 +118,59 @@ namespace HACCGPM{
             void reverseHalfStep();
     };
 
+    class CosmoClass{
+        public:
+            //HACCGPM::Params& params;
+            float Omega_m;
+            float Omega_cdm;
+            float Omega_bar;
+            float Omega_cb;
+            float Omega_nu;
+            float f_nu_massless;
+            float f_nu_massive;
+            float Omega_r;
+            float h;
+            float w_de;
+            float wa_de;
+            //float Omega_cb;
+            //float f_nu_massless;
+            //float Omega_r;
+            //float Omega_m;
+            //float w_de;
+            //float wa_de;
+            //float Omega_nu;
+            //float f_nu_massive;
+
+            CosmoClass(){};
+            CosmoClass(HACCGPM::Params& params_);
+            ~CosmoClass(){};
+            void GrowthFactor(float z, float* gf, float* g_dot);
+            void odesolve(float* ystart, int nvar, 
+                                float x1, float x2, float eps, float h1,
+                                void (HACCGPM::CosmoClass::*derivs)(float, float*, float*), bool print_stat);
+            void rkqs(float* y, float* dydx, int n, float* x, float htry,
+                                float eps, float* yscal, float* hdid, float* hnext,
+                                int* feval, void (HACCGPM::CosmoClass::*derivs)(float, float*, float*));
+            void rkck(float* y, float* dydx, int n, float x, float h,
+		      float* yout, float* yerr,
+		      void (HACCGPM::CosmoClass::*derivs)(float, float* , float* ));
+            
+            void growths(float a, float* y, float* dydx);
+
+            float da_dtau(float a, float OmM, float OmL);
+            float da_dtau__3(float a, float OmM, float OmL);
+            float int_1_da_dtau_3(float a, float OmM, float OmL, int bins=10);
+            float delta(float a, float OmM, float OmL);
+            float dotDelta(float a, float OmM, float OmL, float h = 0.001);
+
+            float z2a(float z);
+            float a2z(float a);
+            void get_delta_and_dotDelta(float z, float z1, float* d, float* d_dot);
+            void get_delta_and_dotDelta(float z, float z1, double* d, double* d_dot);
+
+            float Omega_nu_massive(float a);
+    };
+
     namespace parallel{
         class MemoryManager{
             public:
@@ -272,7 +325,7 @@ namespace HACCGPM{
 
         void GetFinerPowerSpectrum(float4* d_temp_pos, int ng, double rl, int nbins, int fftNg, const char* fname, int blockSize);
 
-        void GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int calls = 0);
+        void GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager* mem, HACCGPM::CosmoClass& cosmo, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int calls = 0);
 
         void Solve(deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls = 0);
 

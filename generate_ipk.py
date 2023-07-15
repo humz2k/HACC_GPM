@@ -1,9 +1,12 @@
+#!/home/hqureshi/miniconda3/bin/python
+
 import camb
 import numpy as np
 from camb import model
 import scipy.integrate
 import scipy.misc
 import warnings
+import sys
 
 warnings.filterwarnings('ignore')
 
@@ -79,7 +82,7 @@ def initcambpy():
     #PK = results.get_matter_power_interpolator()
     return None
 
-def get_pk(z,k,ng,rl,fname):
+def get_pk(z,k,fname):
     #print('FNAME:',fname)
     haccparams = read_params(fname)
     cambparams,ns = hacc2camb(haccparams)
@@ -94,7 +97,7 @@ def get_pk(z,k,ng,rl,fname):
     idx = k==0
     k[idx] = 1
     out = PK.P(z,k)
-    out *= ((ng*ng*ng)/(rl*rl*rl))
+    #out *= ((ng*ng*ng)/(rl*rl*rl))
     out[idx] = 0
     return out
 
@@ -147,9 +150,33 @@ def get_delta_and_dotDelta(z,z1,fname):
     d_dot = dotDelta(z2a(z1),OmM,OmL)
     return np.array([d,d_dot],dtype=np.float64)
 
-context = { 'initcambpy': initcambpy, 'get_pk': get_pk, 'get_delta_and_dotDelta': get_delta_and_dotDelta}
-import types
-test_context_module = types.ModuleType('cambpymodule', 'Module created to provide a context for tests')
-test_context_module.__dict__.update(context)
-import sys
-sys.modules['cambpymodule'] = test_context_module
+if __name__ == "__main__":
+    k_min = 0
+    k_max = 200
+    k_bins = 1000
+    z = 200
+    fname = ""
+    if (len(sys.argv) < 3):
+        print("USAGE: <file> <outfile> [z] [k_max] [k_min] [k_bins]")
+        exit()
+    if (len(sys.argv) >= 3):
+        fname = sys.argv[1]
+        outfile = sys.argv[2]
+    if (len(sys.argv) >= 4):
+        z = float(sys.argv[3])
+    if (len(sys.argv) >= 5):
+        k_max = float(sys.argv[4])
+    if (len(sys.argv) >= 6):
+        k_min = float(sys.argv[5])
+    if (len(sys.argv) == 7):
+        k_bins = float(sys.argv[6])
+    if len(sys.argv) > 7:
+        print("USAGE: <file> <outfile> [z] [k_max] [k_min] [k_bins]")
+        exit()
+    ks = np.linspace(k_min,k_max,k_bins)
+    pk = get_pk(z,ks,fname)
+    out = np.zeros((len(pk),2),dtype=np.float64)
+    out[:,0] = np.linspace(k_min,k_max,k_bins)
+    out[:,1] = pk
+    out = out.flatten().astype(np.float64)
+    out.tofile(outfile)

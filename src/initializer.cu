@@ -264,7 +264,7 @@ void GenerateFourierAmplitudes(const char* params_file, deviceFFT_t* d_grid1, in
     #endif
 }
 
-void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager* mem, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int calls){
+void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager* mem, HACCGPM::CosmoClass& cosmo, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int calls){
     int numBlocks = (ng*ng*ng)/blockSize;
     getIndent(calls);
 
@@ -293,8 +293,9 @@ void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::s
     double dotDelta;
     double this_a = (1/(z + 1)) - (deltaT/2.0f);
     double velZ = (1.0f/this_a) - 1.0f;
-    get_delta_and_dotDelta(params_file, z,velZ,&delta,&dotDelta,calls+1);
-
+    //get_delta_and_dotDelta(params_file, z,velZ,&delta,&dotDelta,calls+1);
+    cosmo.get_delta_and_dotDelta(z,velZ,&delta,&dotDelta);
+    
     printf("%s      Delta %g, dotDelta %g\n",indent,delta,dotDelta);
 
     //finalize_python(calls+1);

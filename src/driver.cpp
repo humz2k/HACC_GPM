@@ -25,6 +25,14 @@ int serial(const char* params_file){
     ts.setInitialZ(params.z_ini);
     ts.reverseHalfStep();
 
+    HACCGPM::CosmoClass cosmo(params);
+
+    //float _delta,_dotDelta;
+    //cosmo.get_delta_and_dotDelta(200,200,&_delta,&_dotDelta);
+    //cosmo.GrowthFactor(200,&_delta,&_dotDelta);
+    //printf("DELTA %f DOTDELTA %f\n",_delta,_dotDelta);
+    //return 0;
+
     init_python(0,0);
 
     int _coords[3] = {0,0,0};
@@ -33,7 +41,7 @@ int serial(const char* params_file){
 
     CPUTimer_t start_init = CPUTimer();
 
-    HACCGPM::serial::GenerateDisplacementIC(params_file,&mem,params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize);
+    HACCGPM::serial::GenerateDisplacementIC(params_file,&mem,cosmo,params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize);
     
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;

@@ -14,7 +14,7 @@ N_EFF_MASSIVE 0.0
 
 OUTPUT_BASE_NAME runs/test
 
-IPK /home/hqureshi/HACC_GPM/out.ipk
+IPK /home/hqureshi/HACC_GPM/test_run_ipk.ipk
 
 Z_IN 200
 Z_FIN 0
@@ -34,7 +34,7 @@ ANALYSIS_PY /home/hqureshi/HACC_GPM/example_analysis/basic
 
 #PARTICLE_DUMP 1,3
 
-NG 32
-RL 8
+NG 128
+RL 64
 SEED 210823001
 BLOCK_SIZE 64

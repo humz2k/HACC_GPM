@@ -276,6 +276,9 @@ int main(int argc, char** argv){
     }
     int out = 1;
 
+    char static_array[256];
+    setvbuf(stdout, static_array, _IOFBF, sizeof(static_array));
+
     if (world_size == 1){
         printf("\n=========\nRUNNING IN SERIAL MODE\n=========\n");
         out = serial(argv[1]);

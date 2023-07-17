@@ -153,7 +153,7 @@ def get_delta_and_dotDelta(z,z1,fname):
 if __name__ == "__main__":
     k_min = 0
     k_max = 1000
-    k_bins = 10000
+    k_bins = 20000
     z = 200
     fname = ""
     if (len(sys.argv) < 3):

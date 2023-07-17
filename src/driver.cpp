@@ -41,6 +41,7 @@ int serial(const char* params_file){
     //cosmo.GrowthFactor(200,&_delta,&_dotDelta);
     //printf("DELTA %f DOTDELTA %f\n",_delta,_dotDelta);
     //return 0;
+
     #ifndef NOPYTHON
     init_python(0,0);
 
@@ -55,6 +56,7 @@ int serial(const char* params_file){
     
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
+    //return 0;
 
     #ifndef NOPYTHON
     if (!params.do_analysis){
@@ -74,6 +76,8 @@ int serial(const char* params_file){
     char stepstr[400];
     sprintf(stepstr, "%s.pk.ini", params.prefix);
     HACCGPM::serial::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,221,stepstr,params.pkFolds,params.blockSize);
+
+    //return 0;
 
     if (params.dump_init){
         sprintf(stepstr, "%s.particles.ini", params.prefix);

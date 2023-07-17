@@ -8,7 +8,7 @@
 
 #define VerboseInitializer
 
-#define NOPYTHON
+//#define NOPYTHON
 
 __global__ void initRNG(curandState *state, int seed){
 
@@ -209,7 +209,7 @@ __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, 
 
     double my_k = sqrt(kmodes.x*kmodes.x + kmodes.y*kmodes.y + kmodes.z*kmodes.z);
 
-    int left_bin = my_k / k_delta;
+    int left_bin = (int)(my_k / k_delta);
     int right_bin = left_bin + 1;
 
     double logy1 = log(in[left_bin]);
@@ -220,6 +220,10 @@ __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, 
     //double frac = 1.0f/abs(logx1 - logx2);
     double logy = logy1 + ((logy2 - logy1)/(logx2 - logx1)) * (logx - logx1);
     double y = exp(logy) * (((double)(ng*ng*ng))/(rl*rl*rl));
+    if (left_bin == 0){
+        //printf("%d -> %d: %g -> %g\n",left_bin,right_bin,in[left_bin] * (((double)(ng*ng*ng))/(rl*rl*rl)),in[right_bin] * (((double)(ng*ng*ng))/(rl*rl*rl)));
+        y = in[right_bin] * (((double)(ng*ng*ng))/(rl*rl*rl));
+    }
     //printf("%g: %g > %g > %g\n",my_k,exp(logy1)*(((double)(ng*ng*ng))/(rl*rl*rl)),y,exp(logy2)*(((double)(ng*ng*ng))/(rl*rl*rl)));
     //printf("x1,y1=%g,%g, x2,y2=%g,%g\n",logx1,logy1,logx2,logy2);
     out[idx] = (y);
@@ -273,14 +277,22 @@ void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cos
     double ipk_delta;
     double ipk_max;
     double ipk_min;
-    cosmo.read_ipk(&h_ipk,&ipk_bins,&ipk_delta,&ipk_max,&ipk_min);
+    cosmo.read_ipk(&h_ipk,&ipk_bins,&ipk_delta,&ipk_max,&ipk_min,calls+1);
     double* d_ipk; cudaCall(cudaMalloc,&d_ipk,sizeof(double)*ipk_bins);
     cudaCall(cudaMemcpy, d_ipk, h_ipk, sizeof(double)*ipk_bins, cudaMemcpyHostToDevice);
+
+    double maxK = ((ng/2)*2*M_PI)/rl;
+    maxK = sqrt(maxK*maxK*maxK);
+    printf("%s      maxK = %g\n",indent,maxK);
+    if (maxK > ipk_max){
+        printf("%s      input ipk only goes to %g\n",indent,ipk_max);
+        exit(1);
+    }
 
     InvokeGPUKernel(interpolatePowerSpectrum,numBlocks,blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,rl,ng);
 
     free(h_ipk);
-    cudaFree(d_ipk);
+    cudaCall(cudaFree,d_ipk);
     #else
     get_pk(params_file,h_tmp,z,ng,rl,calls+1);
 

@@ -10,6 +10,8 @@
 #include "../bdwgc/include/gc.h"
 #include "../pycosmotools/include/pycosmotools.hpp"
 
+//#define NOPYTHON
+
 int serial(const char* params_file){
 
     cudaFree(0);
@@ -26,18 +28,26 @@ int serial(const char* params_file){
     ts.reverseHalfStep();
 
     HACCGPM::CosmoClass cosmo(params);
+    /*double* i_pk;
+    int nbins;
+    double k_delta;
+    double k_max;
+    double k_min;
+    cosmo.read_ipk(&i_pk,&nbins,&k_delta,&k_max,&k_min);
+    free(i_pk);*/
 
     //float _delta,_dotDelta;
     //cosmo.get_delta_and_dotDelta(200,200,&_delta,&_dotDelta);
     //cosmo.GrowthFactor(200,&_delta,&_dotDelta);
     //printf("DELTA %f DOTDELTA %f\n",_delta,_dotDelta);
     //return 0;
-
+    #ifndef NOPYTHON
     init_python(0,0);
 
     int _coords[3] = {0,0,0};
     int _localgrid[3] = {params.ng,params.ng,params.ng};
     PyCosmoTools pytools(params.ng,params.rl,params.world_size,params.world_rank,_coords,_localgrid);
+    #endif
 
     CPUTimer_t start_init = CPUTimer();
 
@@ -46,6 +56,7 @@ int serial(const char* params_file){
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
 
+    #ifndef NOPYTHON
     if (!params.do_analysis){
         finalize_python(0);
     }
@@ -56,6 +67,7 @@ int serial(const char* params_file){
         pytools.initialize();
         //import_analysis_module(params.analysis_dir,params.analysis_py);
     }
+    #endif
     
     HACCGPM::serial::InitGreens(mem.d_greens,params.ng,params.blockSize);
 
@@ -97,6 +109,7 @@ int serial(const char* params_file){
             HACCGPM::serial::writeOutput(stepstr,mem.d_pos,mem.d_vel,params.ng);
         }
 
+        #ifndef NOPYTHON
         if (params.do_analysis){
             if (params.analysis[step]){
                 printf("Doing Python Analysis Step\n");
@@ -124,6 +137,7 @@ int serial(const char* params_file){
                 //cudaCall(cudaDeviceSynchronize);
             }
         }
+        #endif
     }
 
     sprintf(stepstr, "%s.pk.fin", params.prefix);
@@ -134,10 +148,12 @@ int serial(const char* params_file){
         HACCGPM::serial::writeOutput(stepstr,mem.d_pos,mem.d_vel,params.ng);
     }
 
+    #ifndef NOPYTHON
     if (params.do_analysis){
         pytools.freePython();
         //finalize_python(0);
     }
+    #endif
 
     CPUTimer_t end = CPUTimer();
 
@@ -176,7 +192,9 @@ int parallel(const char* params_file){
     ts.setInitialZ(params.z_ini);
     ts.reverseHalfStep();
 
+    #ifndef NOPYTHON
     init_python(0,params.world_rank);
+    #endif
     
     CPUTimer_t start_init = CPUTimer();
 
@@ -231,7 +249,9 @@ int parallel(const char* params_file){
     if (params.world_rank == 0)printf("=========\n\n");
     //}
 
+    #ifndef NOPYTHON
     finalize_python(0);
+    #endif
 
     return 0;
 }

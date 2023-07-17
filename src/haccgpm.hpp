@@ -79,6 +79,7 @@ namespace HACCGPM{
         bool analysis[MAX_STEPS];
         char analysis_dir[300];
         char analysis_py[300];
+        char ipk[300];
         bool do_analysis;
         int lastStep;
         int pkFolds;
@@ -132,6 +133,7 @@ namespace HACCGPM{
             float h;
             float w_de;
             float wa_de;
+            char ipk[300];
             //float Omega_cb;
             //float f_nu_massless;
             //float Omega_r;
@@ -140,6 +142,8 @@ namespace HACCGPM{
             //float wa_de;
             //float Omega_nu;
             //float f_nu_massive;
+
+            void read_ipk(double** out, int* nbins, double* k_delta, double* k_max, double* k_min, int calls = 0);
 
             CosmoClass(){};
             CosmoClass(HACCGPM::Params& params_);

@@ -4,7 +4,6 @@
 #include "haccgpm.hpp"
 
 HACCGPM::CosmoClass::CosmoClass(HACCGPM::Params& params){
-    //params = params_;
 
     Omega_m = params.m_omega_matter;
     Omega_cdm = params.m_omega_cdm;
@@ -17,23 +16,52 @@ HACCGPM::CosmoClass::CosmoClass(HACCGPM::Params& params){
     h = params.m_hubble;
     w_de = params.m_w_de;
     wa_de = params.m_wa_de;
+    strcpy(ipk,params.ipk);
     
-    /*Omega_cb = params.m_omega_cb;
-    f_nu_massless = params.m_f_nu_massless;
-    Omega_r = params.m_omega_radiation;
-    Omega_m = params.m_omega_matter;
-    w_de = params.m_w_de;
-    wa_de = params.m_wa_de;
-    Omega_nu = params.m_omega_nu;
-    f_nu_massive = params.m_f_nu_massive;
-    printf("Omega_cb = %g\n",Omega_cb);
-    printf("f_nu_massless = %g\n",f_nu_massless);
-    printf("Omega_r = %g\n",Omega_r);
-    printf("Omega_m = %g\n",Omega_m);
-    printf("w_de = %g\n",w_de);
-    printf("wa_de = %g\n",wa_de);
-    printf("Omega_nu = %g\n",Omega_nu);
-    printf("f_nu_massive = %g\n",f_nu_massive);*/
+}
+
+void HACCGPM::CosmoClass::read_ipk(double** out, int* nbins, double* k_delta, double* k_max, double* k_min, int calls){
+    getIndent(calls);
+    printf("%sReading ipk\n",indent);
+    printf("%s   fname: %s\n",indent,ipk);
+    double header[20];
+    FILE *ptr;
+    ptr = fopen(ipk,"rb");
+    if (ptr == NULL){
+      printf("Can't open %s\n",ipk);
+      exit(1);
+    }
+    fread(header,sizeof(header),1,ptr);
+    printf("%s   k_min          = %g\n",indent,header[0]);
+    printf("%s   k_max          = %g\n",indent,header[1]);
+    printf("%s   k_bins         = %g\n",indent,header[2]);
+    printf("%s   k_delta        = %g\n",indent,header[3]);
+    printf("%s   OMEGA_CDM      = %g\n",indent,header[4]);
+    printf("%s   DEUT           = %g\n",indent,header[5]);
+    printf("%s   OMEGA_NU       = %g\n",indent,header[6]);
+    printf("%s   HUBBLE         = %g\n",indent,header[7]);
+    printf("%s   SS8            = %g\n",indent,header[8]);
+    printf("%s   NS             = %g\n",indent,header[9]);
+    printf("%s   W_DE           = %g\n",indent,header[10]);
+    printf("%s   WA_DE          = %g\n",indent,header[11]);
+    printf("%s   T_CMB          = %g\n",indent,header[12]);
+    printf("%s   N_EFF_MASSLESS = %g\n",indent,header[13]);
+    printf("%s   N_EFF_MASSIVE  = %g\n",indent,header[14]);
+    printf("%s   Z_IN           = %g\n",indent,header[15]);
+    int _k_bins = header[2];
+    double _k_delta = header[3];
+    double _k_max = header[1];
+    double _k_min = header[0];
+    double* tmp = (double*)malloc(sizeof(double)*(_k_bins+20));
+    fread(tmp,sizeof(double),_k_bins,ptr);
+    *out = tmp;
+    *nbins = _k_bins;
+    *k_delta = _k_delta;
+    *k_max = _k_max;
+    *k_min = _k_min;
+    fclose(ptr);
+    
+
 }
 
 float HACCGPM::CosmoClass::da_dtau(float a, float OmM, float OmL){

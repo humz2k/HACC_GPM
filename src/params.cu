@@ -138,6 +138,8 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
                     out.dump_init = true;
                 } else if (strcmp(parameter,"DUMP_FINAL") == 0){
                     out.dump_final = true;
+                } else if (strcmp(parameter,"IPK") == 0){
+                    strcpy(out.ipk,value);
                 }
             }
         }

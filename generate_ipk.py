@@ -152,8 +152,8 @@ def get_delta_and_dotDelta(z,z1,fname):
 
 if __name__ == "__main__":
     k_min = 0
-    k_max = 200
-    k_bins = 1000
+    k_max = 1000
+    k_bins = 10000
     z = 200
     fname = ""
     if (len(sys.argv) < 3):
@@ -173,10 +173,30 @@ if __name__ == "__main__":
     if len(sys.argv) > 7:
         print("USAGE: <file> <outfile> [z] [k_max] [k_min] [k_bins]")
         exit()
-    ks = np.linspace(k_min,k_max,k_bins)
+    print("==========ARGS==========")
+    print("Inp file: ",fname)
+    print("Out file:",outfile)
+    print("k_max  ->",k_max)
+    print("k_min  ->",k_min)
+    print("k_bins ->",k_bins)
+    params = read_params(fname)
+    quantities = ["OMEGA_CDM","DEUT","OMEGA_NU","HUBBLE","SS8","NS","W_DE","WA_DE","T_CMB","N_EFF_MASSLESS","N_EFF_MASSIVE","Z_IN"]
+    print("=========PARAMS=========")
+    for i in quantities:
+        if not i in params.keys():
+            print("ERROR -->")
+            print("   Params file missing '" + str(i) + "'...")
+            exit()
+        else:
+            print("{:<14} = {:<10}".format(i,params[i]))
+    ks = np.linspace(k_min,k_max,k_bins).astype(np.float64)
+    header = [k_min,k_max,k_bins,ks[1]-ks[0]]
+    for i in quantities:
+        header.append(params[i])
+    header = np.array(header).astype(np.float64)
     pk = get_pk(z,ks,fname)
-    out = np.zeros((len(pk),2),dtype=np.float64)
-    out[:,0] = np.linspace(k_min,k_max,k_bins)
-    out[:,1] = pk
+    out = np.zeros((len(pk) + 20),dtype=np.float64)
+    out[20:] = pk
+    out[:16] = header
     out = out.flatten().astype(np.float64)
     out.tofile(outfile)

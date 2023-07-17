@@ -8,6 +8,8 @@
 
 #define VerboseInitializer
 
+#define NOPYTHON
+
 __global__ void initRNG(curandState *state, int seed){
 
   int idx = threadIdx.x+blockDim.x*blockIdx.x;
@@ -192,7 +194,39 @@ __global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_ve
     d_vel[idx] = my_vel;
 }
 
-void GenerateFourierAmplitudes(const char* params_file, deviceFFT_t* d_grid1, int ng, double rl, double z, int seed, int blockSize, int calls){
+__global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, double k_delta, double k_min, double rl, int ng){
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (idx == 0){
+        out[idx] = 0;
+        return;
+    }
+
+    double d = (2*M_PI)/rl;
+
+    int3 idx3d = HACCGPM::serial::get_index(idx,ng);
+    float3 kmodes = HACCGPM::serial::get_kmodes(idx3d,ng,d);
+
+    double my_k = sqrt(kmodes.x*kmodes.x + kmodes.y*kmodes.y + kmodes.z*kmodes.z);
+
+    int left_bin = my_k / k_delta;
+    int right_bin = left_bin + 1;
+
+    double logy1 = log(in[left_bin]);
+    double logx1 = log(k_delta * (double)left_bin);
+    double logy2 = log(in[right_bin]);
+    double logx2 = log(k_delta * (double)right_bin);
+    double logx = log(my_k);
+    //double frac = 1.0f/abs(logx1 - logx2);
+    double logy = logy1 + ((logy2 - logy1)/(logx2 - logx1)) * (logx - logx1);
+    double y = exp(logy) * (((double)(ng*ng*ng))/(rl*rl*rl));
+    //printf("%g: %g > %g > %g\n",my_k,exp(logy1)*(((double)(ng*ng*ng))/(rl*rl*rl)),y,exp(logy2)*(((double)(ng*ng*ng))/(rl*rl*rl)));
+    //printf("x1,y1=%g,%g, x2,y2=%g,%g\n",logx1,logy1,logx2,logy2);
+    out[idx] = (y);
+
+}
+
+void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cosmo, deviceFFT_t* d_grid1, int ng, double rl, double z, int seed, int blockSize, int calls){
     int numBlocks = (ng*ng*ng)/blockSize;
 
     getIndent(calls);
@@ -233,18 +267,37 @@ void GenerateFourierAmplitudes(const char* params_file, deviceFFT_t* d_grid1, in
     #endif
 
     //init_python(calls + 1);
-    
+    #ifdef NOPYTHON
+    double* h_ipk;
+    int ipk_bins;
+    double ipk_delta;
+    double ipk_max;
+    double ipk_min;
+    cosmo.read_ipk(&h_ipk,&ipk_bins,&ipk_delta,&ipk_max,&ipk_min);
+    double* d_ipk; cudaCall(cudaMalloc,&d_ipk,sizeof(double)*ipk_bins);
+    cudaCall(cudaMemcpy, d_ipk, h_ipk, sizeof(double)*ipk_bins, cudaMemcpyHostToDevice);
+
+    InvokeGPUKernel(interpolatePowerSpectrum,numBlocks,blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,rl,ng);
+
+    free(h_ipk);
+    cudaFree(d_ipk);
+    #else
     get_pk(params_file,h_tmp,z,ng,rl,calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Got Pk from Camb.\n",indent);
     printf("%s   Copying Pk from host to device...\n",indent);
     #endif
-
     cudaCall(cudaMemcpy, d_pkScale, h_tmp, sizeof(hostFFT_t)*ng*ng*ng, cudaMemcpyHostToDevice);
     
     #ifdef VerboseInitializer
     printf("%s      Copied Pk from host to device.\n",indent);
+    #endif
+
+    #endif
+    
+    
+    #ifdef VerboseInitializer
     printf("%s   Scaling Amplitudes...\n",indent);
     #endif
 
@@ -273,7 +326,7 @@ void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::s
     printf("%s   Calling GenerateFourierAmplitudes...\n",indent);
     #endif
 
-    GenerateFourierAmplitudes(params_file, mem->d_grid, ng, rl, z, seed, blockSize, calls+1);
+    GenerateFourierAmplitudes(params_file, cosmo, mem->d_grid, ng, rl, z, seed, blockSize, calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Called GenerateFourierAmplitudes.\n",indent);

@@ -196,13 +196,15 @@ int parallel(const char* params_file){
     ts.setInitialZ(params.z_ini);
     ts.reverseHalfStep();
 
+    HACCGPM::CosmoClass cosmo(params);
+
     #ifndef NOPYTHON
     init_python(0,params.world_rank);
     #endif
     
     CPUTimer_t start_init = CPUTimer();
 
-    HACCGPM::parallel::GenerateDisplacementIC(params_file,&mem,params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize,params.world_rank,params.world_size,params.nlocal,params.local_grid_size);
+    HACCGPM::parallel::GenerateDisplacementIC(params_file,&mem, cosmo, params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize,params.world_rank,params.world_size,params.nlocal,params.local_grid_size);
     //HACCGPM::parallel::initTransferParticles(params,mem);
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
@@ -276,8 +278,8 @@ int main(int argc, char** argv){
     }
     int out = 1;
 
-    char static_array[256];
-    setvbuf(stdout, static_array, _IOFBF, sizeof(static_array));
+    //char static_array[256];
+    //setvbuf(stdout, static_array, _IOFBF, sizeof(static_array));
 
     if (world_size == 1){
         printf("\n=========\nRUNNING IN SERIAL MODE\n=========\n");

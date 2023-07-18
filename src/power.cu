@@ -383,7 +383,7 @@ __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restric
 
 }*/
 
-void HACCGPM::parallel::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int n_particles, int* local_grid_size, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls){
+void HACCGPM::parallel::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int overload, int n_particles, int* local_grid_size, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls){
     CPUTimer_t start = CPUTimer();
 
     int numBlocks = (n_particles + (blockSize - 1))/blockSize;
@@ -431,7 +431,7 @@ void HACCGPM::parallel::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, flo
     if(world_rank == 0)printf("%s   Calling CIC\n",indent);
     #endif
 
-    HACCGPM::parallel::CIC(d_grid,d_tempgrid,d_pos,ng,n_particles,local_grid_size,blockSize,world_rank, world_size,calls+1);
+    HACCGPM::parallel::CIC(d_grid,d_tempgrid,d_pos,ng,n_particles,local_grid_size,blockSize,world_rank, world_size,overload,calls+1);
 
     #ifdef VerbosePower
     if(world_rank == 0)printf("%s      Called CIC\n",indent);

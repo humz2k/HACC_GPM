@@ -95,6 +95,7 @@ namespace HACCGPM{
         bool dump_init;
         bool dump_final;
         double ol;
+        int overload;
     };
 
     Params read_params(const char* fname);
@@ -247,9 +248,9 @@ namespace HACCGPM{
 
         void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, HACCGPM::CosmoClass& cosmo, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int calls = 0);
     
-        void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int* local_grid_size, int blockSize, int world_rank, int world_size, int calls = 0);
+        void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int* local_grid_size, int blockSize, int world_rank, int world_size, int overload, int calls = 0);
 
-        void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int n_particles, int* local_grid_size, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls=0);
+        void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int overload, int n_particles, int* local_grid_size, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls=0);
 
         void gridExchange(float* d_extragrid, int3 local_grid_size, int world_rank, int world_size, int blockSize, int calls = 0);
 

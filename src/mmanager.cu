@@ -33,12 +33,20 @@ HACCGPM::parallel::MemoryManager::MemoryManager(HACCGPM::Params params){
 
     double ol = params.ol;
     if (params.world_rank == 0)printf("   OL (mpc) = %g\n",ol);
-    int overload = ceil((((double)params.ng) / (params.rl)) * ol);
+    int overload = params.overload;
     if (params.world_rank == 0)printf("   overload (grid) = %d\n",overload);
 
-    int x = params.local_grid_size[0];
-    int y = params.local_grid_size[1];
-    int z = params.local_grid_size[2];
+    int x = params.local_grid_size[0] + overload*2;
+    int y = params.local_grid_size[1] + overload*2;
+    int z = params.local_grid_size[2] + overload*2;
+
+    if (params.world_rank == 0)printf("   overload volume = (%d %d %d) + 2*(%d %d %d) = (%d %d %d)\n",params.local_grid_size[0],
+                                                                                    params.local_grid_size[1],
+                                                                                    params.local_grid_size[2],
+                                                                                    overload,
+                                                                                    overload,
+                                                                                    overload,
+                                                                                    x,y,z);
 
     int extra_grid_size = (x)*(y)*(z);
     cudaCall(cudaMalloc,&d_tempgrid,sizeof(float)*extra_grid_size);

@@ -178,12 +178,43 @@ __global__ void float2complex(deviceFFT_t* __restrict d_out, const float* __rest
     d_out[idx] = out;
 }
 
-__global__ void CICKernelParallel(float* __restrict d_grid, const float4* __restrict d_pos, int ng, int3 local_grid_size, int n_particles, float mass){
+__global__ void float2complex(deviceFFT_t* __restrict d_out, const float* __restrict d_in, int3 local_grid_size, int overload){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    int n = (local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload);
+    if(idx >= n)return;
+    int3 ol_grid_size = make_int3(local_grid_size.x + 2*overload,local_grid_size.y + 2*overload,local_grid_size.z + 2*overload);
+    int3 idx3d = HACCGPM::parallel::get_local_index(idx,ol_grid_size.x,ol_grid_size.y,ol_grid_size.z);
+
+    idx3d.x -= overload;
+    idx3d.y -= overload;
+    idx3d.z -= overload;
+
+    if (idx3d.x < 0)return;
+    if (idx3d.y < 0)return;
+    if (idx3d.z < 0)return;
+    if (idx3d.x >= local_grid_size.x)return;
+    if (idx3d.y >= local_grid_size.y)return;
+    if (idx3d.z >= local_grid_size.z)return;
+
+    float my_grid = __ldg(&d_in[idx]);
+    deviceFFT_t out;
+    out.x = my_grid;
+    out.y = 0;
+    int outidx = idx3d.x * local_grid_size.y * local_grid_size.z + idx3d.y * local_grid_size.z + idx3d.z;
+    d_out[outidx] = out;
+}
+
+__global__ void CICKernelParallel(float* __restrict d_grid, const float4* __restrict d_pos, int ng, int overload, int3 local_grid_size, int n_particles, float mass){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     if (idx >= n_particles)return;
 
     float4 my_particle = __ldg(&d_pos[idx]);
     if (my_particle.w < -1)return;
+    my_particle.x += (float)overload;
+    my_particle.y += (float)overload;
+    my_particle.z += (float)overload;
+
+    int3 overload_grid = make_int3(local_grid_size.x + 2*overload, local_grid_size.y + 2*overload, local_grid_size.z + 2*overload);
 
     int i = my_particle.x;
     int j = my_particle.y;
@@ -200,9 +231,9 @@ __global__ void CICKernelParallel(float* __restrict d_grid, const float4* __rest
                 int nx = (i + x);
                 int ny = (j + y);
                 int nz = (k + z);
-                if ((nx < 0) || (nx >= local_grid_size.x) || (ny < 0) || (ny >= local_grid_size.y) || (nz < 0) || (nz >= local_grid_size.z))continue;
+                if ((nx < 0) || (nx >= overload_grid.x) || (ny < 0) || (ny >= overload_grid.y) || (nz < 0) || (nz >= overload_grid.z))continue;
 
-                int indx = (nx)*(local_grid_size.y)*(local_grid_size.z) + (ny)*(local_grid_size.z) + nz;
+                int indx = (nx)*(overload_grid.y)*(overload_grid.z) + (ny)*(overload_grid.z) + nz;
 
                 float dx = diffx;
                 if (x == 0){
@@ -226,7 +257,32 @@ __global__ void CICKernelParallel(float* __restrict d_grid, const float4* __rest
     }
 }
 
-void HACCGPM::parallel::CIC(deviceFFT_t* d_grid, float* d_tempgrid, float4* d_pos, int ng, int n_particles, int* local_grid_size_, int blockSize, int world_rank, int world_size, int calls){
+__global__ void loadTransferBuffer(float* __restrict d_out, const float* __restrict d_in, int3 local_grid_size, int3 local_coords, int overload, int3 dims){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    int n = (local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload);
+    if(idx >= n)return;
+    int3 ol_grid_size = make_int3(local_grid_size.x + 2*overload,local_grid_size.y + 2*overload,local_grid_size.z + 2*overload);
+    int3 idx3d = HACCGPM::parallel::get_local_index(idx,ol_grid_size.x,ol_grid_size.y,ol_grid_size.z);
+
+    idx3d.x -= overload;
+    idx3d.y -= overload;
+    idx3d.z -= overload;
+
+    if (((idx3d.x >= 0) && (idx3d.y >= 0) && (idx3d.z >= 0)) && ((idx3d.x < local_grid_size.x) && (idx3d.x < local_grid_size.y) && (idx3d.x < local_grid_size.z)))return;
+
+    idx3d.x += local_coords.x * local_grid_size.x;
+    idx3d.y += local_coords.y * local_grid_size.y;
+    idx3d.z += local_coords.z * local_grid_size.z;
+
+    int3 dest_coords = make_int3(idx3d.x / local_grid_size.x,idx3d.y / local_grid_size.y,idx3d.z / local_grid_size.z);
+    int dest_rank = idx3d.x * dims.y * dims.z + idx3d.y * dims.z + idx3d.z;
+
+    int3 relative_coords = make_int3(dest_coords.x - local_coords.x, dest_coords.y - local_coords.y, dest_coords.z - local_coords.z);
+    //FINISH ME!!!
+
+}
+
+void HACCGPM::parallel::CIC(deviceFFT_t* d_grid, float* d_tempgrid, float4* d_pos, int ng, int n_particles, int* local_grid_size_, int blockSize, int world_rank, int world_size, int overload, int calls){
     CPUTimer_t start = CPUTimer();
     int numBlocks = (n_particles + (blockSize - 1))/blockSize;
     int3 local_grid_size = make_int3(local_grid_size_[0],local_grid_size_[1],local_grid_size_[2]);
@@ -235,11 +291,12 @@ void HACCGPM::parallel::CIC(deviceFFT_t* d_grid, float* d_tempgrid, float4* d_po
     if (world_rank == 0)printf("%sCIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
     cudaCall(cudaMemset,d_tempgrid,0,sizeof(float)*(local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z));
-    CIC_KERNEL_TIME += InvokeGPUKernelParallel(CICKernelParallel,numBlocks,blockSize,d_tempgrid,d_pos,ng,local_grid_size,n_particles,1.0f);
-    numBlocks = (local_grid_size.x*local_grid_size.y*local_grid_size.z + (blockSize - 1))/blockSize;
-    InvokeGPUKernelParallel(float2complex,numBlocks,blockSize,d_grid,d_tempgrid,local_grid_size.x*local_grid_size.y*local_grid_size.z);
+    CIC_KERNEL_TIME += InvokeGPUKernelParallel(CICKernelParallel,numBlocks,blockSize,d_tempgrid,d_pos,ng,overload,local_grid_size,n_particles,1.0f);
 
-    //HACCGPM::parallel::gridExchange(d_extragrid,local_grid_size,world_rank,world_size,blockSize);
+    
+    
+    numBlocks = ((local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload) + (blockSize - 1))/blockSize;
+    InvokeGPUKernelParallel(float2complex,numBlocks,blockSize,d_grid,d_tempgrid,local_grid_size,overload);
     
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;

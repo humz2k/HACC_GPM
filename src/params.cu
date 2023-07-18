@@ -154,6 +154,8 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
 
     fclose(fp);
 
+    out.overload = ceil((((double)out.ng) / (out.rl)) * out.ol);
+
     out.m_omega_baryon = out.m_deut / out.m_hubble / out.m_hubble;
     out.m_omega_cb = out.m_omega_cdm + out.m_omega_baryon;
     out.m_omega_matter = out.m_omega_cb + out.m_omega_nu;

@@ -546,13 +546,13 @@ void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoCl
 
     double maxK = ((ng/2)*2*M_PI)/rl;
     maxK = sqrt(maxK*maxK*maxK);
-    printf("%s      maxK = %g\n",indent,maxK);
+    if(world_rank == 0)printf("%s      maxK = %g\n",indent,maxK);
     if (maxK > ipk_max){
-        printf("%s      input ipk only goes to %g\n",indent,ipk_max);
+        if(world_rank == 0)printf("%s      input ipk only goes to %g\n",indent,ipk_max);
         exit(1);
     }
 
-    InvokeGPUKernel(interpolatePowerSpectrum,numBlocks,blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,rl,ng,nlocal,world_rank);
+    InvokeGPUKernelParallel(interpolatePowerSpectrum,numBlocks,blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,rl,ng,nlocal,world_rank);
 
     free(h_ipk);
     cudaCall(cudaFree,d_ipk);

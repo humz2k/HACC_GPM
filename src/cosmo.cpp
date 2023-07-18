@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 //#include <cstdlib>
+#include <mpi.h>
 #include "haccgpm.hpp"
 
 HACCGPM::CosmoClass::CosmoClass(HACCGPM::Params& params){
@@ -22,8 +23,12 @@ HACCGPM::CosmoClass::CosmoClass(HACCGPM::Params& params){
 
 void HACCGPM::CosmoClass::read_ipk(double** out, int* nbins, double* k_delta, double* k_max, double* k_min, int calls){
     getIndent(calls);
-    printf("%sReading ipk\n",indent);
-    printf("%s   fname: %s\n",indent,ipk);
+
+    int world_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&world_rank);
+
+    if(world_rank == 0)printf("%sReading ipk\n",indent);
+    if(world_rank == 0)printf("%s   fname: %s\n",indent,ipk);
     double header[20];
     FILE *ptr;
     ptr = fopen(ipk,"rb");
@@ -32,22 +37,24 @@ void HACCGPM::CosmoClass::read_ipk(double** out, int* nbins, double* k_delta, do
       exit(1);
     }
     fread(header,sizeof(header),1,ptr);
-    printf("%s   k_min          = %g\n",indent,header[0]);
-    printf("%s   k_max          = %g\n",indent,header[1]);
-    printf("%s   k_bins         = %g\n",indent,header[2]);
-    printf("%s   k_delta        = %g\n",indent,header[3]);
-    printf("%s   OMEGA_CDM      = %g\n",indent,header[4]);
-    printf("%s   DEUT           = %g\n",indent,header[5]);
-    printf("%s   OMEGA_NU       = %g\n",indent,header[6]);
-    printf("%s   HUBBLE         = %g\n",indent,header[7]);
-    printf("%s   SS8            = %g\n",indent,header[8]);
-    printf("%s   NS             = %g\n",indent,header[9]);
-    printf("%s   W_DE           = %g\n",indent,header[10]);
-    printf("%s   WA_DE          = %g\n",indent,header[11]);
-    printf("%s   T_CMB          = %g\n",indent,header[12]);
-    printf("%s   N_EFF_MASSLESS = %g\n",indent,header[13]);
-    printf("%s   N_EFF_MASSIVE  = %g\n",indent,header[14]);
-    printf("%s   Z_IN           = %g\n",indent,header[15]);
+    if(world_rank == 0){
+      printf("%s   k_min          = %g\n",indent,header[0]);
+      printf("%s   k_max          = %g\n",indent,header[1]);
+      printf("%s   k_bins         = %g\n",indent,header[2]);
+      printf("%s   k_delta        = %g\n",indent,header[3]);
+      printf("%s   OMEGA_CDM      = %g\n",indent,header[4]);
+      printf("%s   DEUT           = %g\n",indent,header[5]);
+      printf("%s   OMEGA_NU       = %g\n",indent,header[6]);
+      printf("%s   HUBBLE         = %g\n",indent,header[7]);
+      printf("%s   SS8            = %g\n",indent,header[8]);
+      printf("%s   NS             = %g\n",indent,header[9]);
+      printf("%s   W_DE           = %g\n",indent,header[10]);
+      printf("%s   WA_DE          = %g\n",indent,header[11]);
+      printf("%s   T_CMB          = %g\n",indent,header[12]);
+      printf("%s   N_EFF_MASSLESS = %g\n",indent,header[13]);
+      printf("%s   N_EFF_MASSIVE  = %g\n",indent,header[14]);
+      printf("%s   Z_IN           = %g\n",indent,header[15]);
+    }
     int _k_bins = header[2];
     double _k_delta = header[3];
     double _k_max = header[1];

@@ -20,6 +20,7 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
     out.world_rank = 0;
     out.dump_init = false;
     out.dump_final = false;
+    out.ol = 1;
 
     for (int i = 0; i < MAX_STEPS; i++){
         out.pks[i] = false;
@@ -140,6 +141,8 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
                     out.dump_final = true;
                 } else if (strcmp(parameter,"IPK") == 0){
                     strcpy(out.ipk,value);
+                } else if (strcmp(parameter,"OL") == 0){
+                    out.ol = atof(value);
                 }
             }
         }

@@ -58,5 +58,6 @@ $(HACCGPM_NOPYTHON_DIR)/%.o: src/%.cu | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_
 .PHONY: clean
 clean:
 	rm -f haccgpm
+	rm -f haccgpmnopython
 	rm -rf $(HACCGPM_BUILD_DIR)
 # cd $(SWFFT_DIR) && $(MAKE) clean

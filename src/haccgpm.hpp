@@ -94,6 +94,7 @@ namespace HACCGPM{
         int n_particles;
         bool dump_init;
         bool dump_final;
+        double ol;
     };
 
     Params read_params(const char* fname);

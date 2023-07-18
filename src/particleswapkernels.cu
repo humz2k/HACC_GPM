@@ -33,9 +33,9 @@ __global__ void init_count_buffer(int* ns, const float4* __restrict d_pos, int n
         y = (y-1)*local_grid_size.y;
         z = (z-1)*local_grid_size.z;
         float3 tmp_particle = make_float3(my_particle.x - x, my_particle.y - y, my_particle.z - z);
-        if ((tmp_particle.x > -1.0f && tmp_particle.x < local_grid_size.x) && 
-            (tmp_particle.y > -1.0f && tmp_particle.y < local_grid_size.y) &&
-            (tmp_particle.z > -1.0f && tmp_particle.z < local_grid_size.z)){
+        if ((tmp_particle.x >= 0 && tmp_particle.x < local_grid_size.x) && 
+            (tmp_particle.y >= 0 && tmp_particle.y < local_grid_size.y) &&
+            (tmp_particle.z >= 0 && tmp_particle.z < local_grid_size.z)){
                 //printf("Particle %g %g %g %g going to idx %d\n",my_particle.x,my_particle.y,my_particle.z,my_particle.w,i);
                 atomicAdd(&ns[i],1);
             }
@@ -57,9 +57,9 @@ __global__ void init_load_buffer(float4* __restrict d_pos, float4* __restrict d_
         y = (y-1)*local_grid_size.y;
         z = (z-1)*local_grid_size.z;
         float4 tmp_particle = make_float4(my_particle.x - x, my_particle.y - y, my_particle.z - z, my_particle.w);
-        if ((tmp_particle.x > -1.0f && tmp_particle.x < local_grid_size.x) && 
-            (tmp_particle.y > -1.0f && tmp_particle.y < local_grid_size.y) &&
-            (tmp_particle.z > -1.0f && tmp_particle.z < local_grid_size.z)){
+        if ((tmp_particle.x >= 0 && tmp_particle.x < local_grid_size.x) && 
+            (tmp_particle.y >= 0 && tmp_particle.y < local_grid_size.y) &&
+            (tmp_particle.z >= 0 && tmp_particle.z < local_grid_size.z)){
                 //printf("Particle %g %g %g %g going to idx %d\n",my_particle.x,my_particle.y,my_particle.z,my_particle.w,i);
                 float4* pos_dest;
                 float4* vel_dest;

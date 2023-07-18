@@ -205,7 +205,7 @@ int parallel(const char* params_file){
     CPUTimer_t start_init = CPUTimer();
 
     HACCGPM::parallel::GenerateDisplacementIC(params_file,&mem, cosmo, params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize,params.world_rank,params.world_size,params.nlocal,params.local_grid_size);
-    //HACCGPM::parallel::initTransferParticles(params,mem);
+    HACCGPM::parallel::initTransferParticles(params,mem);
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
 

@@ -13,3 +13,6 @@
 [submodule "pycosmotools"]
 	path = pycosmotools
 	url = https://git.cels.anl.gov/hqureshi/pycosmotools.git
+[submodule "MPI-Comm-Memory"]
+	path = MPI-Comm-Memory
+	url = https://github.com/humz2k/MPI-Comm-Memory.git

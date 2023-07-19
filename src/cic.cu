@@ -33,6 +33,18 @@ __global__ void UpdatePosKernel(float4* __restrict d_pos, const float4* __restri
     d_pos[idx] = my_pos;
 }
 
+__global__ void UpdatePosKernelParallel(float4* __restrict d_pos, const float4* __restrict d_vel, float prefactor, int n){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if (idx >= n)return;
+    float4 my_pos = __ldg(&d_pos[idx]);
+    if (my_pos.w < -1)return;
+    float4 my_vel = __ldg(&d_vel[idx]);
+    my_pos.x += my_vel.x * prefactor;
+    my_pos.y += my_vel.y * prefactor;
+    my_pos.z += my_vel.z * prefactor;
+    d_pos[idx] = my_pos;
+}
+
 __global__ void ICICKernel(float4* __restrict d_vel, const float4* __restrict d_grad, const float4* __restrict my_pos, double deltaT, double fscal, int ng){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     float4 my_particle = __ldg(&my_pos[idx]);
@@ -314,32 +326,32 @@ void HACCGPM::parallel::CIC(deviceFFT_t* d_grid,
     numBlocks = ((local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload) + (blockSize - 1))/blockSize;
     InvokeGPUKernelParallel(float2complex,numBlocks,blockSize,d_grid,d_tempgrid,local_grid_size,overload);
 
-    deviceFFT_t* h_tempgrid = (deviceFFT_t*)malloc(sizeof(deviceFFT_t)*(local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z));
-    cudaCall(cudaMemcpy, h_tempgrid, d_grid, sizeof(deviceFFT_t)*(local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z), cudaMemcpyDeviceToHost);
+    //deviceFFT_t* h_tempgrid = (deviceFFT_t*)malloc(sizeof(deviceFFT_t)*(local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z));
+    //cudaCall(cudaMemcpy, h_tempgrid, d_grid, sizeof(deviceFFT_t)*(local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z), cudaMemcpyDeviceToHost);
 
-    //for (int i = 0; i < world_size; i++){
-       // if(world_rank == 0){
-            /*for (int x = 0; x < local_grid_size.x; x++){
-                for (int y = 0; y < local_grid_size.y; y++){
-                    for (int z = 0; z < local_grid_size.z; z++){
-                        int idx = x*local_grid_size.y*local_grid_size.z + y*local_grid_size.z + z;//(x + overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload) + (y+overload)*(local_grid_size.z + 2*overload) + (z+overload);
-                        printf("Rank %d: [%d %d %d] = %g %g\n",world_rank,x,y,z,h_tempgrid[idx].x,h_tempgrid[idx].y);
-                    }
-                }
-            }*/
-            //for (int i = 0; i < (local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z); i++){
-                
-            //}
-    //    }
-    //}
-
-    free(h_tempgrid);
+    //free(h_tempgrid);
     
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
     if (world_rank == 0)printf("%s   CIC took %llu us\n",indent,t);
     CIC_TIME += t;
     CIC_CALLS += 1;
+}
+
+void HACCGPM::parallel::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int n_particles, int blockSize, int world_rank, int calls){
+    CPUTimer_t start = CPUTimer();
+    int numBlocks = (n_particles + (blockSize - 1))/blockSize;
+    float prefactor = ((ts.deltaT)/(ts.aa * ts.aa * ts.adot)) * frac;
+    getIndent(calls);
+    #ifdef VerboseUpdate
+    if(world_rank == 0)printf("%sUpdate Positions was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   frac %g\n%s   prefactor %g\n",indent,indent,blockSize,indent,numBlocks,indent,frac,indent,prefactor);
+    #endif
+    UPDATE_POS_KERNEL_TIME += InvokeGPUKernelParallel(UpdatePosKernelParallel,numBlocks,blockSize,d_pos,d_vel,prefactor,n_particles);
+    CPUTimer_t end = CPUTimer();
+    CPUTimer_t t = end-start;
+    if (world_rank == 0)printf("%s   UpdatePositions took %llu us\n",indent,t);
+    UPDATE_POS_TIME += t;
+    UPDATE_POS_CALLS += 1;
 }
 
 void HACCGPM::parallel::printCICTimes(int world_rank){

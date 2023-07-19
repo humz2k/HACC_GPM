@@ -91,7 +91,7 @@ __global__ void PkCICFilterParallel(deviceFFT_t* __restrict grid, int ng, int fo
     if (idx >= nlocal)return;
     double d = ((2*M_PI)/(((double)(ng))));
 
-    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords,dims);
+    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
     float3 kmodes = HACCGPM::parallel::get_kmodes(idx3d,ng,d);
 
     float filt1 = sinf(0.5f * kmodes.x) / (0.5 * kmodes.x);
@@ -252,7 +252,7 @@ __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restric
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
     if (idx >= nlocal)return;
-    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords,dims);
+    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
     int global_idx = idx3d.x*ng*ng + idx3d.y*ng + idx3d.z;
     if (global_idx == 0){
         return;
@@ -386,7 +386,7 @@ __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restric
 void HACCGPM::parallel::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int overload, int n_particles, int* local_grid_size, int* local_coords, int* dims, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls){
     CPUTimer_t start = CPUTimer();
 
-    int numBlocks = (n_particles + (blockSize - 1))/blockSize;
+    int numBlocks = (nlocal + (blockSize - 1))/blockSize;
 
     int3 local_grid_size_vec = make_int3(local_grid_size[0],local_grid_size[1],local_grid_size[2]);
     int3 local_coords_vec = make_int3(local_coords[0],local_coords[1],local_coords[2]);
@@ -487,8 +487,8 @@ void HACCGPM::parallel::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, flo
     free(kBins);
     free(binCounts);
     free(binVals);
-    cudaFree(d_binCounts);
-    cudaFree(d_binVals);
+    cudaCall(cudaFree,d_binCounts);
+    cudaCall(cudaFree,d_binVals);
 }
 
 void HACCGPM::serial::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, int ng, double rl, int nbins, const char* fname, int nfolds, int blockSize, int calls){

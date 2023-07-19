@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "../src/haccgpm.hpp"
+#include "haccgpm.hpp"
 #include "gridexchangekernels.hpp"
 
 __global__ void loadXLeftKernel(float* __restrict d_out, const float* __restrict d_in, int3 ol_grid_size, int overload, int n){

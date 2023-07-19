@@ -205,36 +205,17 @@ int parallel(const char* params_file){
     CPUTimer_t start_init = CPUTimer();
 
     HACCGPM::parallel::GenerateDisplacementIC(params_file,&mem, cosmo, params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize,params.world_rank,params.world_size,params.nlocal,params.local_grid_size,params.grid_coords,params.grid_dims);
-    //HACCGPM::parallel::initTransferParticles(params,mem);
+    //HACCGPM::parallel::TransferParticles(params,mem);
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    //HACCGPM::parallel::InitGreens(mem.d_greens,params.ng,params.local_grid_size,params.grid_coords,params.blockSize,params.world_rank);
 
-    /*float4* h_particles = (float4*)malloc(sizeof(float4)*params.n_particles);
-    cudaCall(cudaMemcpy, h_particles, mem.d_pos, sizeof(float4)*params.n_particles, cudaMemcpyDeviceToHost);
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    for (int i = 0; i < params.world_size; i++){
-        if (i == params.world_rank){
-            printf("WORLD_RANK = %d\n",params.world_rank);
-            for (int j = 0; j < params.n_particles; j++){
-                printf("%f %f %f %f\n",h_particles[j].x,h_particles[j].y,h_particles[j].z,h_particles[j].w);
-            }
-        }
-        MPI_Barrier(MPI_COMM_WORLD);
-    }
-    MPI_Barrier(MPI_COMM_WORLD);*/
-
-    //printf("NP: %d\n",params.n_particles);
     HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk.pk",0,params.blockSize,params.world_rank,params.world_size);
-    
-    //HACCGPM::parallel::CIC(mem.d_grid,mem.d_tempgrid,mem.d_pos,params.ng,params.n_particles,params.local_grid_size,params.blockSize,params.world_rank, params.world_size);
-    //HACCGPM::parallel::transferParticles(params,mem);
 
-    HACCGPM::parallel::finalize_swfft();
+    //HACCGPM::parallel::UpdatePositions(mem.d_pos,mem.d_vel,ts,0.5,params.ng,params.n_particles,params.blockSize,params.world_rank);
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk1.pk",0,params.blockSize,params.world_rank,params.world_size);
 
     CPUTimer_t end = CPUTimer();
 
@@ -258,6 +239,8 @@ int parallel(const char* params_file){
     #ifndef NOPYTHON
     finalize_python(0);
     #endif
+
+    HACCGPM::parallel::finalize_swfft();
 
     return 0;
 }

@@ -2,7 +2,7 @@
 #include <stdio.h>
 //#include <cstdlib>
 #include <mpi.h>
-#include "../src/haccgpm.hpp"
+#include "haccgpm.hpp"
 #include "gridexchangekernels.hpp"
 
 HACCGPM::parallel::GridExchange::GridExchange(){};

@@ -221,27 +221,12 @@ namespace HACCGPM{
             return out;
         }
 
-        /*__device__ __forceinline__ int3 get_global_index(int idx_, int ng, int nlocal, int world_rank){
-            int3 out;
-            int idx = idx_;
-            idx += nlocal * world_rank;
-            out.x = idx/(ng*ng);
-            out.y = (idx - (out.x*ng*ng))/ng;
-            out.z = (idx - (out.x*ng*ng)) - out.y*ng;
-            return out;
-        }*/
-
-        __device__ __forceinline__ int3 get_global_index(int idx, int ng, int3 local_dims, int3 local_coords, int3 dims){
+        __device__ __forceinline__ int3 get_global_index(int idx, int ng, int3 local_dims, int3 local_coords){
             int3 out;
             int3 local = get_local_index(idx,local_dims.x,local_dims.y,local_dims.z);
             out.x = local.x + local_coords.x * local_dims.x;
             out.y = local.y + local_coords.y * local_dims.y;
             out.z = local.z + local_coords.z * local_dims.z;
-            //int idx = idx_;
-            //idx += nlocal * world_rank;
-            //out.x = idx/(ng*ng);
-            //out.y = (idx - (out.x*ng*ng))/ng;
-            //out.z = (idx - (out.x*ng*ng)) - out.y*ng;
             return out;
         }
 
@@ -273,9 +258,9 @@ namespace HACCGPM{
 
         void timing_stats(CPUTimer_t t, CPUTimer_t* mint, CPUTimer_t* maxt, CPUTimer_t* meant);
 
-        CPUTimer_t initLoadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps, float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls = 0);
+        CPUTimer_t LoadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps, float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls = 0);
 
-        void initTransferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls = 0);
+        void TransferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls = 0);
         CPUTimer_t insertParticles(float4* d_pos, float4* d_vel, float4* new_pos, float4* new_vel, int n_new, int remaining, int n_particles, int blockSize, int world_rank, int calls = 0);
 
         CPUTimer_t loadGridBuffers(float* d_extragrid, float* h_transfer, int3 local_grid_size, int blockSize, int world_rank, int calls = 0);
@@ -286,9 +271,11 @@ namespace HACCGPM{
 
         void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int overload, int n_particles, int* local_grid_size, int* local_coords, int* dims, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls=0);
 
-        void gridExchange(float* d_extragrid, int3 local_grid_size, int world_rank, int world_size, int blockSize, int calls = 0);
-
         void sendPower(int* binCounts, double* binVals, int nbins, int world_rank, int world_size, int calls = 0);
+
+        void InitGreens(hostFFT_t* d_greens, int ng, int* local_grid_size_, int* local_coords_, int blockSize, int world_rank, int calls = 0);
+
+        void UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int n_particles, int blockSize, int world_rank, int calls = 0);
 
         void printTransferTimes(int world_rank);
         void printCICTimes(int world_rank);

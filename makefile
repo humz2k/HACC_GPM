@@ -16,13 +16,15 @@ CUDA_ARCH_FLAGS ?= -arch=sm_60 -gencode=arch=compute_60,code=sm_60 -gencode=arch
 
 PY_LIB ?= -lpython3.9
 
+HACCGPM_INCLUDE ?= -Isrc -Ibdwgc/include
+
 all: main nopython
 
 main: src/driver.cpp $(HACCGPM_BUILD_DIR)/swfftmanager.o $(HACCGPM_BUILD_DIR)/transfers.o $(HACCGPM_BUILD_DIR)/timers.o $(HACCGPM_BUILD_DIR)/ccamb.o $(HACCGPM_BUILD_DIR)/cic.o $(HACCGPM_BUILD_DIR)/initializer.o $(HACCGPM_BUILD_DIR)/io.o $(HACCGPM_BUILD_DIR)/power.o $(HACCGPM_BUILD_DIR)/greens.o $(HACCGPM_BUILD_DIR)/solver.o $(HACCGPM_BUILD_DIR)/params.o $(HACCGPM_BUILD_DIR)/timestepper.o $(HACCGPM_BUILD_DIR)/mmanager.o $(HACCGPM_BUILD_DIR)/ffts.o $(HACCGPM_BUILD_DIR)/particleswapkernels.o $(HACCGPM_BUILD_DIR)/cosmo.o $(HACCGPM_BUILD_DIR)/gridexchange.o $(HACCGPM_BUILD_DIR)/gridexchangekernels.o | swfft pycosmo
-	mpicxx $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a bdwgc/libgc.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft $(PY_LD_FLAGS) $(PY_LIB) -L$(PYCOSMO_DIR)/lib -lpycosmo -I$(CUDA_DIR)/include -fPIC -O3 -fopenmp -g -o haccgpm
+	mpicxx $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a bdwgc/libgc.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft $(PY_LD_FLAGS) $(PY_LIB) -L$(PYCOSMO_DIR)/lib -lpycosmo -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpm
 
 nopython: src/driver.cpp $(HACCGPM_BUILD_DIR)/swfftmanager.o $(HACCGPM_BUILD_DIR)/transfers.o $(HACCGPM_BUILD_DIR)/timers.o $(HACCGPM_BUILD_DIR)/cic.o $(HACCGPM_NOPYTHON_DIR)/initializer.o $(HACCGPM_BUILD_DIR)/io.o $(HACCGPM_BUILD_DIR)/power.o $(HACCGPM_BUILD_DIR)/greens.o $(HACCGPM_BUILD_DIR)/solver.o $(HACCGPM_BUILD_DIR)/params.o $(HACCGPM_BUILD_DIR)/timestepper.o $(HACCGPM_BUILD_DIR)/mmanager.o $(HACCGPM_BUILD_DIR)/ffts.o $(HACCGPM_BUILD_DIR)/particleswapkernels.o $(HACCGPM_BUILD_DIR)/cosmo.o $(HACCGPM_BUILD_DIR)/gridexchange.o $(HACCGPM_BUILD_DIR)/gridexchangekernels.o | swfft
-	mpicxx $^ -DNOPYTHON $(SWFFT_DIR)/lib/swfft_a2a_gpu.a bdwgc/libgc.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft -I$(CUDA_DIR)/include -fPIC -O3 -fopenmp -g -o haccgpmnopython
+	mpicxx $^ -DNOPYTHON $(SWFFT_DIR)/lib/swfft_a2a_gpu.a bdwgc/libgc.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpmnopython
 
 swfft:
 	cd $(SWFFT_DIR) && $(MAKE)
@@ -44,16 +46,16 @@ $(HACCGPM_BUILD_DIR)/ccamb.o: cambTools/ccamb.c | $(HACCGPM_BUILD_DIR)
 	gcc $< $(PY_C_FLAGS) -o $@ $(PY_LD_FLAGS) $(PY_LIB) -I$(PY_NP_FLAGS) -fPIC -c -O3 -Wno-unused-but-set-variable -Wno-return-type
 
 $(HACCGPM_BUILD_DIR)/%.o: */%.cpp | $(HACCGPM_BUILD_DIR)
-	mpicxx $< -I$(CUDA_DIR)/include -fPIC -O3 -fopenmp -g -c -o $@
+	mpicxx $< -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -c -o $@
 
 $(HACCGPM_BUILD_DIR)/%.o: */%.cu | $(HACCGPM_BUILD_DIR)
-	nvcc $< -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g, $(CUDA_ARCH_FLAGS) -c -o $@
+	nvcc $< -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@
 
 $(HACCGPM_NOPYTHON_DIR)/%.o: */%.cpp | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
-	mpicxx $< -DNOPYTHON -I$(CUDA_DIR)/include -fPIC -O3 -fopenmp -g -c -o $@
+	mpicxx $< -DNOPYTHON -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -c -o $@
 
 $(HACCGPM_NOPYTHON_DIR)/%.o: */%.cu | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
-	nvcc $< -DNOPYTHON -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g, $(CUDA_ARCH_FLAGS) -c -o $@
+	nvcc $< -DNOPYTHON -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@
 
 .PHONY: clean
 clean:

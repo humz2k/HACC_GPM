@@ -164,35 +164,7 @@ CPUTimer_t send_recv_data(int world_size, int world_rank, int* n_sends, int* n_r
     return total_time;
 }
 
-void HACCGPM::parallel::gridExchange(float* d_extragrid, int3 local_grid_size, int world_rank, int world_size, int blockSize, int calls){
-    getIndent(calls);
-    #ifdef VerboseTransfer
-    if(world_rank == 0)printf("%sgridExchange was called\n",indent);
-    if(world_rank == 0)printf("%s   Allocating h_transfer\n",indent);
-    #endif
-    int n_extra = (local_grid_size.x+1)*(local_grid_size.y+1)*(local_grid_size.z+1) - local_grid_size.x*local_grid_size.y*local_grid_size.z;
-    float* h_transfer = (float*)malloc(sizeof(float)*n_extra);
-    #ifdef VerboseTransfer
-    if(world_rank == 0)printf("%s      Allocated h_transfer\n",indent);
-    if(world_rank == 0)printf("%s   Calling loadGridBuffers\n",indent);
-    #endif
-    HACCGPM::parallel::loadGridBuffers(d_extragrid, h_transfer,local_grid_size, blockSize, world_rank,calls+1);
-    #ifdef VerboseTransfer
-    if(world_rank == 0)printf("%s      Called loadGridBuffers\n",indent);
-    #endif
-
-    
-
-    #ifdef VerboseTransfer
-    if(world_rank == 0)printf("%s   Freeing h_transfers\n",indent);
-    #endif
-    free(h_transfer);
-    #ifdef VerboseTransfer
-    if(world_rank == 0)printf("%s      Freed h_transfers\n",indent);
-    #endif
-}
-
-void HACCGPM::parallel::initTransferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls){
+void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls){
 
     getIndent(calls);
 
@@ -204,7 +176,7 @@ void HACCGPM::parallel::initTransferParticles(HACCGPM::Params& params,HACCGPM::p
     int3 grid_coords = make_int3(params.grid_coords[0],params.grid_coords[1],params.grid_coords[2]);
 
     #ifdef VerboseTransfer
-    if(params.world_rank == 0)printf("%stransferParticles was called\n",indent);
+    if(params.world_rank == 0)printf("%sTransferParticles was called\n",indent);
     #endif
 
     float4* tmp_swap_pos[27];
@@ -217,7 +189,7 @@ void HACCGPM::parallel::initTransferParticles(HACCGPM::Params& params,HACCGPM::p
     #endif
 
     CPUTimer_t gpu_time = 0;
-    gpu_time += HACCGPM::parallel::initLoadIntoBuffers(tmp_swap_pos,tmp_swap_vel,n_swaps,mem.d_pos,mem.d_vel,params.nlocal,local_grid_size,n_particles,params.blockSize,params.world_rank,calls+1);
+    gpu_time += HACCGPM::parallel::LoadIntoBuffers(tmp_swap_pos,tmp_swap_vel,n_swaps,mem.d_pos,mem.d_vel,params.nlocal,local_grid_size,n_particles,params.blockSize,params.world_rank,calls+1);
 
     #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s      Loaded buffers\n",indent);
@@ -289,7 +261,7 @@ void HACCGPM::parallel::initTransferParticles(HACCGPM::Params& params,HACCGPM::p
 
 
     #ifdef VerboseTransfer
-    if(params.world_rank == 0)printf("%s   transferParticles took %llu us\n",indent,total_time);
+    if(params.world_rank == 0)printf("%s   TransferParticles took %llu us\n",indent,total_time);
     #endif
 }
 
@@ -307,7 +279,7 @@ void HACCGPM::parallel::sendPower(int* binCounts, double* binVals, int nbins, in
     #endif
 
     int* binCountsOut = (int*)malloc(sizeof(int)*nbins);
-    double* binValsOut = (double*)malloc(sizeof(int)*nbins);
+    double* binValsOut = (double*)malloc(sizeof(double)*nbins);
 
     #ifdef VerboseTransfer
     if(world_rank == 0)printf("%s      Allocated binCountsOut, binValsOut\n",indent);

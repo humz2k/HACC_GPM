@@ -229,13 +229,13 @@ CPUTimer_t HACCGPM::parallel::insertParticles(float4* d_pos, float4* d_vel, floa
     return gpu_time;
 }
 
-CPUTimer_t HACCGPM::parallel::initLoadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps,float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls){
+CPUTimer_t HACCGPM::parallel::LoadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps,float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls){
     int numBlocks = (n_particles + blockSize - 1) / blockSize;
 
     getIndent(calls);
 
     #ifdef VerboseSwap
-    if(world_rank == 0)printf("%sinitLoadIntoBuffers was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    if(world_rank == 0)printf("%sLoadIntoBuffers was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
 
     CPUTimer_t start = CPUTimer();
@@ -293,6 +293,6 @@ CPUTimer_t HACCGPM::parallel::initLoadIntoBuffers(float4** swap_pos, float4** sw
     CPUTimer_t end = CPUTimer();
     CPUTimer_t total_time = end-start;
 
-    if(world_rank == 0)printf("%s   initLoadIntoBuffers took %llu us\n",indent,total_time);
+    if(world_rank == 0)printf("%s   LoadIntoBuffers took %llu us\n",indent,total_time);
     return gpu_time;
 }

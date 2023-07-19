@@ -45,7 +45,7 @@ __global__ void init_count_buffer(int* ns, const float4* __restrict d_pos, int n
     atomicAdd(&ns[dest_rank],1);
 }
 
-__global__ void init_load_buffer(int* ns, const float4* __restrict d_pos, int n_particles, int ng, int3 local_grid_size, int3 local_coords, int3 dims){
+__global__ void init_load_buffer(float4* d_swap, int* ns, int* counts, float4* __restrict d_pos, float4* __restrict d_vel, int n_particles, int ng, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     if (idx >= n_particles)return;
     float4 my_particle = __ldg(&d_pos[idx]);
@@ -66,6 +66,23 @@ __global__ void init_load_buffer(int* ns, const float4* __restrict d_pos, int n_
     int3 dest_coords = make_int3(my_particle.x / local_grid_size.x,my_particle.y / local_grid_size.y,my_particle.z / local_grid_size.z);
 
     int dest_rank = dest_coords.x * dims.y * dims.z + dest_coords.y * dims.z + dest_coords.z;
+
+    if (dest_rank == world_rank)return;
+
+    int start = 0;
+    for (int i = 0; i < dest_rank; i++){
+        start += ns[i];
+    }
+
+    int count = atomicAdd(&counts[dest_rank],1);
+
+    int indx = start + count;
+
+    d_swap[indx*2] = my_particle;
+    d_swap[indx*2+1] = __ldg(&d_vel[idx]);
+
+    d_pos[idx] = make_float4(0,0,0,-10);
+    d_vel[idx] = make_float4(0,0,0,-10);
 
     //FINISH ME
 
@@ -119,7 +136,7 @@ CPUTimer_t HACCGPM::parallel::insertParticles(float4* d_pos, float4* d_vel, floa
     return gpu_time;
 }
 
-CPUTimer_t HACCGPM::parallel::LoadIntoBuffers(float** h_swap, int* n_swaps,float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int n_particles, int ng, int blockSize, int world_rank, int world_size, int calls){
+CPUTimer_t HACCGPM::parallel::LoadIntoBuffers(float4** h_swap, int* n_swaps,float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int n_particles, int ng, int blockSize, int world_rank, int world_size, int calls){
     int numBlocks = (n_particles + blockSize - 1) / blockSize;
 
     getIndent(calls);
@@ -135,27 +152,31 @@ CPUTimer_t HACCGPM::parallel::LoadIntoBuffers(float** h_swap, int* n_swaps,float
     int* d_count; cudaCall(cudaMalloc,&d_count,sizeof(int)*world_size);
     cudaCall(cudaMemset,d_ns,0,sizeof(int) * world_size);
     cudaCall(cudaMemset,d_count,0,sizeof(int) * world_size);
-    int* h_ns = (int*)malloc(sizeof(int) * world_size);
+    //int* h_ns = (int*)malloc(sizeof(int) * world_size);
     //gpu_time += 
     InvokeGPUKernelParallel(init_count_buffer,numBlocks,blockSize,d_ns,d_pos,n_particles,ng,local_grid_size,local_coords,dims);
-    cudaCall(cudaMemcpy, h_ns, d_ns, sizeof(int)*world_size, cudaMemcpyDeviceToHost);
+    cudaCall(cudaMemcpy, n_swaps, d_ns, sizeof(int)*world_size, cudaMemcpyDeviceToHost);
     
     int transfer_size = 0;
     for (int i = 0; i < world_size; i++){
         //printf("Rank %d sending %d to rank %d\n",world_rank,h_ns[i],i);
         if (i != world_rank){
-            transfer_size += h_ns[i];
+            transfer_size += n_swaps[i];
         }
     }
 
-    float* d_swap; cudaCall(cudaMalloc,&d_swap,sizeof(float4)*2*transfer_size);
+    float4* d_swap; cudaCall(cudaMalloc,&d_swap,sizeof(float4)*2*transfer_size);
 
+    InvokeGPUKernelParallel(init_load_buffer,numBlocks,blockSize,d_swap,d_ns,d_count,d_pos,d_vel,n_particles,ng,local_grid_size,local_coords,dims,world_rank);
 
+    *h_swap = (float4*)malloc(sizeof(float4)*2*transfer_size);
+
+    cudaCall(cudaMemcpy, *h_swap, d_swap, sizeof(float4)*2*transfer_size, cudaMemcpyDeviceToHost);
 
     cudaCall(cudaFree,d_ns);
     cudaCall(cudaFree,d_count);
     cudaCall(cudaFree,d_swap);
-    free(h_ns);
+    //free(h_ns);
 
     return 0;
     /*int tmp_size = 0;

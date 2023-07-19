@@ -183,15 +183,31 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
     //float4* tmp_swap_vel[27];
 
     int n_swaps[params.world_size];
+    int starts[params.world_size];
     
     #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s   Loading buffers\n",indent);
     #endif
-    
-    float* swap;
+
+    float4* swap;
 
     CPUTimer_t gpu_time = 0;
     gpu_time += HACCGPM::parallel::LoadIntoBuffers(&swap,n_swaps,mem.d_pos,mem.d_vel,params.nlocal,local_grid_size,grid_coords,global_grid_size,n_particles,params.ng,params.blockSize,params.world_rank,params.world_size,calls+1);
+    
+    int total = 0;
+    for (int i = 0; i < params.world_size; i++){
+        if (i == params.world_rank)continue;
+        starts[i] = total;
+        total += n_swaps[i];
+        //printf("Rank %d sending %d to rank %d\n",params.world_rank,n_swaps[i],i);
+    }
+
+    /*if(params.world_rank == 0){
+        for(int i = 0; i < total; i++){
+            printf("(%g %g %g %g) (%g %g %g %g)\n",swap[i*2].x,swap[i*2].y,swap[i*2].z,swap[i*2].w,swap[i*2+1].x,swap[i*2+1].y,swap[i*2+1].z,swap[i*2+1].w);
+        }
+    }*/
+    
     /*
     #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s      Loaded buffers\n",indent);

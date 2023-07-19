@@ -232,9 +232,9 @@ __global__ void CICKernelParallel(float* __restrict d_grid, const float4* __rest
     int j = my_particle.y;
     int k = my_particle.z;
 
-    float diffx = (my_particle.x - (float)i);
-    float diffy = (my_particle.y - (float)j);
-    float diffz = (my_particle.z - (float)k);
+    float diffx = my_particle.x - ((float)i);
+    float diffy = my_particle.y - ((float)j);
+    float diffz = my_particle.z - ((float)k);
 
     for (int x = 0; x < 2; x++){
         for (int y = 0; y < 2; y++){

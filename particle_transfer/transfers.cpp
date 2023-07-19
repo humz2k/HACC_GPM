@@ -179,23 +179,25 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
     if(params.world_rank == 0)printf("%sTransferParticles was called\n",indent);
     #endif
 
-    float4* tmp_swap_pos[27];
-    float4* tmp_swap_vel[27];
+    //float4* tmp_swap_pos[27];
+    //float4* tmp_swap_vel[27];
 
-    int n_swaps[27];
+    int n_swaps[params.world_size];
     
     #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s   Loading buffers\n",indent);
     #endif
+    
+    float* swap;
 
     CPUTimer_t gpu_time = 0;
-    gpu_time += HACCGPM::parallel::LoadIntoBuffers(tmp_swap_pos,tmp_swap_vel,n_swaps,mem.d_pos,mem.d_vel,params.nlocal,local_grid_size,n_particles,params.blockSize,params.world_rank,calls+1);
-
+    gpu_time += HACCGPM::parallel::LoadIntoBuffers(&swap,n_swaps,mem.d_pos,mem.d_vel,params.nlocal,local_grid_size,grid_coords,global_grid_size,n_particles,params.ng,params.blockSize,params.world_rank,params.world_size,calls+1);
+    /*
     #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s      Loaded buffers\n",indent);
     #endif
-
-    int remaining = n_swaps[13];
+    
+    int remaining = n_swaps[1*9 + 3*3 + 1];
 
     int n_recvs[params.world_size];
     zero(n_recvs,params.world_size);
@@ -262,7 +264,7 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
 
     #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s   TransferParticles took %llu us\n",indent,total_time);
-    #endif
+    #endif*/
 }
 
 void HACCGPM::parallel::sendPower(int* binCounts, double* binVals, int nbins, int world_rank, int world_size, int calls){

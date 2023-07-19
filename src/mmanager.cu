@@ -20,7 +20,7 @@ HACCGPM::parallel::MemoryManager::MemoryManager(HACCGPM::Params params){
     if (params.world_rank == 0)printf("   Allocated d_pos: %lu bytes.\n",sizeof(float4)*mem_frac);
 
     int blockSize = params.blockSize;
-    int numBlocks = (mem_frac + blockSize - 1) / blockSize;
+    int numBlocks = (mem_frac + (blockSize - 1)) / blockSize;
     getIndent(0);
     InvokeGPUKernelParallel(set_invalid,numBlocks,blockSize,d_pos,mem_frac);
     if (params.world_rank == 0)printf("   set_invalid d_pos\n");

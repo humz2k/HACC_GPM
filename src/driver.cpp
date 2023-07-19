@@ -205,15 +205,16 @@ int parallel(const char* params_file){
     CPUTimer_t start_init = CPUTimer();
 
     HACCGPM::parallel::GenerateDisplacementIC(params_file,&mem, cosmo, params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize,params.world_rank,params.world_size,params.nlocal,params.local_grid_size,params.grid_coords,params.grid_dims);
+    HACCGPM::parallel::TransferParticles(params,mem);
     //HACCGPM::parallel::TransferParticles(params,mem);
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
 
-    //HACCGPM::parallel::InitGreens(mem.d_greens,params.ng,params.local_grid_size,params.grid_coords,params.blockSize,params.world_rank);
+    HACCGPM::parallel::InitGreens(mem.d_greens,params.ng,params.local_grid_size,params.grid_coords,params.blockSize,params.world_rank);
 
     HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk.pk",0,params.blockSize,params.world_rank,params.world_size);
 
-    //HACCGPM::parallel::UpdatePositions(mem.d_pos,mem.d_vel,ts,0.5,params.ng,params.n_particles,params.blockSize,params.world_rank);
+    HACCGPM::parallel::UpdatePositions(mem.d_pos,mem.d_vel,ts,0.5,params.ng,params.n_particles,params.blockSize,params.world_rank);
 
     HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk1.pk",0,params.blockSize,params.world_rank,params.world_size);
 

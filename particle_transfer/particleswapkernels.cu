@@ -20,67 +20,56 @@ __global__ void copy(float4* __restrict dest1, const float4* __restrict source1,
     dest2[idx] = my_vel;
 }
 
-__global__ void init_count_buffer(int* ns, const float4* __restrict d_pos, int n_particles, int3 local_grid_size){
+__global__ void init_count_buffer(int* ns, const float4* __restrict d_pos, int n_particles, int ng, int3 local_grid_size, int3 local_coords, int3 dims){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     if (idx >= n_particles)return;
     float4 my_particle = __ldg(&d_pos[idx]);
     if (my_particle.w < -1)return;
-    for (int i = 0; i < 27; i++){
-        int x = (i/3)/3;
-        int y = (i - x*3*3)/3;
-        int z = i - x*3*3 - y*3;
-        x = (x-1)*local_grid_size.x;
-        y = (y-1)*local_grid_size.y;
-        z = (z-1)*local_grid_size.z;
-        float3 tmp_particle = make_float3(my_particle.x - x, my_particle.y - y, my_particle.z - z);
-        if ((tmp_particle.x >= 0 && tmp_particle.x < local_grid_size.x) && 
-            (tmp_particle.y >= 0 && tmp_particle.y < local_grid_size.y) &&
-            (tmp_particle.z >= 0 && tmp_particle.z < local_grid_size.z)){
-                //printf("Particle %g %g %g %g going to idx %d\n",my_particle.x,my_particle.y,my_particle.z,my_particle.w,i);
-                atomicAdd(&ns[i],1);
-            }
 
-    }
+    my_particle.x += (float)(local_grid_size.x * local_coords.x);
+    my_particle.y += (float)(local_grid_size.y * local_coords.y);
+    my_particle.z += (float)(local_grid_size.z * local_coords.z);
+
+    my_particle.x += (float)ng;
+    my_particle.y += (float)ng;
+    my_particle.z += (float)ng;
+
+    my_particle.x = fmod(my_particle.x,(float)ng);
+    my_particle.y = fmod(my_particle.y,(float)ng);
+    my_particle.z = fmod(my_particle.z,(float)ng);
+
+    int3 dest_coords = make_int3(my_particle.x / local_grid_size.x,my_particle.y / local_grid_size.y,my_particle.z / local_grid_size.z);
+
+    int dest_rank = dest_coords.x * dims.y * dims.z + dest_coords.y * dims.z + dest_coords.z;
+
+    atomicAdd(&ns[dest_rank],1);
 }
 
-__global__ void init_load_buffer(float4* __restrict d_pos, float4* __restrict d_vel, float4* __restrict d_pos_swap, float4* __restrict d_vel_swap, int* count, int* starts, const float4* __restrict d_tmppos, const float4* __restrict d_tmpvel, int3 local_grid_size, int n_particles, int world_rank){
+__global__ void init_load_buffer(int* ns, const float4* __restrict d_pos, int n_particles, int ng, int3 local_grid_size, int3 local_coords, int3 dims){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     if (idx >= n_particles)return;
-    float4 my_particle = __ldg(&d_tmppos[idx]);
+    float4 my_particle = __ldg(&d_pos[idx]);
     if (my_particle.w < -1)return;
-    float4 my_vel = __ldg(&d_tmpvel[idx]);
-    for (int i = 0; i < 27; i++){
-        int x = (i/3)/3;
-        int y = (i - x*3*3)/3;
-        int z = i - x*3*3 - y*3;
-        x = (x-1)*local_grid_size.x;
-        y = (y-1)*local_grid_size.y;
-        z = (z-1)*local_grid_size.z;
-        float4 tmp_particle = make_float4(my_particle.x - x, my_particle.y - y, my_particle.z - z, my_particle.w);
-        if ((tmp_particle.x >= 0 && tmp_particle.x < local_grid_size.x) && 
-            (tmp_particle.y >= 0 && tmp_particle.y < local_grid_size.y) &&
-            (tmp_particle.z >= 0 && tmp_particle.z < local_grid_size.z)){
-                //printf("Particle %g %g %g %g going to idx %d\n",my_particle.x,my_particle.y,my_particle.z,my_particle.w,i);
-                float4* pos_dest;
-                float4* vel_dest;
-                pos_dest = d_pos;
-                vel_dest = d_vel;
-                if (i != 13){
-                    int start = starts[i];
-                    pos_dest = &d_pos_swap[start];
-                    vel_dest = &d_vel_swap[start];
-                }
-                int j = atomicAdd(&count[i],1);
-                pos_dest[j] = tmp_particle;
-                vel_dest[j] = my_vel;
-                /*if (i > 13){
-                    if (world_rank == 0){
-                        printf("i=%d j=%d [%g %g %g %g]\n",i,j,pos_dest[j].x,pos_dest[j].y,pos_dest[j].z,pos_dest[j].w);
-                    }
-                }*/
-            }
 
-    }
+    my_particle.x += (float)(local_grid_size.x * local_coords.x);
+    my_particle.y += (float)(local_grid_size.y * local_coords.y);
+    my_particle.z += (float)(local_grid_size.z * local_coords.z);
+
+    my_particle.x += (float)ng;
+    my_particle.y += (float)ng;
+    my_particle.z += (float)ng;
+
+    my_particle.x = fmod(my_particle.x,(float)ng);
+    my_particle.y = fmod(my_particle.y,(float)ng);
+    my_particle.z = fmod(my_particle.z,(float)ng);
+
+    int3 dest_coords = make_int3(my_particle.x / local_grid_size.x,my_particle.y / local_grid_size.y,my_particle.z / local_grid_size.z);
+
+    int dest_rank = dest_coords.x * dims.y * dims.z + dest_coords.y * dims.z + dest_coords.z;
+
+    //FINISH ME
+
+    //atomicAdd(&ns[dest_rank],1);
 }
 
 __global__ void findDuplicates(const float4* __restrict d_pos, float4* __restrict new_particles, int n_new, int n_particles){
@@ -108,105 +97,6 @@ __global__ void combineParticles(float4* __restrict d_pos, float4* __restrict d_
     d_vel[dest] = my_vel;
 }
 
-__global__ void loadGridBuffersKernel(float* __restrict d_out, const float* __restrict d_grid, int3 local_grid_size, int n_extra){
-    int idx = threadIdx.x+blockDim.x+blockIdx.x;
-    if (idx >= n_extra)return;
-    //int3 start = make_int3(0,0,0);
-    int x = local_grid_size.x;
-    int y = local_grid_size.y;
-    int z = local_grid_size.z;
-    int tmp_idx = idx;
-
-    for (int i = 1; i < 8; i++){
-        int l = i/4;
-        int m = (i - l*4)/2;
-        int n = (i - l*4) - m*2;
-
-        int l_mul = ((l+1)%2)*x;
-        int m_mul = ((m+1)%2)*y;
-        int n_mul = ((n+1)%2)*z;
-        if (l_mul == 0){
-            l_mul = 1;
-        }
-        if (m_mul == 0){
-            m_mul == 1;
-        }
-        if (n_mul == 0){
-            n_mul == 1;
-        }
-
-        int bin_size = l_mul*m_mul*n_mul;
-
-        if (tmp_idx < bin_size){
-            ///THIS IS WRONG!!!! PLEASE FIX. THE INDEXES ARE NOT ALWAYS CONTIGUOUS...
-            int global_index = x * l * (y+1)*(z+1) + y * m * (z+1) + (z+1) * n + tmp_idx;
-            float my_cell = __ldg(&d_grid[global_index]);
-            d_out[idx] = my_cell;
-            return;
-        }
-
-        tmp_idx -= bin_size;
-
-    }
-
-    /*if (0 <= tmp_idx < z*y){
-        start.z = z;
-    } else{
-        tmp_idx -= z*y;
-        if (0 <= tmp_idx < y*x){
-            start.y = y;
-        } else {
-            tmp_idx -= y*x;
-            if (0 <= tmp_idx < y){
-                start.y = y;
-                start.z = z;
-            } else {
-                tmp_idx -= y;
-                if (0 <= tmp_idx < z*x){
-                    start.x = x;
-                } else {
-                    tmp_idx -= z*x;
-                    if (0 <= tmp_idx < z){
-                        start.x = x;
-                        start.z = z;
-                    } else {
-                        tmp_idx -= z;
-                        if (0 <= tmp_idx < x){
-                            start.x = x;
-                            start.y = y;
-                        } else{
-                            start.x = x;
-                            start.y = y;
-                            start.z = z;
-                        }}}}}}*/
-
-    /*int global_index = start.x * (y+1)*(z+1) + start.y * (z+1) + start.z + 1 + tmp_idx;
-    float my_cell = __ldg(&d_grid[global_index]);
-    d_out[idx] = my_cell;*/
-
-}
-
-CPUTimer_t HACCGPM::parallel::loadGridBuffers(float* d_extragrid, float* h_transfer, int3 local_grid_size, int blockSize, int world_rank, int calls){
-    int n_extra = (local_grid_size.x+1)*(local_grid_size.y+1)*(local_grid_size.z+1) - (local_grid_size.x*local_grid_size.y*local_grid_size.z);
-    int numBlocks = (n_extra + (blockSize - 1))/blockSize;
-
-    getIndent(calls);
-
-    #ifdef VerboseSwap
-    if(world_rank == 0)printf("%sloadGridBuffers was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
-    #endif
-    
-    float* d_transfer; cudaCall(cudaMalloc,&d_transfer,sizeof(float)*n_extra);
-
-    CPUTimer_t gpu_time = InvokeGPUKernelParallel(loadGridBuffersKernel,numBlocks,blockSize,d_transfer,d_extragrid,local_grid_size,n_extra);
-
-    cudaCall(cudaMemcpy,h_transfer,d_transfer,sizeof(float)*n_extra,cudaMemcpyDeviceToHost);
-
-    cudaCall(cudaFree,d_transfer);
-
-    return gpu_time;
-}
-
 CPUTimer_t HACCGPM::parallel::insertParticles(float4* d_pos, float4* d_vel, float4* new_pos, float4* new_vel, int n_new, int remaining, int n_particles, int blockSize, int world_rank, int calls){
     int numBlocks = (n_particles + blockSize - 1) / blockSize;
     getIndent(calls);
@@ -229,7 +119,7 @@ CPUTimer_t HACCGPM::parallel::insertParticles(float4* d_pos, float4* d_vel, floa
     return gpu_time;
 }
 
-CPUTimer_t HACCGPM::parallel::LoadIntoBuffers(float4** swap_pos, float4** swap_vel, int* n_swaps,float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int n_particles, int blockSize, int world_rank, int calls){
+CPUTimer_t HACCGPM::parallel::LoadIntoBuffers(float** h_swap, int* n_swaps,float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int n_particles, int ng, int blockSize, int world_rank, int world_size, int calls){
     int numBlocks = (n_particles + blockSize - 1) / blockSize;
 
     getIndent(calls);
@@ -241,21 +131,49 @@ CPUTimer_t HACCGPM::parallel::LoadIntoBuffers(float4** swap_pos, float4** swap_v
     CPUTimer_t start = CPUTimer();
     CPUTimer_t gpu_time = 0;
 
-    int* d_ns; cudaCall(cudaMalloc,&d_ns,sizeof(int)*27);
-    cudaCall(cudaMemset,d_ns,0,sizeof(int)*27);
-    int* h_ns = (int*)malloc(sizeof(int) * 27);
-    gpu_time += InvokeGPUKernelParallel(init_count_buffer,numBlocks,blockSize,d_ns,d_pos,n_particles,local_grid_size);
-    cudaCall(cudaMemcpy, h_ns, d_ns, sizeof(int)*27, cudaMemcpyDeviceToHost);
-    int tmp_size = 0;
+    int* d_ns; cudaCall(cudaMalloc,&d_ns,sizeof(int)*world_size);
+    int* d_count; cudaCall(cudaMalloc,&d_count,sizeof(int)*world_size);
+    cudaCall(cudaMemset,d_ns,0,sizeof(int) * world_size);
+    cudaCall(cudaMemset,d_count,0,sizeof(int) * world_size);
+    int* h_ns = (int*)malloc(sizeof(int) * world_size);
+    //gpu_time += 
+    InvokeGPUKernelParallel(init_count_buffer,numBlocks,blockSize,d_ns,d_pos,n_particles,ng,local_grid_size,local_coords,dims);
+    cudaCall(cudaMemcpy, h_ns, d_ns, sizeof(int)*world_size, cudaMemcpyDeviceToHost);
+    
+    int transfer_size = 0;
+    for (int i = 0; i < world_size; i++){
+        //printf("Rank %d sending %d to rank %d\n",world_rank,h_ns[i],i);
+        if (i != world_rank){
+            transfer_size += h_ns[i];
+        }
+    }
+
+    float* d_swap; cudaCall(cudaMalloc,&d_swap,sizeof(float4)*2*transfer_size);
+
+
+
+    cudaCall(cudaFree,d_ns);
+    cudaCall(cudaFree,d_count);
+    cudaCall(cudaFree,d_swap);
+    free(h_ns);
+
+    return 0;
+    /*int tmp_size = 0;
     int* h_starts = (int*)malloc(sizeof(int) * 27);
     int* d_starts; cudaCall(cudaMalloc,&d_starts,sizeof(int)*27);
     h_starts[0] = 0;
     for (int i = 0; i < 27; i++){
-        if (i == 13)continue;
+        int x = (i/3)/3;
+        int y = (i - x*3*3)/3;
+        int z = i - x*3*3 - y*3;
+        if ((x == 1) && (y == 1) && (z == 1))continue;
         tmp_size += h_ns[i];
         h_starts[i] = 0;
         for (int j = 0; j < i; j++){
-            if (j == 13)continue;
+            int x = (i/3)/3;
+            int y = (i - x*3*3)/3;
+            int z = i - x*3*3 - y*3;
+            if ((x == 1) && (y == 1) && (z == 1))continue;
             h_starts[i] += h_ns[j];
         }
     }
@@ -294,5 +212,5 @@ CPUTimer_t HACCGPM::parallel::LoadIntoBuffers(float4** swap_pos, float4** swap_v
     CPUTimer_t total_time = end-start;
 
     if(world_rank == 0)printf("%s   LoadIntoBuffers took %llu us\n",indent,total_time);
-    return gpu_time;
+    return gpu_time;*/
 }

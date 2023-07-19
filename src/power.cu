@@ -86,12 +86,12 @@ __global__ void PkCICFilter(double* __restrict grid, int ng, int folds){
     
 }
 
-__global__ void PkCICFilterParallel(deviceFFT_t* __restrict grid, int ng, int folds, int nlocal, int world_rank){
+__global__ void PkCICFilterParallel(deviceFFT_t* __restrict grid, int ng, int folds, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
     if (idx >= nlocal)return;
     double d = ((2*M_PI)/(((double)(ng))));
 
-    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,nlocal,world_rank);
+    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords,dims);
     float3 kmodes = HACCGPM::parallel::get_kmodes(idx3d,ng,d);
 
     float filt1 = sinf(0.5f * kmodes.x) / (0.5 * kmodes.x);
@@ -248,11 +248,11 @@ __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restric
 
 }
 
-__global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng, int nlocal, int world_rank){
+__global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
     if (idx >= nlocal)return;
-    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,nlocal,world_rank);
+    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords,dims);
     int global_idx = idx3d.x*ng*ng + idx3d.y*ng + idx3d.z;
     if (global_idx == 0){
         return;
@@ -383,10 +383,14 @@ __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restric
 
 }*/
 
-void HACCGPM::parallel::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int overload, int n_particles, int* local_grid_size, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls){
+void HACCGPM::parallel::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int overload, int n_particles, int* local_grid_size, int* local_coords, int* dims, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls){
     CPUTimer_t start = CPUTimer();
 
     int numBlocks = (n_particles + (blockSize - 1))/blockSize;
+
+    int3 local_grid_size_vec = make_int3(local_grid_size[0],local_grid_size[1],local_grid_size[2]);
+    int3 local_coords_vec = make_int3(local_coords[0],local_coords[1],local_coords[2]);
+    int3 dims_vec = make_int3(dims[0],dims[1],dims[2]);
 
     getIndent(calls);
 
@@ -431,7 +435,7 @@ void HACCGPM::parallel::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, flo
     if(world_rank == 0)printf("%s   Calling CIC\n",indent);
     #endif
 
-    HACCGPM::parallel::CIC(d_grid,d_tempgrid,d_pos,ng,n_particles,local_grid_size,blockSize,world_rank, world_size,overload,calls+1);
+    HACCGPM::parallel::CIC(d_grid,d_tempgrid,d_pos,ng,n_particles,local_grid_size,local_coords,dims,blockSize,world_rank, world_size,overload,calls+1);
 
     #ifdef VerbosePower
     if(world_rank == 0)printf("%s      Called CIC\n",indent);
@@ -441,10 +445,10 @@ void HACCGPM::parallel::GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, flo
     HACCGPM::parallel::forward_fft(d_grid,ng,calls+1);
 
     InvokeGPUKernelParallel(scalePower,numBlocks,blockSize,d_grid,(double)ng,rl,nlocal);
-    //InvokeGPUKernelParallel(PkCICFilterParallel,numBlocks,blockSize,d_grid,ng,0,nlocal,world_rank);
+    InvokeGPUKernelParallel(PkCICFilterParallel,numBlocks,blockSize,d_grid,ng,0,nlocal,world_rank,local_grid_size_vec,local_coords_vec,dims_vec);
     cudaCall(cudaMemset,d_binCounts,0,sizeof(int)*nbins);
     cudaCall(cudaMemset,d_binVals,0,sizeof(double)*nbins);
-    InvokeGPUKernelParallel(BinPower,numBlocks,blockSize,d_grid,d_binVals,d_binCounts,minK,binDelta,new_rl,ng,nlocal,world_rank);
+    InvokeGPUKernelParallel(BinPower,numBlocks,blockSize,d_grid,d_binVals,d_binCounts,minK,binDelta,new_rl,ng,nlocal,world_rank,local_grid_size_vec,local_coords_vec,dims_vec);
 
     #ifdef VerbosePower
     if(world_rank == 0)printf("%s      Calculated PK\n",indent);

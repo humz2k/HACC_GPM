@@ -282,21 +282,58 @@ __global__ void loadTransferBuffer(float* __restrict d_out, const float* __restr
 
 }
 
-void HACCGPM::parallel::CIC(deviceFFT_t* d_grid, float* d_tempgrid, float4* d_pos, int ng, int n_particles, int* local_grid_size_, int blockSize, int world_rank, int world_size, int overload, int calls){
+void HACCGPM::parallel::CIC(deviceFFT_t* d_grid, 
+                                    float* d_tempgrid, 
+                                    float4* d_pos, 
+                                    int ng, 
+                                    int n_particles, 
+                                    int* local_grid_size_,
+                                    int* local_coords_,
+                                    int* dims_,
+                                    int blockSize, 
+                                    int world_rank, 
+                                    int world_size, 
+                                    int overload, 
+                                    int calls){
     CPUTimer_t start = CPUTimer();
     int numBlocks = (n_particles + (blockSize - 1))/blockSize;
     int3 local_grid_size = make_int3(local_grid_size_[0],local_grid_size_[1],local_grid_size_[2]);
+    int3 local_coords = make_int3(local_coords_[0],local_coords_[1],local_coords_[2]);
+    int3 dims = make_int3(dims_[0],dims_[1],dims_[2]);
     getIndent(calls);
     #ifdef VerboseUpdate
     if (world_rank == 0)printf("%sCIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
-    cudaCall(cudaMemset,d_tempgrid,0,sizeof(float)*(local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z));
+    cudaCall(cudaMemset,d_tempgrid,0,sizeof(float)*(local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload));
     CIC_KERNEL_TIME += InvokeGPUKernelParallel(CICKernelParallel,numBlocks,blockSize,d_tempgrid,d_pos,ng,overload,local_grid_size,n_particles,1.0f);
 
-    
+    HACCGPM::parallel::GridExchange gexch(local_coords,local_grid_size,dims,ng,world_size,world_rank,overload,blockSize);
+
+    gexch.resolve(d_tempgrid,calls+1);
     
     numBlocks = ((local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload) + (blockSize - 1))/blockSize;
     InvokeGPUKernelParallel(float2complex,numBlocks,blockSize,d_grid,d_tempgrid,local_grid_size,overload);
+
+    deviceFFT_t* h_tempgrid = (deviceFFT_t*)malloc(sizeof(deviceFFT_t)*(local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z));
+    cudaCall(cudaMemcpy, h_tempgrid, d_grid, sizeof(deviceFFT_t)*(local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z), cudaMemcpyDeviceToHost);
+
+    //for (int i = 0; i < world_size; i++){
+       // if(world_rank == 0){
+            /*for (int x = 0; x < local_grid_size.x; x++){
+                for (int y = 0; y < local_grid_size.y; y++){
+                    for (int z = 0; z < local_grid_size.z; z++){
+                        int idx = x*local_grid_size.y*local_grid_size.z + y*local_grid_size.z + z;//(x + overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload) + (y+overload)*(local_grid_size.z + 2*overload) + (z+overload);
+                        printf("Rank %d: [%d %d %d] = %g %g\n",world_rank,x,y,z,h_tempgrid[idx].x,h_tempgrid[idx].y);
+                    }
+                }
+            }*/
+            //for (int i = 0; i < (local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z); i++){
+                
+            //}
+    //    }
+    //}
+
+    free(h_tempgrid);
     
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;

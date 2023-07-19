@@ -135,7 +135,7 @@ __global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, dev
 
 }
 
-__global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, deviceFFT_t* __restrict outSx, deviceFFT_t* __restrict outSy, deviceFFT_t* __restrict outSz, double delta, double rl, double a, int ng, int nlocal, int world_rank){
+__global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, deviceFFT_t* __restrict outSx, deviceFFT_t* __restrict outSy, deviceFFT_t* __restrict outSz, double delta, double rl, double a, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -143,7 +143,7 @@ __global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, dev
 
     double d = (2*M_PI)/rl;
 
-    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,nlocal,world_rank);
+    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords,dims);
     float3 kmodes = HACCGPM::parallel::get_kmodes(idx3d,ng,d);
 
     double k2 = kmodes.x * kmodes.x + kmodes.y * kmodes.y + kmodes.z * kmodes.z;
@@ -223,14 +223,10 @@ __global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_ve
     float velA = a - (deltaT * 0.5f);
     float velMul = (velA * velA * dotDelta * fscal);
     float4 my_vel = make_float4(velMul*s.x,velMul*s.y,velMul*s.z,idx + nlocal*world_rank);
+
     my_particle.x += delta * s.x;
-    //my_particle.x = fmod(my_particle.x,(float)ng);
     my_particle.y += delta * s.y;
-    //my_particle.y = fmod(my_particle.y,(float)ng);
     my_particle.z += delta * s.z;
-    //my_particle.z = fmod(my_particle.z,(float)ng);
-    //printf("delta %g, sx %g, sy %g, sz %g\n",delta,s.x,s.y,s.z);
-    //printf("%g %g %g %g, %g %g %g %g\n",my_particle.x,my_particle.y,my_particle.z,my_particle.w,my_vel.x,my_vel.y,my_vel.z,my_vel.w);
 
     d_pos[idx] = my_particle;
     d_vel[idx] = my_vel;
@@ -272,7 +268,7 @@ __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, 
 
 }
 
-__global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, double k_delta, double k_min, double rl, int ng, int nlocal, int world_rank){
+__global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, double k_delta, double k_min, double rl, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (idx >= nlocal)return;
@@ -284,7 +280,7 @@ __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, 
 
     double d = (2*M_PI)/rl;
 
-    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,nlocal,world_rank);
+    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords,dims);
     float3 kmodes = HACCGPM::parallel::get_kmodes(idx3d,ng,d);
 
     double my_k = sqrt(kmodes.x*kmodes.x + kmodes.y*kmodes.y + kmodes.z*kmodes.z);
@@ -493,7 +489,7 @@ void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::s
 }
 
 
-void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoClass& cosmo, deviceFFT_t* d_grid, int ng, double rl, double z, int seed, int blockSize, int world_rank, int world_size, int nlocal, int calls){
+void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoClass& cosmo, deviceFFT_t* d_grid, int ng, double rl, double z, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int* local_coords, int* dims, int calls){
     int numBlocks = (nlocal + (blockSize - 1))/blockSize;
 
     getIndent(calls);
@@ -551,8 +547,10 @@ void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoCl
         if(world_rank == 0)printf("%s      input ipk only goes to %g\n",indent,ipk_max);
         exit(1);
     }
-
-    InvokeGPUKernelParallel(interpolatePowerSpectrum,numBlocks,blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,rl,ng,nlocal,world_rank);
+    int3 local_grid_size_vec = make_int3(local_grid_size[0],local_grid_size[1],local_grid_size[2]);
+    int3 dims_vec = make_int3(dims[0],dims[1],dims[2]);
+    int3 local_coords_vec = make_int3(local_coords[0],local_coords[1],local_coords[2]);
+    InvokeGPUKernelParallel(interpolatePowerSpectrum,numBlocks,blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,rl,ng,nlocal,world_rank,local_grid_size_vec,local_coords_vec,dims_vec);
 
     free(h_ipk);
     cudaCall(cudaFree,d_ipk);
@@ -596,7 +594,7 @@ void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoCl
     #endif
 }
 
-void HACCGPM::parallel::GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, HACCGPM::CosmoClass& cosmo, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int calls){
+void HACCGPM::parallel::GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, HACCGPM::CosmoClass& cosmo, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int* local_coords, int* dims, int calls){
 
     int numBlocks = (nlocal)/blockSize;
     getIndent(calls);
@@ -606,7 +604,7 @@ void HACCGPM::parallel::GenerateDisplacementIC(const char* params_file, HACCGPM:
     if (world_rank == 0)printf("%s   Calling GenerateFourierAmplitudesParallel...\n",indent);
     #endif
 
-    GenerateFourierAmplitudesParallel(params_file, cosmo, mem->d_grid, ng, rl, z, seed, blockSize, world_rank, world_size, nlocal, calls+1);
+    GenerateFourierAmplitudesParallel(params_file, cosmo, mem->d_grid, ng, rl, z, seed, blockSize, world_rank, world_size, nlocal, local_grid_size, local_coords, dims, calls+1);
 
     #ifdef VerboseInitializer
     if (world_rank == 0)printf("%s      Called GenerateFourierAmplitudes.\n",indent);
@@ -634,8 +632,10 @@ void HACCGPM::parallel::GenerateDisplacementIC(const char* params_file, HACCGPM:
     if (world_rank == 0)printf("%s      Called get_delta_and_dotDelta.\n",indent);
     if (world_rank == 0)printf("%s   Calling transformDensityField...\n",indent);
     #endif
-
-    InvokeGPUKernelParallel(transformDensityField,numBlocks,blockSize,mem->d_grid,d_sx,d_sy,d_sz,delta,rl,1/(1+z),ng,nlocal,world_rank);
+    int3 local_grid_size_vec = make_int3(local_grid_size[0],local_grid_size[1],local_grid_size[2]);
+    int3 dims_vec = make_int3(dims[0],dims[1],dims[2]);
+    int3 local_coords_vec = make_int3(local_coords[0],local_coords[1],local_coords[2]);
+    InvokeGPUKernelParallel(transformDensityField,numBlocks,blockSize,mem->d_grid,d_sx,d_sy,d_sz,delta,rl,1/(1+z),ng,nlocal,world_rank,local_grid_size_vec,local_coords_vec,dims_vec);
 
     #ifdef VerboseInitializer
     if (world_rank == 0)printf("%s      Called transformVelocityField.\n",indent);

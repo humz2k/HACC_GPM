@@ -194,6 +194,25 @@ namespace HACCGPM{
                 ~MemoryManager();
         };
 
+        class GridExchange{
+
+            private:
+                int3 local_coords;
+                int3 local_grid_size;
+                int3 dims;
+                int ng;
+                int world_size;
+                int world_rank;
+                int overload;
+                int blockSize;
+
+            public:
+                GridExchange();
+                GridExchange(int3 local_coords_, int3 local_grid_size_, int3 dims_, int ng_, int world_size_, int world_rank_, int overload_, int blockSize_);
+
+                void resolve(float* grid, int calls = 0);
+        };
+
         __device__ __forceinline__ int3 get_local_index(int idx, int nx, int ny, int nz){
             int3 out;
             out.x = idx/(ny*nz);
@@ -202,12 +221,27 @@ namespace HACCGPM{
             return out;
         }
 
-        __device__ __forceinline__ int3 get_global_index(int idx, int ng, int nlocal, int world_rank){
+        /*__device__ __forceinline__ int3 get_global_index(int idx_, int ng, int nlocal, int world_rank){
             int3 out;
+            int idx = idx_;
             idx += nlocal * world_rank;
             out.x = idx/(ng*ng);
             out.y = (idx - (out.x*ng*ng))/ng;
             out.z = (idx - (out.x*ng*ng)) - out.y*ng;
+            return out;
+        }*/
+
+        __device__ __forceinline__ int3 get_global_index(int idx, int ng, int3 local_dims, int3 local_coords, int3 dims){
+            int3 out;
+            int3 local = get_local_index(idx,local_dims.x,local_dims.y,local_dims.z);
+            out.x = local.x + local_coords.x * local_dims.x;
+            out.y = local.y + local_coords.y * local_dims.y;
+            out.z = local.z + local_coords.z * local_dims.z;
+            //int idx = idx_;
+            //idx += nlocal * world_rank;
+            //out.x = idx/(ng*ng);
+            //out.y = (idx - (out.x*ng*ng))/ng;
+            //out.z = (idx - (out.x*ng*ng)) - out.y*ng;
             return out;
         }
 
@@ -246,11 +280,11 @@ namespace HACCGPM{
 
         CPUTimer_t loadGridBuffers(float* d_extragrid, float* h_transfer, int3 local_grid_size, int blockSize, int world_rank, int calls = 0);
 
-        void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, HACCGPM::CosmoClass& cosmo, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int calls = 0);
+        void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, HACCGPM::CosmoClass& cosmo, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int* local_coords, int* dims, int calls = 0);
     
-        void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int* local_grid_size, int blockSize, int world_rank, int world_size, int overload, int calls = 0);
+        void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int* local_grid_size_, int* local_coords_, int* dims_, int blockSize, int world_rank, int world_size, int overload, int calls = 0);
 
-        void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int overload, int n_particles, int* local_grid_size, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls=0);
+        void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int overload, int n_particles, int* local_grid_size, int* local_coords, int* dims, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls=0);
 
         void gridExchange(float* d_extragrid, int3 local_grid_size, int world_rank, int world_size, int blockSize, int calls = 0);
 

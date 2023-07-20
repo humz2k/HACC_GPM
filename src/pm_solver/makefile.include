@@ -1,0 +1,4 @@
+PM_SOLVER := $(patsubst src/pm_solver/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/pm_solver/*.cpp)) $(patsubst src/pm_solver/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/pm_solver/*.cu))
+
+HACCGPM_FILES += $(PM_SOLVER)
+HACCGPM_NOPYTHON_FILES += $(PM_SOLVER)

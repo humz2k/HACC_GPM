@@ -1,320 +1,15 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "haccgpm.hpp"
+#include "ic_kernels.hpp"
 #include <math.h>
-#include <curand.h>
-#include <curand_kernel.h>
+
+#ifndef NOPYTHON
 #include "../cambTools/ccamb.h"
+#endif
 
 #define VerboseInitializer
 
 //#define NOPYTHON
-
-__global__ void initRNG(curandState *state, int seed){
-
-  int idx = threadIdx.x+blockDim.x*blockIdx.x;
-  curand_init(seed, idx, 0, &state[idx]);
-
-}
-
-__global__ void initRNG(curandState *state, int seed, int nlocal, int world_rank){
-
-  int idx = threadIdx.x+blockDim.x*blockIdx.x;
-  if (idx >= nlocal)return;
-  curand_init(seed, idx + nlocal * world_rank, 0, &state[idx]);
-
-}
-
-__global__ void initRNG(curandState *state, int seed, int nlocal, int ng, int3 local_grid_size, int3 local_coords){
-
-  int idx = threadIdx.x+blockDim.x*blockIdx.x;
-  if (idx >= nlocal)return;
-  int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
-  int global_idx = idx3d.x * ng * ng + idx3d.y * ng + idx3d.z;
-  curand_init(seed, global_idx, 0, &state[idx]);
-
-}
-
-__global__ void GenerateRealRandom(curandState* state, deviceFFT_t* __restrict grid){
-    int idx = threadIdx.x+blockDim.x*blockIdx.x;
-    hostFFT_t amp = curand_normal_double(state + idx);
-    deviceFFT_t out;
-    out.x = amp;
-    out.y = 0;
-    grid[idx] = out;
-}
-
-__global__ void GenerateRealRandom(curandState* state, deviceFFT_t* __restrict grid, int nlocal){
-    int idx = threadIdx.x+blockDim.x*blockIdx.x;
-    if (idx >= nlocal)return;
-    hostFFT_t amp = curand_normal_double(state + idx);
-    deviceFFT_t out;
-    out.x = amp;
-    out.y = 0;
-    grid[idx] = out;
-}
-
-__global__ void ScaleAmplitudes(deviceFFT_t* __restrict grid, const hostFFT_t* __restrict scale){
-    int idx = threadIdx.x+blockDim.x*blockIdx.x;
-    hostFFT_t base_scale_by = __ldg(&scale[idx]);
-    hostFFT_t scale_by = sqrt(base_scale_by);
-    deviceFFT_t current = __ldg(&grid[idx]);
-    //printf("d_grid[%d]: %g %g\n",idx,current.x,current.y);
-    current.x *= scale_by;
-    current.y *= scale_by;
-    //printf("%g %g\n",current.x,current.y);
-    grid[idx] = current;
-}
-
-__global__ void ScaleAmplitudes(deviceFFT_t* __restrict grid, const hostFFT_t* __restrict scale, int nlocal){
-    int idx = threadIdx.x+blockDim.x*blockIdx.x;
-    if (idx >= nlocal)return;
-    hostFFT_t base_scale_by = __ldg(&scale[idx]);
-    hostFFT_t scale_by = sqrt(base_scale_by);
-    deviceFFT_t current = __ldg(&grid[idx]);
-    //printf("d_grid[%d]: %g %g\n",idx,current.x,current.y);
-    current.x *= scale_by;
-    current.y *= scale_by;
-    //printf("%g %g\n",current.x,current.y);
-    grid[idx] = current;
-}
-
-__global__ void ScaleFFT(deviceFFT_t* __restrict data, double scale){
-
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    deviceFFT_t old = __ldg(&data[idx]);
-
-    old.x *= scale;
-    old.y *= scale;
-
-    data[idx] = old;
-
-}
-
-__global__ void ScaleFFT(deviceFFT_t* __restrict data, double scale, int nlocal){
-
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    if (idx >= nlocal)return;
-
-    deviceFFT_t old = __ldg(&data[idx]);
-
-    old.x *= scale;
-    old.y *= scale;
-
-    data[idx] = old;
-
-}
-
-__global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, deviceFFT_t* __restrict outSx, deviceFFT_t* __restrict outSy, deviceFFT_t* __restrict outSz, double delta, double rl, double a, int ng){
-
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    double d = (2*M_PI)/rl;
-
-    int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
-
-    double k2 = kmodes.x * kmodes.x + kmodes.y * kmodes.y + kmodes.z * kmodes.z;
-
-    double k2mul = (1/k2);
-    if (k2 == 0){
-        k2mul = 0;
-    }
-
-    double mul = (1/delta) * k2mul;
-
-    deviceFFT_t current = __ldg(&oldGrid[idx]);
-    current.x *= mul;
-    current.y *= mul;
-
-    deviceFFT_t sx,sy,sz;
-
-    sx.x = current.y * kmodes.x;
-    sx.y = -current.x * kmodes.x;
-
-    sy.x = current.y * kmodes.y;
-    sy.y = -current.x * kmodes.y;
-
-    sz.x = current.y * kmodes.z;
-    sz.y = -current.x * kmodes.z;
-
-    outSx[idx] = sx;
-    outSy[idx] = sy;
-    outSz[idx] = sz;
-
-}
-
-__global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, deviceFFT_t* __restrict outSx, deviceFFT_t* __restrict outSy, deviceFFT_t* __restrict outSz, double delta, double rl, double a, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims){
-
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (idx >= nlocal)return;
-
-    double d = (2*M_PI)/rl;
-
-    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
-    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
-
-    double k2 = kmodes.x * kmodes.x + kmodes.y * kmodes.y + kmodes.z * kmodes.z;
-
-    double k2mul = (1/k2);
-    if (k2 == 0){
-        k2mul = 0;
-    }
-
-    double mul = (1/delta) * k2mul;
-
-    deviceFFT_t current = __ldg(&oldGrid[idx]);
-    current.x *= mul;
-    current.y *= mul;
-
-    deviceFFT_t sx,sy,sz;
-
-    sx.x = current.y * kmodes.x;
-    sx.y = -current.x * kmodes.x;
-
-    sy.x = current.y * kmodes.y;
-    sy.y = -current.x * kmodes.y;
-
-    sz.x = current.y * kmodes.z;
-    sz.y = -current.x * kmodes.z;
-
-    outSx[idx] = sx;
-    outSy[idx] = sy;
-    outSz[idx] = sz;
-
-}
-
-__global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_vel, deviceFFT_t* __restrict outSx, deviceFFT_t* __restrict outSy, deviceFFT_t* __restrict outSz, double delta, double dotDelta, double rl, double a, double deltaT, double fscal, int ng){
-
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-
-    float4 my_particle = make_float4(idx3d.x,idx3d.y,idx3d.z,idx);
-
-    deviceFFT_t thisSx = __ldg(&outSx[idx]);
-    deviceFFT_t thisSy = __ldg(&outSy[idx]);
-    deviceFFT_t thisSz = __ldg(&outSz[idx]);
-
-    float3 s = make_float3(thisSx.x,thisSy.x,thisSz.x);
-
-    float velA = a - (deltaT * 0.5f);
-    float velMul = (velA * velA * dotDelta * fscal);
-    float4 my_vel = make_float4(velMul*s.x,velMul*s.y,velMul*s.z,idx);
-    my_particle.x += delta * s.x + ng;
-    my_particle.x = fmod(my_particle.x,(float)ng);
-    my_particle.y += delta * s.y + ng;
-    my_particle.y = fmod(my_particle.y,(float)ng);
-    my_particle.z += delta * s.z + ng;
-    my_particle.z = fmod(my_particle.z,(float)ng);
-
-    d_pos[idx] = my_particle;
-    d_vel[idx] = my_vel;
-}
-
-__global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_vel, deviceFFT_t* __restrict outSx, deviceFFT_t* __restrict outSy, deviceFFT_t* __restrict outSz, double delta, double dotDelta, double rl, double a, double deltaT, double fscal, int ng, int nx, int ny, int nz, int nlocal, int world_rank){
-
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (idx >= nlocal)return;
-
-    int3 idx3d = HACCGPM::parallel::get_local_index(idx,nx,ny,nz);
-
-    float4 my_particle = make_float4(idx3d.x,idx3d.y,idx3d.z,idx + nlocal*world_rank);
-
-    deviceFFT_t thisSx = __ldg(&outSx[idx]);
-    deviceFFT_t thisSy = __ldg(&outSy[idx]);
-    deviceFFT_t thisSz = __ldg(&outSz[idx]);
-
-    float3 s = make_float3(thisSx.x,thisSy.x,thisSz.x);
-
-    float velA = a - (deltaT * 0.5f);
-    float velMul = (velA * velA * dotDelta * fscal);
-    float4 my_vel = make_float4(velMul*s.x,velMul*s.y,velMul*s.z,idx + nlocal*world_rank);
-
-    my_particle.x += delta * s.x;
-    my_particle.y += delta * s.y;
-    my_particle.z += delta * s.z;
-
-    d_pos[idx] = my_particle;
-    d_vel[idx] = my_vel;
-}
-
-__global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, double k_delta, double k_min, double rl, int ng){
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (idx == 0){
-        out[idx] = 0;
-        return;
-    }
-
-    double d = (2*M_PI)/rl;
-
-    int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
-
-    double my_k = sqrt(kmodes.x*kmodes.x + kmodes.y*kmodes.y + kmodes.z*kmodes.z);
-
-    int left_bin = (int)(my_k / k_delta);
-    int right_bin = left_bin + 1;
-
-    double logy1 = log(in[left_bin]);
-    double logx1 = log(k_delta * (double)left_bin);
-    double logy2 = log(in[right_bin]);
-    double logx2 = log(k_delta * (double)right_bin);
-    double logx = log(my_k);
-    //double frac = 1.0f/abs(logx1 - logx2);
-    double logy = logy1 + ((logy2 - logy1)/(logx2 - logx1)) * (logx - logx1);
-    double y = exp(logy) * (((double)(ng*ng*ng))/(rl*rl*rl));
-    if (left_bin == 0){
-        //printf("%d -> %d: %g -> %g\n",left_bin,right_bin,in[left_bin] * (((double)(ng*ng*ng))/(rl*rl*rl)),in[right_bin] * (((double)(ng*ng*ng))/(rl*rl*rl)));
-        y = in[right_bin] * (((double)(ng*ng*ng))/(rl*rl*rl));
-    }
-    //printf("%g: %g > %g > %g\n",my_k,exp(logy1)*(((double)(ng*ng*ng))/(rl*rl*rl)),y,exp(logy2)*(((double)(ng*ng*ng))/(rl*rl*rl)));
-    //printf("x1,y1=%g,%g, x2,y2=%g,%g\n",logx1,logy1,logx2,logy2);
-    out[idx] = (y);
-
-}
-
-__global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, double k_delta, double k_min, double rl, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims){
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (idx >= nlocal)return;
-
-    if (idx == 0){
-        out[idx] = 0;
-        return;
-    }
-
-    double d = (2*M_PI)/rl;
-
-    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
-    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
-
-    double my_k = sqrt(kmodes.x*kmodes.x + kmodes.y*kmodes.y + kmodes.z*kmodes.z);
-
-    int left_bin = (int)(my_k / k_delta);
-    int right_bin = left_bin + 1;
-
-    double logy1 = log(in[left_bin]);
-    double logx1 = log(k_delta * (double)left_bin);
-    double logy2 = log(in[right_bin]);
-    double logx2 = log(k_delta * (double)right_bin);
-    double logx = log(my_k);
-    //double frac = 1.0f/abs(logx1 - logx2);
-    double logy = logy1 + ((logy2 - logy1)/(logx2 - logx1)) * (logx - logx1);
-    double y = exp(logy) * (((double)(ng*ng*ng))/(rl*rl*rl));
-    if (left_bin == 0){
-        //printf("%d -> %d: %g -> %g\n",left_bin,right_bin,in[left_bin] * (((double)(ng*ng*ng))/(rl*rl*rl)),in[right_bin] * (((double)(ng*ng*ng))/(rl*rl*rl)));
-        y = in[right_bin] * (((double)(ng*ng*ng))/(rl*rl*rl));
-    }
-    //printf("%g: %g > %g > %g\n",my_k,exp(logy1)*(((double)(ng*ng*ng))/(rl*rl*rl)),y,exp(logy2)*(((double)(ng*ng*ng))/(rl*rl*rl)));
-    //printf("x1,y1=%g,%g, x2,y2=%g,%g\n",logx1,logy1,logx2,logy2);
-    out[idx] = (y);
-
-}
 
 void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, deviceFFT_t* d_grid1, double z, int calls){
     int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
@@ -342,7 +37,7 @@ void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cos
     printf("%s   Calling GenerateRealRandom...\n",indent);
     #endif
 
-    InvokeGPUKernel(GenerateRealRandom,numBlocks,params.blockSize,rngState,d_grid1);
+    InvokeGPUKernel(GenerateRealRandom,numBlocks,params.blockSize,rngState,d_grid1,params.ng*params.ng*params.ng);
 
     #ifdef VerboseInitializer
     printf("%s      Called GenerateRealRandom.\n",indent);
@@ -405,7 +100,7 @@ void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cos
     printf("%s   Scaling Amplitudes...\n",indent);
     #endif
 
-    InvokeGPUKernel(ScaleAmplitudes,numBlocks,params.blockSize,d_grid1,d_pkScale);
+    InvokeGPUKernel(ScaleAmplitudes,numBlocks,params.blockSize,d_grid1,d_pkScale,params.ng*params.ng*params.ng);
 
     #ifdef VerboseInitializer
     printf("%s      Scaled Amplitudes.\n",indent);
@@ -474,10 +169,10 @@ void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::s
     HACCGPM::serial::backward_fft(d_sz,params.ng,calls+1);
 
     double scale_by = 1.0f/((double)(params.ng*params.ng*params.ng));
-
-    InvokeGPUKernel(ScaleFFT,numBlocks,params.blockSize,d_sx,scale_by);
-    InvokeGPUKernel(ScaleFFT,numBlocks,params.blockSize,d_sy,scale_by);
-    InvokeGPUKernel(ScaleFFT,numBlocks,params.blockSize,d_sz,scale_by);
+    int scale_n = params.ng*params.ng*params.ng;
+    InvokeGPUKernel(ScaleFFT,numBlocks,params.blockSize,d_sx,scale_by,scale_n);
+    InvokeGPUKernel(ScaleFFT,numBlocks,params.blockSize,d_sy,scale_by,scale_n);
+    InvokeGPUKernel(ScaleFFT,numBlocks,params.blockSize,d_sz,scale_by,scale_n);
 
     #ifdef VerboseInitializer
     printf("%s      Done Backward FFTs.\n",indent);

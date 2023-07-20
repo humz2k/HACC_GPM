@@ -1,0 +1,6 @@
+ICS_PYTHON := $(patsubst src/initial_conditions/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/initial_conditions/*.cpp)) $(patsubst src/initial_conditions/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/initial_conditions/*.cu))
+
+ICS_NOPYTHON := $(patsubst src/initial_conditions/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/initial_conditions/*.cpp)) $(patsubst src/initial_conditions/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(filter-out src/initial_conditions/initializer.cu, $(wildcard src/initial_conditions/*.cu))) $(HACCGPM_NOPYTHON_DIR)/initializer.o
+
+HACCGPM_FILES += $(ICS_PYTHON)
+HACCGPM_NOPYTHON_FILES += $(ICS_NOPYTHON)

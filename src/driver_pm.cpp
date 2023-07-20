@@ -61,7 +61,7 @@ int serial(const char* params_file){
 
     char stepstr[400];
     sprintf(stepstr, "%s.pk.ini", params.prefix);
-    HACCGPM::serial::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,221,stepstr,params.pkFolds,params.blockSize);
+    HACCGPM::serial::GetPowerSpectrum(params,mem,221,stepstr);
 
     if (params.dump_init){
         sprintf(stepstr, "%s.particles.ini", params.prefix);
@@ -89,7 +89,7 @@ int serial(const char* params_file){
 
         if (params.pks[step]){
             sprintf(stepstr, "%s.pk.%d", params.prefix,step);
-            HACCGPM::serial::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,221,stepstr,params.pkFolds,params.blockSize);
+            HACCGPM::serial::GetPowerSpectrum(params,mem,221,stepstr);
         }
 
         if (params.dumps[step]){
@@ -125,7 +125,7 @@ int serial(const char* params_file){
     }
 
     sprintf(stepstr, "%s.pk.fin", params.prefix);
-    HACCGPM::serial::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,221,stepstr,params.pkFolds,params.blockSize);
+    HACCGPM::serial::GetPowerSpectrum(params,mem,221,stepstr);
 
     if(params.dump_final){
         sprintf(stepstr, "%s.particles.fin", params.prefix);
@@ -192,7 +192,7 @@ int parallel(const char* params_file){
 
     HACCGPM::parallel::InitGreens(mem,params);
 
-    HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk.pk",0,params.blockSize,params.world_rank,params.world_size);
+    HACCGPM::parallel::GetPowerSpectrum(params,mem,221,"testpk.pk");
 
     HACCGPM::parallel::UpdatePositions(mem.d_pos,mem.d_vel,ts,0.5,params.ng,params.n_particles,params.blockSize,params.world_rank);
 

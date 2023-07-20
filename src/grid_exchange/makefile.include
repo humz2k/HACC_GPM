@@ -1,0 +1,4 @@
+GRID_EXCHANGE := $(patsubst src/grid_exchange/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/grid_exchange/*.cpp)) $(patsubst src/grid_exchange/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/grid_exchange/*.cu))
+
+HACCGPM_FILES += $(GRID_EXCHANGE)
+HACCGPM_NOPYTHON_FILES += $(GRID_EXCHANGE)

@@ -13,26 +13,6 @@ __device__ __forceinline__ double3 cos(float3 kmodes){
     return out;
 }
 
-__forceinline__ __host__ __device__ float3 operator*(int3 a, float s)
-{
-    return make_float3(a.x * s, a.y * s, a.z * s);
-}
-
-__forceinline__ __host__ __device__ float3 operator*(float3 a, double s)
-{
-    return make_float3(a.x * s, a.y * s, a.z * s);
-}
-
-__forceinline__ __host__ __device__ float3 operator*(float3 a, float s)
-{
-    return make_float3(a.x * s, a.y * s, a.z * s);
-}
-
-__forceinline__ __host__ __device__ float3 operator*(float s, float3 a)
-{
-    return make_float3(a.x * s, a.y * s, a.z * s);
-}
-
 __forceinline__ __device__ double calcGreens(int3 idx3d, int ng){
 
     if ((idx3d.x == 0) && (idx3d.y == 0) && (idx3d.z == 0))return 0.0;
@@ -55,26 +35,9 @@ __global__ void getGreens(hostFFT_t* __restrict d_greens, int ng)
 {
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if (idx == 0){
-        d_greens[idx] = 0.0;
-        return;
-    }
-
-    double d = ((2*M_PI)/(((double)(ng))));
-
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
 
-    float3 tmpKmodes = make_float3(idx3d.x * d, idx3d.y * d, idx3d.z * d);
-
-    double3 c = cos(tmpKmodes);
-
-    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
-
-    double coeff = 0.5 / (ng*ng*ng);
-
-    double out = coeff / (c.x + c.y + c.z - 3.0);
-
-    d_greens[idx] = out;
+    d_greens[idx] = calcGreens(idx3d,ng);
 
 }
 
@@ -87,24 +50,7 @@ __global__ void getGreensParallel(hostFFT_t* __restrict d_greens, int ng, int3 l
 
     int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
 
-    if ((idx3d.x == 0) && (idx3d.y == 0) && (idx3d.z == 0)){
-        d_greens[idx] = 0.0;
-        return;
-    }
-
-    double d = ((2*M_PI)/(((double)(ng))));
-
-    float3 tmpKmodes = make_float3(idx3d.x * d, idx3d.y * d, idx3d.z * d);
-
-    double3 c = cos(tmpKmodes);
-
-    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
-
-    double coeff = 0.5 / (ng*ng*ng);
-
-    double out = coeff / (c.x + c.y + c.z - 3.0);
-
-    d_greens[idx] = out;
+    d_greens[idx] = calcGreens(idx3d,ng);
 
 }
 

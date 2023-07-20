@@ -1,0 +1,4 @@
+FFT_TOOLS := $(patsubst src/fft_tools/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/fft_tools/*.cpp)) $(patsubst src/fft_tools/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/fft_tools/*.cu))
+
+HACCGPM_FILES += $(FFT_TOOLS)
+HACCGPM_NOPYTHON_FILES += $(FFT_TOOLS)

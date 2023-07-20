@@ -18,12 +18,20 @@ PY_LIB ?= -lpython3.9
 
 HACCGPM_INCLUDE ?= -Isrc -Ibdwgc/include
 
+include src/*/*.include
+
 all: main nopython
 
-main: src/simulation/driver_pm.cpp $(HACCGPM_BUILD_DIR)/swfftmanager.o $(HACCGPM_BUILD_DIR)/transfers.o $(HACCGPM_BUILD_DIR)/timers.o $(HACCGPM_BUILD_DIR)/ccamb.o $(HACCGPM_BUILD_DIR)/cic.o $(HACCGPM_BUILD_DIR)/initializer.o $(HACCGPM_BUILD_DIR)/io.o $(HACCGPM_BUILD_DIR)/power.o $(HACCGPM_BUILD_DIR)/greens.o $(HACCGPM_BUILD_DIR)/solver.o $(HACCGPM_BUILD_DIR)/params.o $(HACCGPM_BUILD_DIR)/timestepper.o $(HACCGPM_BUILD_DIR)/mmanager.o $(HACCGPM_BUILD_DIR)/ffts.o $(HACCGPM_BUILD_DIR)/particleswapkernels.o $(HACCGPM_BUILD_DIR)/cosmo.o $(HACCGPM_BUILD_DIR)/gridexchange.o $(HACCGPM_BUILD_DIR)/gridexchangekernels.o | swfft pycosmo
+thing1:
+	echo $(HACCGPM_FILES)
+	echo $(HACCGPM_NOPYTHON_FILES)
+#echo $(HACCGPM_CPP_FILES)
+	
+
+main: $(HACCGPM_BUILD_DIR)/driver_pm.o $(HACCGPM_FILES) $(HACCGPM_BUILD_DIR)/ccamb.o | swfft pycosmo
 	mpicxx $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a bdwgc/libgc.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft $(PY_LD_FLAGS) $(PY_LIB) -L$(PYCOSMO_DIR)/lib -lpycosmo -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpm
 
-nopython: src/simulation/driver_pm.cpp $(HACCGPM_BUILD_DIR)/swfftmanager.o $(HACCGPM_BUILD_DIR)/transfers.o $(HACCGPM_BUILD_DIR)/timers.o $(HACCGPM_BUILD_DIR)/cic.o $(HACCGPM_NOPYTHON_DIR)/initializer.o $(HACCGPM_BUILD_DIR)/io.o $(HACCGPM_BUILD_DIR)/power.o $(HACCGPM_BUILD_DIR)/greens.o $(HACCGPM_BUILD_DIR)/solver.o $(HACCGPM_BUILD_DIR)/params.o $(HACCGPM_BUILD_DIR)/timestepper.o $(HACCGPM_BUILD_DIR)/mmanager.o $(HACCGPM_BUILD_DIR)/ffts.o $(HACCGPM_BUILD_DIR)/particleswapkernels.o $(HACCGPM_BUILD_DIR)/cosmo.o $(HACCGPM_BUILD_DIR)/gridexchange.o $(HACCGPM_BUILD_DIR)/gridexchangekernels.o | swfft
+nopython: $(HACCGPM_NOPYTHON_DIR)/driver_pm.o $(HACCGPM_NOPYTHON_FILES) | swfft
 	mpicxx $^ -DNOPYTHON $(SWFFT_DIR)/lib/swfft_a2a_gpu.a bdwgc/libgc.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpmnopython
 
 swfft:

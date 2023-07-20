@@ -1,0 +1,4 @@
+SIMULATION := $(patsubst src/simulation/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/simulation/*.cpp)) $(patsubst src/simulation/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/simulation/*.cu))
+
+HACCGPM_FILES += $(SIMULATION)
+HACCGPM_NOPYTHON_FILES += $(SIMULATION)

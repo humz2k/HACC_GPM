@@ -1,0 +1,4 @@
+PARICLE_TRANSFER := $(patsubst src/particle_transfer/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/particle_transfer/*.cpp)) $(patsubst src/particle_transfer/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/particle_transfer/*.cu))
+
+HACCGPM_FILES += $(PARICLE_TRANSFER)
+HACCGPM_NOPYTHON_FILES += $(PARICLE_TRANSFER)

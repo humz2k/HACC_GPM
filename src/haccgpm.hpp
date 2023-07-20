@@ -45,6 +45,11 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 #define MAX_STEPS 1000
 
+__forceinline__ __host__ __device__ float3 operator*(int3 a, float s)
+{
+    return make_float3(a.x * s, a.y * s, a.z * s);
+}
+
 namespace HACCGPM{
 
     struct Params{
@@ -271,7 +276,7 @@ namespace HACCGPM{
     
         void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int* local_grid_size_, int* local_coords_, int* dims_, int blockSize, int world_rank, int world_size, int overload, int calls = 0);
 
-        void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int overload, int n_particles, int* local_grid_size, int* local_coords, int* dims, int nlocal, int nbins, const char* fname, int nfolds, int blockSize, int world_rank, int world_size, int calls=0);
+        void GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, int nbins, const char* fname, int calls = 0);
 
         void sendPower(int* binCounts, double* binVals, int nbins, int world_rank, int world_size, int calls = 0);
 
@@ -330,11 +335,9 @@ namespace HACCGPM{
 
         void writeOutput(char* fname, float4* d_pos, float4* d_vel, int ng, int calls = 0);
 
-        void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, int ng, double rl, int nbins, const char* fname, int nfolds, int blockSize, int calls = 0);
+        //void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, int ng, double rl, int nbins, const char* fname, int nfolds, int blockSize, int calls = 0);
 
-        void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, float* d_tempgrid, int ng, double rl, int nbins, const char* fname, int nfolds, int blockSize, int calls = 0);
-
-        void GetFinerPowerSpectrum(float4* d_temp_pos, int ng, double rl, int nbins, int fftNg, const char* fname, int blockSize);
+        void GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int nbins, const char* fname, int calls = 0);
 
         void GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls = 0);
 

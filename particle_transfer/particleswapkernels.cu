@@ -5,6 +5,7 @@
 
 #define VerboseSwap
 
+
 __global__ void swap_set_invalid(float4* __restrict d_pos, int mem_frac){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     if (idx >= mem_frac) return;

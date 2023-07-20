@@ -25,21 +25,29 @@ HACCGPM::parallel::GridExchange::GridExchange(int3 local_coords_, int3 local_gri
 
 //#define VerboseResolveSends
 
+#define VerboseResolve
+
 void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
     getIndent(calls);
 
-    if(world_rank == 0)printf("%sDoing Grid Exchange (called GridExchange.resolve)\n",indent);
+    #ifdef VerboseResolve
+    if(world_rank == 0)printf("%sDoing Grid Exchange Resolve (called GridExchange.resolve)\n",indent);
+    #endif
 
     CPUTimer_t mpi_start,mpi_end;
 
     CPUTimer_t mpi_time = 0;
     CPUTimer_t gpu_time = 0;
 
+    size_t bytes = 0;
+
     CPUTimer_t start = CPUTimer();
 
     int3 total_grid_dims = make_int3(local_grid_size.x + 2*overload,local_grid_size.y + 2*overload,local_grid_size.z + 2*overload);
     int total_grid_size = total_grid_dims.x*total_grid_dims.y*total_grid_dims.z;
+    #ifdef VerboseResolve
     if(world_rank == 0)printf("%s   Overload Dimensions: [%d %d %d]\n",indent,total_grid_dims.x,total_grid_dims.y,total_grid_dims.z);
+    #endif
     int size, dest_rank, recv_rank;
     int3 dest_coords, recv_coords;
 
@@ -82,6 +90,8 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
     MPI_Isend(left_x_sends,size,MPI_FLOAT,dest_rank,0,MPI_COMM_WORLD,&req);
     MPI_Request_free(&req);
     }
+
+    bytes += size*sizeof(float);
 
     MPI_Recv(left_x_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
@@ -136,6 +146,8 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
     MPI_Isend(right_x_sends,size,MPI_FLOAT,dest_rank,0,MPI_COMM_WORLD,&req);
     MPI_Request_free(&req);
     }
+
+    bytes += size*sizeof(float);
 
     MPI_Recv(right_x_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
@@ -194,6 +206,8 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
     MPI_Request_free(&req);
     }
 
+    bytes += size*sizeof(float);
+
     MPI_Recv(left_y_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
     mpi_end = CPUTimer();
@@ -251,6 +265,8 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
     MPI_Isend(right_y_sends,size,MPI_FLOAT,dest_rank,0,MPI_COMM_WORLD,&req);
     MPI_Request_free(&req);
     }
+
+    bytes += size*sizeof(float);
 
     MPI_Recv(right_y_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
@@ -312,6 +328,8 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
     MPI_Request_free(&req);
     }
 
+    bytes += size*sizeof(float);
+
     MPI_Recv(left_z_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
     mpi_end = CPUTimer();
@@ -370,6 +388,8 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
     MPI_Request_free(&req);
     }
 
+    bytes += size*sizeof(float);
+
     MPI_Recv(right_z_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
     mpi_end = CPUTimer();
@@ -389,5 +409,39 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     CPUTimer_t end = CPUTimer();
 
+    RESOLVE_CALLS++;
+    RESOLVE_TIME += end-start;
+    RESOLVE_MPI_TIME += mpi_time;
+    RESOLVE_GPU_TIME += gpu_time;
+    RESOLVE_BYTES += bytes;
+
+    #ifdef VerboseResolve
+    if(world_rank == 0)printf("%s   Grid Exchange Resolve took %llu us\n",indent,end-start);
+    #endif
+
+}
+
+void HACCGPM::parallel::printGridExchangeBytes(int world_rank){
+    MPI_Barrier(MPI_COMM_WORLD);
+    unsigned long long my_bytes = RESOLVE_BYTES;
+    unsigned long long bytes;
+    MPI_Reduce(&my_bytes,&bytes,1,MPI_UNSIGNED_LONG_LONG,MPI_SUM,0,MPI_COMM_WORLD);
+    if (world_rank != 0)return;
+    printf("   gridExchange.resolve -> calls: %10d | transferred %llu bytes\n",RESOLVE_CALLS,bytes);
+}
+
+void HACCGPM::parallel::printGridExchangeTimes(int world_rank){
+    MPI_Barrier(MPI_COMM_WORLD);
+    CPUTimer_t total_min,total_max,total_mean,gpu_min,gpu_max,gpu_mean,mpi_min,mpi_max,mpi_mean;
+    HACCGPM::parallel::timing_stats(RESOLVE_TIME,&total_min,&total_max,&total_mean);
+    HACCGPM::parallel::timing_stats(RESOLVE_GPU_TIME,&gpu_min,&gpu_max,&gpu_mean);
+    HACCGPM::parallel::timing_stats(RESOLVE_MPI_TIME,&mpi_min,&mpi_max,&mpi_mean);
+    if (world_rank != 0)return;
+    printf("   gridExchange.resolve  -> calls: %d\n",RESOLVE_CALLS);
+    printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
+    printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",(total_mean-gpu_mean) - mpi_mean,(total_max - gpu_max) - mpi_max, (total_min - gpu_min) - mpi_min);
+    printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);
+    printf("                                 mpi: %10llu us mean | %10llu us max  | %10llu us min  |\n",mpi_mean,mpi_max,mpi_min);
+    printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / RESOLVE_CALLS,total_max / RESOLVE_CALLS,total_min / RESOLVE_CALLS);
 }
 

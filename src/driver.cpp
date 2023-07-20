@@ -205,6 +205,7 @@ int parallel(const char* params_file){
     CPUTimer_t start_init = CPUTimer();
 
     HACCGPM::parallel::GenerateDisplacementIC(params_file,&mem, cosmo, params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize,params.world_rank,params.world_size,params.nlocal,params.local_grid_size,params.grid_coords,params.grid_dims);
+    MPI_Barrier(MPI_COMM_WORLD);
     HACCGPM::parallel::TransferParticles(params,mem);
     //HACCGPM::parallel::TransferParticles(params,mem);
     CPUTimer_t end_init = CPUTimer();
@@ -225,10 +226,12 @@ int parallel(const char* params_file){
 
     if (params.world_rank == 0)printf("\n\n=========\nMPI Stats:\n");
     HACCGPM::parallel::printTransferBytes(params.world_rank);
+    HACCGPM::parallel::printGridExchangeBytes(params.world_rank);
     if (params.world_rank == 0)printf("=========\n\n");
 
     if (params.world_rank == 0)printf("\n\n=========\nTimers:\n");
     HACCGPM::parallel::printTransferTimes(params.world_rank);
+    HACCGPM::parallel::printGridExchangeTimes(params.world_rank);
     HACCGPM::parallel::printFFTStats(params.world_rank);
     HACCGPM::parallel::printCICTimes(params.world_rank);
     if (params.world_rank == 0)printf("   Initialization: mean %llu us, min %llu us, max %llu us (%5.2g minutes)\n",init_mean,init_min,init_max,((double)(init_mean)) * 1.66667e-8);

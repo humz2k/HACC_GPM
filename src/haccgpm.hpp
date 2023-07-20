@@ -281,6 +281,9 @@ namespace HACCGPM{
         void printTransferBytes(int world_rank);
 
         void printFFTStats(int world_rank);
+
+        void printGridExchangeTimes(int world_rank);
+        void printGridExchangeBytes(int world_rank);
     }
 
     namespace serial{

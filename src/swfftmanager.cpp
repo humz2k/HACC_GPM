@@ -91,10 +91,10 @@ void HACCGPM::parallel::printFFTStats(int world_rank){
     HACCGPM::parallel::timing_stats(FORWARD_FFT_TIME,&forward_min,&forward_max,&forward_mean);
     HACCGPM::parallel::timing_stats(BACKWARD_FFT_TIME,&backward_min,&backward_max,&backward_mean);
     if (world_rank != 0)return;
-    printf("   forward_fft        -> calls: %d\n",FORWARD_FFT_CALLS);
+    printf("   forward_fft           -> calls: %d\n",FORWARD_FFT_CALLS);
     printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",forward_mean,forward_max,forward_min);
     printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",forward_mean / FORWARD_FFT_CALLS,forward_max / FORWARD_FFT_CALLS,forward_min / FORWARD_FFT_CALLS);
-    printf("   backward_fft       -> calls: %d\n",BACKWARD_FFT_CALLS);
+    printf("   backward_fft          -> calls: %d\n",BACKWARD_FFT_CALLS);
     printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",backward_mean,backward_max,backward_min);
     printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",backward_mean / BACKWARD_FFT_CALLS,backward_max / BACKWARD_FFT_CALLS,backward_min / BACKWARD_FFT_CALLS);
 }

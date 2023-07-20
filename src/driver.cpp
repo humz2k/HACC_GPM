@@ -227,15 +227,13 @@ int parallel(const char* params_file){
     HACCGPM::parallel::printTransferBytes(params.world_rank);
     if (params.world_rank == 0)printf("=========\n\n");
 
-    //if (params.world_rank == 0){
     if (params.world_rank == 0)printf("\n\n=========\nTimers:\n");
-    //HACCGPM::parallel::printTransferTimes(params.world_rank);
+    HACCGPM::parallel::printTransferTimes(params.world_rank);
     HACCGPM::parallel::printFFTStats(params.world_rank);
     HACCGPM::parallel::printCICTimes(params.world_rank);
     if (params.world_rank == 0)printf("   Initialization: mean %llu us, min %llu us, max %llu us (%5.2g minutes)\n",init_mean,init_min,init_max,((double)(init_mean)) * 1.66667e-8);
     if (params.world_rank == 0)printf("   Total: %5.2g minutes\n",((double)(end-start)) * 1.66667e-8);
     if (params.world_rank == 0)printf("=========\n\n");
-    //}
 
     #ifndef NOPYTHON
     finalize_python(0);

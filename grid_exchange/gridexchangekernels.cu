@@ -22,8 +22,10 @@ __global__ void loadXLeftKernel(float* __restrict d_out, const float* __restrict
 
 }
 
-void loadXLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t loadXLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sLoading X Left Buffer\n",indent);
 
@@ -36,9 +38,11 @@ void loadXLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload, int s
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
-    InvokeGPUKernelParallel(loadXLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(loadXLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     cudaCall(cudaMemcpy, h_out, d_out, sizeof(float)*size, cudaMemcpyDeviceToHost);
     cudaCall(cudaFree,d_out);
+
+    return gpu_time;
 }
 
 __global__ void storeXLeftKernel(float* __restrict d_out, const float* __restrict d_in, int3 ol_grid_size, int overload, int n){
@@ -55,8 +59,10 @@ __global__ void storeXLeftKernel(float* __restrict d_out, const float* __restric
 
 }
 
-void storeXLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t storeXLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sStoring X Left Buffer\n",indent);
 
@@ -70,9 +76,11 @@ void storeXLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload, int 
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);
-    InvokeGPUKernelParallel(storeXLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(storeXLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     
     cudaCall(cudaFree,d_in);
+
+    return gpu_time;
 }
 
 
@@ -96,8 +104,10 @@ __global__ void loadXRightKernel(float* __restrict d_out, const float* __restric
 
 }
 
-void loadXRight(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t loadXRight(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sLoading X Right Buffer\n",indent);
 
@@ -110,9 +120,11 @@ void loadXRight(float* h_out, float* d_in, int3 ol_grid_size, int overload, int 
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
-    InvokeGPUKernelParallel(loadXRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(loadXRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     cudaCall(cudaMemcpy, h_out, d_out, sizeof(float)*size, cudaMemcpyDeviceToHost);
     cudaCall(cudaFree,d_out);
+
+    return gpu_time;
 }
 
 __global__ void storeXRightKernel(float* __restrict d_out, const float* __restrict d_in, int3 ol_grid_size, int overload, int n){
@@ -133,8 +145,10 @@ __global__ void storeXRightKernel(float* __restrict d_out, const float* __restri
 
 }
 
-void storeXRight(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t storeXRight(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sStoring X Right Buffer\n",indent);
 
@@ -148,9 +162,11 @@ void storeXRight(float* d_out, float* h_in, int3 ol_grid_size, int overload, int
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);
-    InvokeGPUKernelParallel(storeXRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(storeXRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     
     cudaCall(cudaFree,d_in);
+
+    return gpu_time;
 }
 
 __global__ void loadYLeftKernel(float* __restrict d_out, const float* __restrict d_in, int3 ol_grid_size, int overload, int n){
@@ -172,8 +188,10 @@ __global__ void loadYLeftKernel(float* __restrict d_out, const float* __restrict
 
 }
 
-void loadYLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t loadYLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sLoading Y Left Buffer\n",indent);
 
@@ -186,9 +204,11 @@ void loadYLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload, int s
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
-    InvokeGPUKernelParallel(loadYLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(loadYLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     cudaCall(cudaMemcpy, h_out, d_out, sizeof(float)*size, cudaMemcpyDeviceToHost);
     cudaCall(cudaFree,d_out);
+
+    return gpu_time;
 }
 
 __global__ void storeYLeftKernel(float* __restrict d_out, const float* __restrict d_in, int3 ol_grid_size, int overload, int n){
@@ -205,8 +225,10 @@ __global__ void storeYLeftKernel(float* __restrict d_out, const float* __restric
 
 }
 
-void storeYLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t storeYLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sStoring Y Left Buffer\n",indent);
 
@@ -220,9 +242,11 @@ void storeYLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload, int 
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);
-    InvokeGPUKernelParallel(storeYLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(storeYLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     
     cudaCall(cudaFree,d_in);
+
+    return gpu_time;
 }
 
 
@@ -246,8 +270,10 @@ __global__ void loadYRightKernel(float* __restrict d_out, const float* __restric
 
 }
 
-void loadYRight(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t loadYRight(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sLoading Y Right Buffer\n",indent);
 
@@ -260,9 +286,11 @@ void loadYRight(float* h_out, float* d_in, int3 ol_grid_size, int overload, int 
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
-    InvokeGPUKernelParallel(loadYRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(loadYRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     cudaCall(cudaMemcpy, h_out, d_out, sizeof(float)*size, cudaMemcpyDeviceToHost);
     cudaCall(cudaFree,d_out);
+
+    return gpu_time;
 }
 
 __global__ void storeYRightKernel(float* __restrict d_out, const float* __restrict d_in, int3 ol_grid_size, int overload, int n){
@@ -282,8 +310,10 @@ __global__ void storeYRightKernel(float* __restrict d_out, const float* __restri
 
 }
 
-void storeYRight(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t storeYRight(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sStoring Y Right Buffer\n",indent);
 
@@ -297,9 +327,11 @@ void storeYRight(float* d_out, float* h_in, int3 ol_grid_size, int overload, int
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);
-    InvokeGPUKernelParallel(storeYRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(storeYRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     
     cudaCall(cudaFree,d_in);
+
+    return gpu_time;
 }
 
 
@@ -325,8 +357,10 @@ __global__ void loadZLeftKernel(float* __restrict d_out, const float* __restrict
 
 }
 
-void loadZLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t loadZLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sLoading Z Left Buffer\n",indent);
 
@@ -339,9 +373,11 @@ void loadZLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload, int s
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
-    InvokeGPUKernelParallel(loadZLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(loadZLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     cudaCall(cudaMemcpy, h_out, d_out, sizeof(float)*size, cudaMemcpyDeviceToHost);
     cudaCall(cudaFree,d_out);
+
+    return gpu_time;
 }
 
 __global__ void storeZLeftKernel(float* __restrict d_out, const float* __restrict d_in, int3 ol_grid_size, int overload, int n){
@@ -358,8 +394,10 @@ __global__ void storeZLeftKernel(float* __restrict d_out, const float* __restric
 
 }
 
-void storeZLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t storeZLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sStoring Z Left Buffer\n",indent);
 
@@ -373,9 +411,11 @@ void storeZLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload, int 
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);
-    InvokeGPUKernelParallel(storeZLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(storeZLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     
     cudaCall(cudaFree,d_in);
+
+    return gpu_time;
 }
 
 
@@ -399,8 +439,10 @@ __global__ void loadZRightKernel(float* __restrict d_out, const float* __restric
 
 }
 
-void loadZRight(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t loadZRight(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sLoading Z Right Buffer\n",indent);
 
@@ -413,9 +455,11 @@ void loadZRight(float* h_out, float* d_in, int3 ol_grid_size, int overload, int 
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
-    InvokeGPUKernelParallel(loadZRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(loadZRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     cudaCall(cudaMemcpy, h_out, d_out, sizeof(float)*size, cudaMemcpyDeviceToHost);
     cudaCall(cudaFree,d_out);
+
+    return gpu_time;
 }
 
 __global__ void storeZRightKernel(float* __restrict d_out, const float* __restrict d_in, int3 ol_grid_size, int overload, int n){
@@ -436,8 +480,10 @@ __global__ void storeZRightKernel(float* __restrict d_out, const float* __restri
 
 }
 
-void storeZRight(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
+CPUTimer_t storeZRight(float* d_out, float* h_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls){
     getIndent(calls);
+
+    CPUTimer_t gpu_time;
 
     if(world_rank == 0)printf("%sStoring Z Right Buffer\n",indent);
 
@@ -451,7 +497,9 @@ void storeZRight(float* d_out, float* h_in, int3 ol_grid_size, int overload, int
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);
-    InvokeGPUKernelParallel(storeZRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
+    gpu_time = InvokeGPUKernelParallel(storeZRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
     
     cudaCall(cudaFree,d_in);
+
+    return gpu_time;
 }

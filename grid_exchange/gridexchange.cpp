@@ -5,6 +5,12 @@
 #include "haccgpm.hpp"
 #include "gridexchangekernels.hpp"
 
+int RESOLVE_CALLS = 0;
+CPUTimer_t RESOLVE_TIME = 0;
+CPUTimer_t RESOLVE_MPI_TIME = 0;
+CPUTimer_t RESOLVE_GPU_TIME = 0;
+size_t RESOLVE_BYTES = 0;
+
 HACCGPM::parallel::GridExchange::GridExchange(){};
 
 HACCGPM::parallel::GridExchange::GridExchange(int3 local_coords_, int3 local_grid_size_, int3 dims_, int ng_, int world_size_, int world_rank_, int overload_, int blockSize_) : local_coords(local_coords_),
@@ -23,6 +29,13 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
     getIndent(calls);
 
     if(world_rank == 0)printf("%sDoing Grid Exchange (called GridExchange.resolve)\n",indent);
+
+    CPUTimer_t mpi_start,mpi_end;
+
+    CPUTimer_t mpi_time = 0;
+    CPUTimer_t gpu_time = 0;
+
+    CPUTimer_t start = CPUTimer();
 
     int3 total_grid_dims = make_int3(local_grid_size.x + 2*overload,local_grid_size.y + 2*overload,local_grid_size.z + 2*overload);
     int total_grid_size = total_grid_dims.x*total_grid_dims.y*total_grid_dims.z;
@@ -60,7 +73,9 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
     
     float* left_x_sends = (float*)malloc(sizeof(float)*size);
     float* left_x_recvs = (float*)malloc(sizeof(float)*size);
-    loadXLeft(left_x_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    gpu_time += loadXLeft(left_x_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     {
     MPI_Request req;
@@ -70,9 +85,17 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     MPI_Recv(left_x_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-    storeXLeft(grid,left_x_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
+
+    gpu_time += storeXLeft(grid,left_x_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     MPI_Barrier(MPI_COMM_WORLD);
+
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
 
     free(left_x_sends);
     free(left_x_recvs);
@@ -104,7 +127,9 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     float* right_x_sends = (float*)malloc(sizeof(float)*size);
     float* right_x_recvs = (float*)malloc(sizeof(float)*size);
-    loadXRight(right_x_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    gpu_time += loadXRight(right_x_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     {
     MPI_Request req;
@@ -114,9 +139,17 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     MPI_Recv(right_x_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-    storeXRight(grid,right_x_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
+
+    gpu_time += storeXRight(grid,right_x_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     MPI_Barrier(MPI_COMM_WORLD);
+    
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
 
     free(right_x_sends);
     free(right_x_recvs);
@@ -151,7 +184,9 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     float* left_y_sends = (float*)malloc(sizeof(float)*size);
     float* left_y_recvs = (float*)malloc(sizeof(float)*size);
-    loadYLeft(left_y_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    gpu_time += loadYLeft(left_y_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     {
     MPI_Request req;
@@ -161,9 +196,17 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     MPI_Recv(left_y_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-    storeYLeft(grid,left_y_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
+
+    gpu_time += storeYLeft(grid,left_y_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     MPI_Barrier(MPI_COMM_WORLD);
+
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
 
     free(left_y_sends);
     free(left_y_recvs);
@@ -199,7 +242,9 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     float* right_y_sends = (float*)malloc(sizeof(float)*size);
     float* right_y_recvs = (float*)malloc(sizeof(float)*size);
-    loadYRight(right_y_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    gpu_time += loadYRight(right_y_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     {
     MPI_Request req;
@@ -209,9 +254,17 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     MPI_Recv(right_y_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-    storeYRight(grid,right_y_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
+
+    gpu_time += storeYRight(grid,right_y_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     MPI_Barrier(MPI_COMM_WORLD);
+
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
 
     free(right_y_sends);
     free(right_y_recvs);
@@ -249,7 +302,9 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     float* left_z_sends = (float*)malloc(sizeof(float)*size);
     float* left_z_recvs = (float*)malloc(sizeof(float)*size);
-    loadZLeft(left_z_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    gpu_time += loadZLeft(left_z_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     {
     MPI_Request req;
@@ -259,9 +314,17 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     MPI_Recv(left_z_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-    storeZLeft(grid,left_z_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
+
+    gpu_time += storeZLeft(grid,left_z_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     MPI_Barrier(MPI_COMM_WORLD);
+
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
 
     free(left_z_sends);
     free(left_z_recvs);
@@ -297,7 +360,9 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     float* right_z_sends = (float*)malloc(sizeof(float)*size);
     float* right_z_recvs = (float*)malloc(sizeof(float)*size);
-    loadZRight(right_z_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    gpu_time += loadZRight(right_z_sends,grid,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     {
     MPI_Request req;
@@ -307,12 +372,22 @@ void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
 
     MPI_Recv(right_z_recvs,size,MPI_FLOAT,recv_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
-    storeZRight(grid,right_z_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
+
+    gpu_time += storeZRight(grid,right_z_recvs,total_grid_dims,overload,size,blockSize,world_rank,calls+1);
+
+    mpi_start = CPUTimer();
 
     MPI_Barrier(MPI_COMM_WORLD);
 
+    mpi_end = CPUTimer();
+    mpi_time += mpi_end - mpi_start;
+
     free(right_z_sends);
     free(right_z_recvs);
+
+    CPUTimer_t end = CPUTimer();
 
 }
 

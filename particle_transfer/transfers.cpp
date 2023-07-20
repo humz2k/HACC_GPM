@@ -179,34 +179,99 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
     if(params.world_rank == 0)printf("%sTransferParticles was called\n",indent);
     #endif
 
-    //float4* tmp_swap_pos[27];
-    //float4* tmp_swap_vel[27];
-
     int n_swaps[params.world_size];
+    int n_recvs[params.world_size];
+    for (int i = 0; i < params.world_size; i++){
+        n_recvs[i] = 0;
+    }
     int starts[params.world_size];
     
     #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s   Loading buffers\n",indent);
     #endif
 
-    float4* swap;
+    float4* swap = (float4*)malloc(sizeof(float4)*2*n_particles);
 
     CPUTimer_t gpu_time = 0;
-    gpu_time += HACCGPM::parallel::LoadIntoBuffers(&swap,n_swaps,mem.d_pos,mem.d_vel,params.nlocal,local_grid_size,grid_coords,global_grid_size,n_particles,params.ng,params.blockSize,params.world_rank,params.world_size,calls+1);
+    gpu_time += HACCGPM::parallel::LoadIntoBuffers(swap,n_swaps,starts,mem.d_pos,mem.d_vel,params.nlocal,local_grid_size,grid_coords,global_grid_size,n_particles,params.ng,params.blockSize,params.world_rank,params.world_size,calls+1);
     
-    int total = 0;
+    bool neighbor_ranks[params.world_size];
     for (int i = 0; i < params.world_size; i++){
-        if (i == params.world_rank)continue;
-        starts[i] = total;
-        total += n_swaps[i];
-        //printf("Rank %d sending %d to rank %d\n",params.world_rank,n_swaps[i],i);
+        neighbor_ranks[i] = false;
+    }
+    for (int x = -1; x < 2; x++){
+        for (int y = -1; y < 2; y++){
+            for (int z = -1; z < 2; z++){
+                int3 neighbor_coords;
+                neighbor_coords.x = ((grid_coords.x + x) + global_grid_size.x) % global_grid_size.x;
+                neighbor_coords.y = ((grid_coords.y + y) + global_grid_size.y) % global_grid_size.y;
+                neighbor_coords.z = ((grid_coords.z + z) + global_grid_size.z) % global_grid_size.z;
+
+                int this_rank = neighbor_coords.x * global_grid_size.y * global_grid_size.z + neighbor_coords.y * global_grid_size.z + neighbor_coords.z;
+                if (this_rank == params.world_rank)continue;
+                neighbor_ranks[this_rank] = true;
+            }
+        }
     }
 
-    /*if(params.world_rank == 0){
-        for(int i = 0; i < total; i++){
-            printf("(%g %g %g %g) (%g %g %g %g)\n",swap[i*2].x,swap[i*2].y,swap[i*2].z,swap[i*2].w,swap[i*2+1].x,swap[i*2+1].y,swap[i*2+1].z,swap[i*2+1].w);
-        }
-    }*/
+    CPUTimer_t mpi_start = CPUTimer(); 
+    for (int i = 0; i < params.world_size; i++){
+        if (!neighbor_ranks[i])continue;
+        MPI_Request req;
+        MPI_Isend(&n_swaps[i],1,MPI_INT,i,0,MPI_COMM_WORLD,&req);
+        MPI_Request_free(&req);
+        //printf("rank %d is neighbors with %d\n",params.world_rank,i);
+    }
+    for (int i = 0; i < params.world_size; i++){
+        if (!neighbor_ranks[i])continue;
+        MPI_Recv(&n_recvs[i],1,MPI_INT,i,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    }
+    int total_recieved = 0;
+    int recv_starts[params.world_size];
+    for (int i = 0; i < params.world_size; i++){
+        recv_starts[i] = total_recieved;
+        if (i == params.world_rank)continue;
+        total_recieved += n_recvs[i];
+    }
+
+    float4* recieved = (float4*)malloc(sizeof(float4)*2*total_recieved);
+
+    for (int i = 0; i < params.world_size; i++){
+        if ((!neighbor_ranks[i]) || (n_swaps[i] == 0))continue;
+        MPI_Request req;
+        MPI_Isend(&swap[starts[i]*2],n_swaps[i]*4*2,MPI_FLOAT,i,0,MPI_COMM_WORLD,&req);
+        MPI_Request_free(&req);
+    }
+    for (int i = 0; i < params.world_size; i++){
+        if ((!neighbor_ranks[i]) || (n_recvs[i] == 0))continue;
+        MPI_Request req;
+        MPI_Recv(&recieved[recv_starts[i]*2],n_recvs[i]*4*2,MPI_FLOAT,i,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    }
+    CPUTimer_t mpi_end = CPUTimer();
+
+    gpu_time += HACCGPM::parallel::insertParticles(mem.d_pos,mem.d_vel,recieved,total_recieved,params.n_particles,params.blockSize,params.world_rank,calls+1);
+
+    free(swap);
+    free(recieved);
+
+    CPUTimer_t end = CPUTimer();
+    CPUTimer_t total_time = end-start;
+
+    TRANSFER_CALLS++;
+    TRANSFER_TIME += total_time;
+    TRANSFER_GPU_TIME += gpu_time;
+    TRANSFER_MPI_TIME += mpi_end - mpi_start;
+
+
+    #ifdef VerboseTransfer
+    if(params.world_rank == 0)printf("%s   TransferParticles took %llu us\n",indent,total_time);
+    #endif
+
+    //if(params.world_rank == 0){
+    //    for(int i = 0; i < 10; i++){
+    //        printf("(%g %g %g %g) (%g %g %g %g)\n",swap[i*2].x,swap[i*2].y,swap[i*2].z,swap[i*2].w,swap[i*2+1].x,swap[i*2+1].y,swap[i*2+1].z,swap[i*2+1].w);
+    //    }
+    //}
     
     /*
     #ifdef VerboseTransfer
@@ -268,18 +333,6 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
 
     free(pos_to_transfer);
     free(vel_to_transfer);
-
-    CPUTimer_t end = CPUTimer();
-    CPUTimer_t total_time = end-start;
-
-    TRANSFER_CALLS++;
-    TRANSFER_TIME += total_time;
-    TRANSFER_GPU_TIME += gpu_time;
-    TRANSFER_MPI_TIME += mpi_time;
-
-
-    #ifdef VerboseTransfer
-    if(params.world_rank == 0)printf("%s   TransferParticles took %llu us\n",indent,total_time);
     #endif*/
 }
 

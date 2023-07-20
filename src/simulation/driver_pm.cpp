@@ -190,7 +190,7 @@ int parallel(const char* params_file){
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
 
-    HACCGPM::parallel::InitGreens(mem.d_greens,params.ng,params.local_grid_size,params.grid_coords,params.blockSize,params.world_rank);
+    HACCGPM::parallel::InitGreens(mem,params);
 
     HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk.pk",0,params.blockSize,params.world_rank,params.world_size);
 

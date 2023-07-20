@@ -107,24 +107,22 @@ void HACCGPM::serial::InitGreens(hostFFT_t* d_greens, int ng, int blockSize, int
 
 }
 
-void HACCGPM::parallel::InitGreens(hostFFT_t* d_greens, int ng, int* local_grid_size_, int* local_coords_, int blockSize, int world_rank, int calls){
+void HACCGPM::parallel::InitGreens(HACCGPM::parallel::MemoryManager& mem, HACCGPM::Params& params, int calls){
 
-    int3 local_grid_size = make_int3(local_grid_size_[0],local_grid_size_[1],local_grid_size_[2]);
-    int3 local_coords = make_int3(local_coords_[0],local_coords_[1],local_coords_[2]);
-
-    int numBlocks = (local_grid_size.x*local_grid_size.y*local_grid_size.z + (blockSize - 1))/blockSize;
+    int world_rank = params.world_rank;
+    int numBlocks = (params.nlocal + (params.blockSize - 1))/params.blockSize;
 
     getIndent(calls);
 
     #ifdef VerboseGreens
-    if(world_rank == 0)printf("%sInitGreens was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
-    if(world_rank == 0)printf("%s   Calling getGreens...\n",indent);
+    if(params.world_rank == 0)printf("%sInitGreens was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,params.blockSize,indent,numBlocks);
+    if(params.world_rank == 0)printf("%s   Calling getGreens...\n",indent);
     #endif
 
-    InvokeGPUKernelParallel(getGreensParallel,numBlocks,blockSize,d_greens,ng,local_grid_size,local_coords);
+    InvokeGPUKernelParallel(getGreensParallel,numBlocks,params.blockSize,mem.d_greens,params.ng,params.local_grid_size_vec,params.grid_coords_vec);
 
     #ifdef VerboseGreens
-    if(world_rank == 0)printf("%s      Called getGreens...\n",indent);
+    if(params.world_rank == 0)printf("%s      Called getGreens...\n",indent);
     #endif
 
 }

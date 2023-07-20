@@ -275,7 +275,7 @@ namespace HACCGPM{
 
         void sendPower(int* binCounts, double* binVals, int nbins, int world_rank, int world_size, int calls = 0);
 
-        void InitGreens(hostFFT_t* d_greens, int ng, int* local_grid_size_, int* local_coords_, int blockSize, int world_rank, int calls = 0);
+        void InitGreens(HACCGPM::parallel::MemoryManager& mem, HACCGPM::Params& params, int calls = 0);
 
         void UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int n_particles, int blockSize, int world_rank, int calls = 0);
 

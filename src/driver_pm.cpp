@@ -7,7 +7,6 @@
 #include <mpi.h>
 #include "../swfft-all-to-all/include/swfft.hpp"
 #include "../cambTools/ccamb.h"
-#include "../bdwgc/include/gc.h"
 #include "../pycosmotools/include/pycosmotools.hpp"
 
 //#define NOPYTHON
@@ -153,8 +152,6 @@ int serial(const char* params_file){
 }
 
 int parallel(const char* params_file){
-
-    GC_INIT();
 
     cudaFree(0);
 

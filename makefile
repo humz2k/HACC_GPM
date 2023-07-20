@@ -29,10 +29,10 @@ thing1:
 	
 
 main: $(HACCGPM_BUILD_DIR)/driver_pm.o $(HACCGPM_FILES) $(HACCGPM_BUILD_DIR)/ccamb.o | swfft pycosmo
-	mpicxx $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a bdwgc/libgc.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft $(PY_LD_FLAGS) $(PY_LIB) -L$(PYCOSMO_DIR)/lib -lpycosmo -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpm
+	mpicxx $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft $(PY_LD_FLAGS) $(PY_LIB) -L$(PYCOSMO_DIR)/lib -lpycosmo -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpm
 
 nopython: $(HACCGPM_NOPYTHON_DIR)/driver_pm.o $(HACCGPM_NOPYTHON_FILES) | swfft
-	mpicxx $^ -DNOPYTHON $(SWFFT_DIR)/lib/swfft_a2a_gpu.a bdwgc/libgc.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpmnopython
+	mpicxx $^ -DNOPYTHON $(SWFFT_DIR)/lib/swfft_a2a_gpu.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpmnopython
 
 swfft:
 	cd $(SWFFT_DIR) && $(MAKE)

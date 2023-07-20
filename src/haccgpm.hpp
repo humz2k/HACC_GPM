@@ -181,6 +181,27 @@ namespace HACCGPM{
             float Omega_nu_massive(float a);
     };
 
+    __device__ __forceinline__ float3 get_kmodes(int3 idx3d, int ng, double d){
+            float l = idx3d.x;
+            if (idx3d.x > ((ng/2)-1)){
+                l = -(ng - idx3d.x);
+            }
+            l *= d;
+
+            float m = idx3d.y;
+            if (idx3d.y > ((ng/2)-1)){
+                m = -(ng - idx3d.y);
+            }
+            m *= d;
+
+            float n = idx3d.z;
+            if (idx3d.z > ((ng/2)-1)){
+                n = -(ng - idx3d.z);
+            }
+            n *= d;
+            return make_float3(l,m,n);
+        }
+
     namespace parallel{
         class MemoryManager{
             public:
@@ -232,27 +253,6 @@ namespace HACCGPM{
             out.y = local.y + local_coords.y * local_dims.y;
             out.z = local.z + local_coords.z * local_dims.z;
             return out;
-        }
-
-        __device__ __forceinline__ float3 get_kmodes(int3 idx3d, int ng, double d){
-            float l = idx3d.x;
-            if (idx3d.x > ((ng/2)-1)){
-                l = -(ng - idx3d.x);
-            }
-            l *= d;
-
-            float m = idx3d.y;
-            if (idx3d.y > ((ng/2)-1)){
-                m = -(ng - idx3d.y);
-            }
-            m *= d;
-
-            float n = idx3d.z;
-            if (idx3d.z > ((ng/2)-1)){
-                n = -(ng - idx3d.z);
-            }
-            n *= d;
-            return make_float3(l,m,n);
         }
 
         void init_swfft(HACCGPM::Params& params);
@@ -314,27 +314,6 @@ namespace HACCGPM{
             return out;
         }
 
-        __device__ __forceinline__ float3 get_kmodes(int3 idx3d, int ng, double d){
-            float l = idx3d.x;
-            if (idx3d.x > ((ng/2)-1)){
-                l = -(ng - idx3d.x);
-            }
-            l *= d;
-
-            float m = idx3d.y;
-            if (idx3d.y > ((ng/2)-1)){
-                m = -(ng - idx3d.y);
-            }
-            m *= d;
-
-            float n = idx3d.z;
-            if (idx3d.z > ((ng/2)-1)){
-                n = -(ng - idx3d.z);
-            }
-            n *= d;
-            return make_float3(l,m,n);
-        }
-
         void UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int blockSize, int calls = 0);
 
         void UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls = 0);
@@ -363,7 +342,7 @@ namespace HACCGPM{
 
         void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls = 0);
 
-        void InitGreens(hostFFT_t* d_greens, int ng, int blockSize, int calls = 0);
+        void InitGreens(HACCGPM::serial::MemoryManager& mem, HACCGPM::Params& params, int calls = 0);
 
         void forward_fft(deviceFFT_t* data, deviceFFT_t* out, int ng, int calls = 0);
 

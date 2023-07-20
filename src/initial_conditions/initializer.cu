@@ -113,7 +113,7 @@ __global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, dev
     double d = (2*M_PI)/rl;
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-    float3 kmodes = HACCGPM::serial::get_kmodes(idx3d,ng,d);
+    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
     double k2 = kmodes.x * kmodes.x + kmodes.y * kmodes.y + kmodes.z * kmodes.z;
 
@@ -154,7 +154,7 @@ __global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, dev
     double d = (2*M_PI)/rl;
 
     int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
-    float3 kmodes = HACCGPM::parallel::get_kmodes(idx3d,ng,d);
+    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
     double k2 = kmodes.x * kmodes.x + kmodes.y * kmodes.y + kmodes.z * kmodes.z;
 
@@ -253,7 +253,7 @@ __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, 
     double d = (2*M_PI)/rl;
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-    float3 kmodes = HACCGPM::serial::get_kmodes(idx3d,ng,d);
+    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
     double my_k = sqrt(kmodes.x*kmodes.x + kmodes.y*kmodes.y + kmodes.z*kmodes.z);
 
@@ -291,7 +291,7 @@ __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, 
     double d = (2*M_PI)/rl;
 
     int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
-    float3 kmodes = HACCGPM::parallel::get_kmodes(idx3d,ng,d);
+    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
     double my_k = sqrt(kmodes.x*kmodes.x + kmodes.y*kmodes.y + kmodes.z*kmodes.z);
 

@@ -57,7 +57,7 @@ int serial(const char* params_file){
     }
     #endif
     
-    HACCGPM::serial::InitGreens(mem.d_greens,params.ng,params.blockSize);
+    HACCGPM::serial::InitGreens(mem,params);
 
     char stepstr[400];
     sprintf(stepstr, "%s.pk.ini", params.prefix);

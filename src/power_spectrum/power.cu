@@ -56,7 +56,7 @@ __global__ void PkCICFilter(double* __restrict grid, int ng, int folds){
     double d = ((2*M_PI)/(((double)(ng))));
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-    float3 kmodes = HACCGPM::serial::get_kmodes(idx3d,ng,d);
+    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
     float filt1 = sinf(0.5f * kmodes.x) / (0.5 * kmodes.x);
     filt1 = filt1*filt1;
@@ -92,7 +92,7 @@ __global__ void PkCICFilterParallel(deviceFFT_t* __restrict grid, int ng, int fo
     double d = ((2*M_PI)/(((double)(ng))));
 
     int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
-    float3 kmodes = HACCGPM::parallel::get_kmodes(idx3d,ng,d);
+    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
     float filt1 = sinf(0.5f * kmodes.x) / (0.5 * kmodes.x);
     filt1 = filt1*filt1;
@@ -126,7 +126,7 @@ __global__ void PkCICFilter(deviceFFT_t* __restrict grid, int ng, int folds){
     double d = ((2*M_PI)/(((double)(ng))));
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-    float3 kmodes = HACCGPM::serial::get_kmodes(idx3d,ng,d);
+    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
     float filt1 = sinf(0.5f * kmodes.x) / (0.5 * kmodes.x);
     filt1 = filt1*filt1;
@@ -209,7 +209,7 @@ __global__ void BinPower(const hostFFT_t* __restrict d_powerSpectrum, double* __
     double d = ((2*M_PI)/(((double)(rl))));
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-    float3 kmodes = HACCGPM::serial::get_kmodes(idx3d,ng,d);
+    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
     hostFFT_t this_val = __ldg(&d_powerSpectrum[idx]);
 
@@ -235,7 +235,7 @@ __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restric
     double d = ((2*M_PI)/(((double)(rl))));
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-    float3 kmodes = HACCGPM::serial::get_kmodes(idx3d,ng,d);
+    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
     deviceFFT_t this_val = __ldg(&d_grid[idx]);
 
@@ -264,7 +264,7 @@ __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restric
     double d = ((2*M_PI)/(((double)(rl))));
 
     //int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-    float3 kmodes = HACCGPM::parallel::get_kmodes(idx3d,ng,d);
+    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
     deviceFFT_t this_val = __ldg(&d_grid[idx]);
 

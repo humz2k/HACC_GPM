@@ -24,7 +24,7 @@ __global__ void kspace_solve_gradient(deviceFFT_t* __restrict d_x, deviceFFT_t* 
     double d = ((2*M_PI)/(((double)(ng))));
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-    float3 kmodes = HACCGPM::serial::get_kmodes(idx3d,ng,d);
+    float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
     hostFFT_t greens = __ldg(&d_greens[idx]);
 

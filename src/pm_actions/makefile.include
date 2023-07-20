@@ -1,0 +1,4 @@
+PM_ACTIONS := $(patsubst src/pm_actions/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/pm_actions/*.cpp)) $(patsubst src/pm_actions/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/pm_actions/*.cu))
+
+HACCGPM_FILES += $(PM_ACTIONS)
+HACCGPM_NOPYTHON_FILES += $(PM_ACTIONS)

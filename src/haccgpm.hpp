@@ -323,10 +323,6 @@ namespace HACCGPM{
 
         void UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls = 0);
 
-        void CIC(deviceFFT_t* d_grid, float4* d_pos, int ng, int blockSize, int calls = 0);
-
-        void CIC(float* d_grid, float4* d_pos, int ng, int blockSize, int calls = 0);
-
         void CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls = 0);
 
         double get_fscal(double m_aa, double m_adot, double m_omega_cb);

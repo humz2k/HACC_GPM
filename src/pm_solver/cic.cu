@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "haccgpm.hpp"
+#include "pm_kernels.hpp"
 
 #define VerboseUpdate
 
@@ -15,35 +15,6 @@ int UPDATE_POS_CALLS = 0;
 CPUTimer_t UPDATE_VEL_TIME = 0;
 CPUTimer_t UPDATE_VEL_KERNEL_TIME = 0;
 int UPDATE_VEL_CALLS = 0;
-
-__global__ void UpdatePosKernel(float4* __restrict d_pos, const float4* __restrict d_vel, float prefactor, float ng){
-    int idx = threadIdx.x+blockDim.x*blockIdx.x;
-    float4 my_pos = __ldg(&d_pos[idx]);
-    float4 my_vel = __ldg(&d_vel[idx]);
-    my_pos.x += my_vel.x * prefactor;
-    my_pos.y += my_vel.y * prefactor;
-    my_pos.z += my_vel.z * prefactor;
-    my_pos.x = fmod(my_pos.x + ng,ng);
-    my_pos.y = fmod(my_pos.y + ng,ng);
-    my_pos.z = fmod(my_pos.z + ng,ng);
-    //if ((my_pos.x < 0 || my_pos.x >= ng) || (my_pos.y < 0 || my_pos.y >= ng) || (my_pos.z < 0 || my_pos.z >= ng)){
-    //    printf("%g %g %g\n",my_pos.x,my_pos.y,my_pos.z);
-    //    printf("FUCK!!!\n");
-    //}
-    d_pos[idx] = my_pos;
-}
-
-__global__ void UpdatePosKernelParallel(float4* __restrict d_pos, const float4* __restrict d_vel, float prefactor, int n){
-    int idx = threadIdx.x+blockDim.x*blockIdx.x;
-    if (idx >= n)return;
-    float4 my_pos = __ldg(&d_pos[idx]);
-    if (my_pos.w < -1)return;
-    float4 my_vel = __ldg(&d_vel[idx]);
-    my_pos.x += my_vel.x * prefactor;
-    my_pos.y += my_vel.y * prefactor;
-    my_pos.z += my_vel.z * prefactor;
-    d_pos[idx] = my_pos;
-}
 
 __global__ void ICICKernel(float4* __restrict d_vel, const float4* __restrict d_grad, const float4* __restrict my_pos, double deltaT, double fscal, int ng){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
@@ -180,42 +151,6 @@ __global__ void CICKernel(float* __restrict grid, const float4* __restrict my_po
     }
 }
 
-__global__ void float2complex(deviceFFT_t* __restrict d_out, const float* __restrict d_in, int n){
-    int idx = threadIdx.x+blockDim.x*blockIdx.x;
-    if(idx >= n)return;
-    float my_grid = __ldg(&d_in[idx]);
-    deviceFFT_t out;
-    out.x = my_grid;
-    out.y = 0;
-    d_out[idx] = out;
-}
-
-__global__ void float2complex(deviceFFT_t* __restrict d_out, const float* __restrict d_in, int3 local_grid_size, int overload){
-    int idx = threadIdx.x+blockDim.x*blockIdx.x;
-    int n = (local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload);
-    if(idx >= n)return;
-    int3 ol_grid_size = make_int3(local_grid_size.x + 2*overload,local_grid_size.y + 2*overload,local_grid_size.z + 2*overload);
-    int3 idx3d = HACCGPM::parallel::get_local_index(idx,ol_grid_size.x,ol_grid_size.y,ol_grid_size.z);
-
-    idx3d.x -= overload;
-    idx3d.y -= overload;
-    idx3d.z -= overload;
-
-    if (idx3d.x < 0)return;
-    if (idx3d.y < 0)return;
-    if (idx3d.z < 0)return;
-    if (idx3d.x >= local_grid_size.x)return;
-    if (idx3d.y >= local_grid_size.y)return;
-    if (idx3d.z >= local_grid_size.z)return;
-
-    float my_grid = __ldg(&d_in[idx]);
-    deviceFFT_t out;
-    out.x = my_grid;
-    out.y = 0;
-    int outidx = idx3d.x * local_grid_size.y * local_grid_size.z + idx3d.y * local_grid_size.z + idx3d.z;
-    d_out[outidx] = out;
-}
-
 __global__ void CICKernelParallel(float* __restrict d_grid, const float4* __restrict d_pos, int ng, int overload, int3 local_grid_size, int n_particles, float mass){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     if (idx >= n_particles)return;
@@ -269,7 +204,7 @@ __global__ void CICKernelParallel(float* __restrict d_grid, const float4* __rest
     }
 }
 
-__global__ void loadTransferBuffer(float* __restrict d_out, const float* __restrict d_in, int3 local_grid_size, int3 local_coords, int overload, int3 dims){
+/*__global__ void loadTransferBuffer(float* __restrict d_out, const float* __restrict d_in, int3 local_grid_size, int3 local_coords, int overload, int3 dims){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     int n = (local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload);
     if(idx >= n)return;
@@ -292,7 +227,7 @@ __global__ void loadTransferBuffer(float* __restrict d_out, const float* __restr
     int3 relative_coords = make_int3(dest_coords.x - local_coords.x, dest_coords.y - local_coords.y, dest_coords.z - local_coords.z);
     //FINISH ME!!!
 
-}
+}*/
 
 void HACCGPM::parallel::CIC(deviceFFT_t* d_grid, 
                                     float* d_tempgrid, 

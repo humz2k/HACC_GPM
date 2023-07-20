@@ -25,6 +25,16 @@ __global__ void initRNG(curandState *state, int seed, int nlocal, int world_rank
 
 }
 
+__global__ void initRNG(curandState *state, int seed, int nlocal, int ng, int3 local_grid_size, int3 local_coords){
+
+  int idx = threadIdx.x+blockDim.x*blockIdx.x;
+  if (idx >= nlocal)return;
+  int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
+  int global_idx = idx3d.x * ng * ng + idx3d.y * ng + idx3d.z;
+  curand_init(seed, global_idx, 0, &state[idx]);
+
+}
+
 __global__ void GenerateRealRandom(curandState* state, deviceFFT_t* __restrict grid){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     hostFFT_t amp = curand_normal_double(state + idx);
@@ -306,40 +316,40 @@ __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, 
 
 }
 
-void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cosmo, deviceFFT_t* d_grid1, int ng, double rl, double z, int seed, int blockSize, int calls){
-    int numBlocks = (ng*ng*ng)/blockSize;
+void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, deviceFFT_t* d_grid1, double z, int calls){
+    int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
 
     getIndent(calls);
 
     #ifdef VerboseInitializer
-    printf("%sGenerateFourierAmplitudes was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   z %g\n",indent,indent,blockSize,indent,numBlocks,indent,z);
+    printf("%sGenerateFourierAmplitudes was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   z %g\n",indent,indent,params.blockSize,indent,numBlocks,indent,z);
     printf("%s   Allocating rngState, h_tmp, d_pkScale...\n",indent);
     #endif
 
-    curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*ng*ng*ng);
-    hostFFT_t* h_tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*ng*ng*ng);
-    hostFFT_t* d_pkScale; cudaCall(cudaMalloc,&d_pkScale,sizeof(hostFFT_t)*ng*ng*ng);
+    curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*params.ng*params.ng*params.ng);
+    hostFFT_t* h_tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*params.ng*params.ng*params.ng);
+    hostFFT_t* d_pkScale; cudaCall(cudaMalloc,&d_pkScale,sizeof(hostFFT_t)*params.ng*params.ng*params.ng);
 
     #ifdef VerboseInitializer
     printf("%s      Allocated rngState, h_tmp, d_pkScale.\n",indent);
     printf("%s   Calling initRNG...\n",indent);
     #endif
 
-    InvokeGPUKernel(initRNG,numBlocks,blockSize,rngState,seed);
+    InvokeGPUKernel(initRNG,numBlocks,params.blockSize,rngState,params.seed);
 
     #ifdef VerboseInitializer
     printf("%s      Called initRNG.\n",indent);
     printf("%s   Calling GenerateRealRandom...\n",indent);
     #endif
 
-    InvokeGPUKernel(GenerateRealRandom,numBlocks,blockSize,rngState,d_grid1);
+    InvokeGPUKernel(GenerateRealRandom,numBlocks,params.blockSize,rngState,d_grid1);
 
     #ifdef VerboseInitializer
     printf("%s      Called GenerateRealRandom.\n",indent);
     printf("%s   Doing Forward FFT...\n",indent);
     #endif
 
-    HACCGPM::serial::forward_fft(d_grid1,ng,calls+1);
+    HACCGPM::serial::forward_fft(d_grid1,params.ng,calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Done Forward FFT...\n",indent);
@@ -360,7 +370,7 @@ void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cos
     double* d_ipk; cudaCall(cudaMalloc,&d_ipk,sizeof(double)*ipk_bins);
     cudaCall(cudaMemcpy, d_ipk, h_ipk, sizeof(double)*ipk_bins, cudaMemcpyHostToDevice);
 
-    double maxK = ((ng/2)*2*M_PI)/rl;
+    double maxK = ((params.ng/2)*2*M_PI)/params.rl;
     maxK = sqrt(maxK*maxK*maxK);
     printf("%s      maxK = %g\n",indent,maxK);
     if (maxK > ipk_max){
@@ -368,7 +378,7 @@ void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cos
         exit(1);
     }
 
-    InvokeGPUKernel(interpolatePowerSpectrum,numBlocks,blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,rl,ng);
+    InvokeGPUKernel(interpolatePowerSpectrum,numBlocks,params.blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,params.rl,params.ng);
 
     free(h_ipk);
     cudaCall(cudaFree,d_ipk);
@@ -376,13 +386,13 @@ void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cos
     #ifdef VerboseInitializer
     printf("%s   Getting Pk from Camb...\n",indent);
     #endif
-    get_pk(params_file,h_tmp,z,ng,rl,calls+1);
+    get_pk(params_file,h_tmp,z,params.ng,params.rl,calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Got Pk from Camb.\n",indent);
     printf("%s   Copying Pk from host to device...\n",indent);
     #endif
-    cudaCall(cudaMemcpy, d_pkScale, h_tmp, sizeof(hostFFT_t)*ng*ng*ng, cudaMemcpyHostToDevice);
+    cudaCall(cudaMemcpy, d_pkScale, h_tmp, sizeof(hostFFT_t)*params.ng*params.ng*params.ng, cudaMemcpyHostToDevice);
     
     #ifdef VerboseInitializer
     printf("%s      Copied Pk from host to device.\n",indent);
@@ -395,7 +405,7 @@ void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cos
     printf("%s   Scaling Amplitudes...\n",indent);
     #endif
 
-    InvokeGPUKernel(ScaleAmplitudes,numBlocks,blockSize,d_grid1,d_pkScale);
+    InvokeGPUKernel(ScaleAmplitudes,numBlocks,params.blockSize,d_grid1,d_pkScale);
 
     #ifdef VerboseInitializer
     printf("%s      Scaled Amplitudes.\n",indent);
@@ -403,33 +413,33 @@ void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cos
     #endif
 
     free(h_tmp);
-    cudaFree(d_pkScale);
-    cudaFree(rngState);
+    cudaCall(cudaFree,d_pkScale);
+    cudaCall(cudaFree,rngState);
 
     #ifdef VerboseInitializer
     printf("%s      Freed rngState, h_tmp, d_pkScale.\n",indent);
     #endif
 }
 
-void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager* mem, HACCGPM::CosmoClass& cosmo, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int calls){
-    int numBlocks = (ng*ng*ng)/blockSize;
+void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls){
+    int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
     getIndent(calls);
 
     #ifdef VerboseInitializer
-    printf("%sGenerateDisplacementIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   params %s\n",indent,indent,blockSize,indent,numBlocks,indent,params_file);
+    printf("%sGenerateDisplacementIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   params %s\n",indent,indent,params.blockSize,indent,numBlocks,indent,params_file);
     printf("%s   Calling GenerateFourierAmplitudes...\n",indent);
     #endif
 
-    GenerateFourierAmplitudes(params_file, cosmo, mem->d_grid, ng, rl, z, seed, blockSize, calls+1);
+    GenerateFourierAmplitudes(params_file, cosmo, params, mem.d_grid, params.z_ini, calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Called GenerateFourierAmplitudes.\n",indent);
     printf("%s   Allocating d_sx, d_sy, d_sz...\n",indent);
     #endif
 
-    deviceFFT_t* d_sx; cudaCall(cudaMalloc,&d_sx,sizeof(deviceFFT_t)*ng*ng*ng);
-    deviceFFT_t* d_sy; cudaCall(cudaMalloc,&d_sy,sizeof(deviceFFT_t)*ng*ng*ng);
-    deviceFFT_t* d_sz; cudaCall(cudaMalloc,&d_sz,sizeof(deviceFFT_t)*ng*ng*ng);
+    deviceFFT_t* d_sx; cudaCall(cudaMalloc,&d_sx,sizeof(deviceFFT_t)*params.ng*params.ng*params.ng);
+    deviceFFT_t* d_sy; cudaCall(cudaMalloc,&d_sy,sizeof(deviceFFT_t)*params.ng*params.ng*params.ng);
+    deviceFFT_t* d_sz; cudaCall(cudaMalloc,&d_sz,sizeof(deviceFFT_t)*params.ng*params.ng*params.ng);
 
     #ifdef VerboseInitializer
     printf("%s      Allocated d_sx, d_sy, d_sz.\n",indent);
@@ -438,10 +448,10 @@ void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::s
 
     double delta;
     double dotDelta;
-    double this_a = (1/(z + 1)) - (deltaT/2.0f);
+    double this_a = (1/(params.z_ini + 1)) - (ts.deltaT/2.0f);
     double velZ = (1.0f/this_a) - 1.0f;
     //get_delta_and_dotDelta(params_file, z,velZ,&delta,&dotDelta,calls+1);
-    cosmo.get_delta_and_dotDelta(z,velZ,&delta,&dotDelta);
+    cosmo.get_delta_and_dotDelta(params.z_ini,velZ,&delta,&dotDelta);
     
     printf("%s      Delta %g, dotDelta %g\n",indent,delta,dotDelta);
 
@@ -452,28 +462,28 @@ void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::s
     printf("%s   Calling transformDensityField...\n",indent);
     #endif
 
-    InvokeGPUKernel(transformDensityField,numBlocks,blockSize,mem->d_grid,d_sx,d_sy,d_sz,delta,rl,1/(1+z),ng);
+    InvokeGPUKernel(transformDensityField,numBlocks,params.blockSize,mem.d_grid,d_sx,d_sy,d_sz,delta,params.rl,1/(1+params.z_ini),params.ng);
 
     #ifdef VerboseInitializer
     printf("%s      Called transformVelocityField.\n",indent);
     printf("%s   Doing Backward FFTs...\n",indent);
     #endif
 
-    HACCGPM::serial::backward_fft(d_sx,ng,calls+1);
-    HACCGPM::serial::backward_fft(d_sy,ng,calls+1);
-    HACCGPM::serial::backward_fft(d_sz,ng,calls+1);
+    HACCGPM::serial::backward_fft(d_sx,params.ng,calls+1);
+    HACCGPM::serial::backward_fft(d_sy,params.ng,calls+1);
+    HACCGPM::serial::backward_fft(d_sz,params.ng,calls+1);
 
-    double scale_by = 1.0f/((double)(ng*ng*ng));
+    double scale_by = 1.0f/((double)(params.ng*params.ng*params.ng));
 
-    InvokeGPUKernel(ScaleFFT,numBlocks,blockSize,d_sx,scale_by);
-    InvokeGPUKernel(ScaleFFT,numBlocks,blockSize,d_sy,scale_by);
-    InvokeGPUKernel(ScaleFFT,numBlocks,blockSize,d_sz,scale_by);
+    InvokeGPUKernel(ScaleFFT,numBlocks,params.blockSize,d_sx,scale_by);
+    InvokeGPUKernel(ScaleFFT,numBlocks,params.blockSize,d_sy,scale_by);
+    InvokeGPUKernel(ScaleFFT,numBlocks,params.blockSize,d_sz,scale_by);
 
     #ifdef VerboseInitializer
     printf("%s      Done Backward FFTs.\n",indent);
     #endif
 
-    InvokeGPUKernel(placeParticles,numBlocks,blockSize,mem->d_pos,mem->d_vel,d_sx,d_sy,d_sz,delta,dotDelta,rl,1/(1+z),deltaT,fscal,ng);
+    InvokeGPUKernel(placeParticles,numBlocks,params.blockSize,mem.d_pos,mem.d_vel,d_sx,d_sy,d_sz,delta,dotDelta,params.rl,1/(1+params.z_ini),ts.deltaT,ts.fscal,params.ng);
 
     #ifdef VerboseInitializer
     printf("%s   Freeing d_sx, d_sy, d_sz...\n",indent);
@@ -489,40 +499,46 @@ void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::s
 }
 
 
-void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoClass& cosmo, deviceFFT_t* d_grid, int ng, double rl, double z, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int* local_coords, int* dims, int calls){
-    int numBlocks = (nlocal + (blockSize - 1))/blockSize;
+void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, deviceFFT_t* d_grid, double z, int calls){
+    int numBlocks = (params.nlocal + (params.blockSize - 1))/params.blockSize;
+
+    /*int3 local_grid_size_vec = make_int3(params.local_grid_size[0],params.local_grid_size[1],params.local_grid_size[2]);
+    int3 dims_vec = make_int3(params.grid_dims[0],params.grid_dims[1],params.grid_dims[2]);
+    int3 local_coords_vec = make_int3(params.grid_coords[0],params.grid_coords[1],params.grid_coords[2]);*/
+
+    int world_rank = params.world_rank;
 
     getIndent(calls);
 
     #ifdef VerboseInitializer
-    if(world_rank == 0)printf("%sGenerateFourierAmplitudesParallel was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   z %g\n",indent,indent,blockSize,indent,numBlocks,indent,z);
+    if(world_rank == 0)printf("%sGenerateFourierAmplitudesParallel was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   z %g\n",indent,indent,params.blockSize,indent,numBlocks,indent,z);
     if(world_rank == 0)printf("%s   Allocating rngState, h_tmp, d_pkScale...\n",indent);
     #endif
 
-    curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*nlocal);
-    hostFFT_t* h_tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*nlocal);
-    hostFFT_t* d_pkScale; cudaCall(cudaMalloc,&d_pkScale,sizeof(hostFFT_t)*nlocal);
+    curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*params.nlocal);
+    hostFFT_t* h_tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*params.nlocal);
+    hostFFT_t* d_pkScale; cudaCall(cudaMalloc,&d_pkScale,sizeof(hostFFT_t)*params.nlocal);
 
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Allocated rngState, h_tmp, d_pkScale.\n",indent);
     if(world_rank == 0)printf("%s   Calling initRNG...\n",indent);
     #endif
 
-    InvokeGPUKernelParallel(initRNG,numBlocks,blockSize,rngState,seed,nlocal,world_rank);
+    InvokeGPUKernelParallel(initRNG,numBlocks,params.blockSize,rngState,params.seed,params.nlocal,params.ng,params.local_grid_size_vec,params.grid_coords_vec);
 
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Called initRNG.\n",indent);
     if(world_rank == 0)printf("%s   Calling GenerateRealRandom...\n",indent);
     #endif
 
-    InvokeGPUKernelParallel(GenerateRealRandom,numBlocks,blockSize,rngState,d_grid,nlocal);
+    InvokeGPUKernelParallel(GenerateRealRandom,numBlocks,params.blockSize,rngState,d_grid,params.nlocal);
 
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Called GenerateRealRandom.\n",indent);
     if(world_rank == 0)printf("%s   Doing Forward FFT...\n",indent);
     #endif
 
-    HACCGPM::parallel::forward_fft(d_grid,ng,calls+1);
+    HACCGPM::parallel::forward_fft(d_grid,params.ng,calls+1);
 
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Done Forward FFT...\n",indent);
@@ -540,17 +556,15 @@ void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoCl
     double* d_ipk; cudaCall(cudaMalloc,&d_ipk,sizeof(double)*ipk_bins);
     cudaCall(cudaMemcpy, d_ipk, h_ipk, sizeof(double)*ipk_bins, cudaMemcpyHostToDevice);
 
-    double maxK = ((ng/2)*2*M_PI)/rl;
+    double maxK = ((params.ng/2)*2*M_PI)/params.rl;
     maxK = sqrt(maxK*maxK*maxK);
     if(world_rank == 0)printf("%s      maxK = %g\n",indent,maxK);
     if (maxK > ipk_max){
         if(world_rank == 0)printf("%s      input ipk only goes to %g\n",indent,ipk_max);
         exit(1);
     }
-    int3 local_grid_size_vec = make_int3(local_grid_size[0],local_grid_size[1],local_grid_size[2]);
-    int3 dims_vec = make_int3(dims[0],dims[1],dims[2]);
-    int3 local_coords_vec = make_int3(local_coords[0],local_coords[1],local_coords[2]);
-    InvokeGPUKernelParallel(interpolatePowerSpectrum,numBlocks,blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,rl,ng,nlocal,world_rank,local_grid_size_vec,local_coords_vec,dims_vec);
+    
+    InvokeGPUKernelParallel(interpolatePowerSpectrum,numBlocks,params.blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,params.rl,params.ng,params.nlocal,params.world_rank,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec);
 
     free(h_ipk);
     cudaCall(cudaFree,d_ipk);
@@ -558,7 +572,7 @@ void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoCl
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s   Getting Pk from Camb...\n",indent);
     #endif
-    get_pk_parallel(params_file,h_tmp,z,ng,rl,nlocal,world_rank,calls+1);
+    get_pk_parallel(params_file,h_tmp,z,params.ng,params.rl,params.nlocal,params.world_rank,calls+1);
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Got Pk from Camb.\n",indent);
     #endif
@@ -566,7 +580,7 @@ void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoCl
     if(world_rank == 0)printf("%s   Copying Pk from host to device...\n",indent);
     #endif
 
-    cudaCall(cudaMemcpy, d_pkScale, h_tmp, sizeof(hostFFT_t)*nlocal, cudaMemcpyHostToDevice);
+    cudaCall(cudaMemcpy, d_pkScale, h_tmp, sizeof(hostFFT_t)*params.nlocal, cudaMemcpyHostToDevice);
 
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Copied Pk from host to device.\n",indent);
@@ -578,7 +592,7 @@ void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoCl
     if(world_rank == 0)printf("%s   Scaling Amplitudes...\n",indent);
     #endif
 
-    InvokeGPUKernelParallel(ScaleAmplitudes,numBlocks,blockSize,d_grid,d_pkScale,nlocal);
+    InvokeGPUKernelParallel(ScaleAmplitudes,numBlocks,params.blockSize,d_grid,d_pkScale,params.nlocal);
 
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Scaled Amplitudes.\n",indent);
@@ -594,72 +608,73 @@ void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoCl
     #endif
 }
 
-void HACCGPM::parallel::GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, HACCGPM::CosmoClass& cosmo, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int* local_coords, int* dims, int calls){
+void HACCGPM::parallel::GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls){
 
-    int numBlocks = (nlocal)/blockSize;
+    int world_rank = params.world_rank;
+
+    int numBlocks = (params.nlocal)/params.blockSize;
     getIndent(calls);
 
+
     #ifdef VerboseInitializer
-    if (world_rank == 0)printf("%sGenerateDisplacementIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   params %s\n",indent,indent,blockSize,indent,numBlocks,indent,params_file);
-    if (world_rank == 0)printf("%s   Calling GenerateFourierAmplitudesParallel...\n",indent);
+    if (params.world_rank == 0)printf("%sGenerateDisplacementIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   params %s\n",indent,indent,params.blockSize,indent,numBlocks,indent,params_file);
+    if (params.world_rank == 0)printf("%s   Calling GenerateFourierAmplitudesParallel...\n",indent);
     #endif
 
-    GenerateFourierAmplitudesParallel(params_file, cosmo, mem->d_grid, ng, rl, z, seed, blockSize, world_rank, world_size, nlocal, local_grid_size, local_coords, dims, calls+1);
+    GenerateFourierAmplitudesParallel(params_file, cosmo, params, mem.d_grid, params.z_ini, calls+1);
 
     #ifdef VerboseInitializer
-    if (world_rank == 0)printf("%s      Called GenerateFourierAmplitudes.\n",indent);
-    if (world_rank == 0)printf("%s   Allocating d_sx, d_sy, d_sz...\n",indent);
+    if (params.world_rank == 0)printf("%s      Called GenerateFourierAmplitudes.\n",indent);
+    if (params.world_rank == 0)printf("%s   Allocating d_sx, d_sy, d_sz...\n",indent);
     #endif
 
-    deviceFFT_t* d_sx; cudaCall(cudaMalloc,&d_sx,sizeof(deviceFFT_t)*nlocal);
-    deviceFFT_t* d_sy; cudaCall(cudaMalloc,&d_sy,sizeof(deviceFFT_t)*nlocal);
-    deviceFFT_t* d_sz; cudaCall(cudaMalloc,&d_sz,sizeof(deviceFFT_t)*nlocal);
+    deviceFFT_t* d_sx; cudaCall(cudaMalloc,&d_sx,sizeof(deviceFFT_t)*params.nlocal);
+    deviceFFT_t* d_sy; cudaCall(cudaMalloc,&d_sy,sizeof(deviceFFT_t)*params.nlocal);
+    deviceFFT_t* d_sz; cudaCall(cudaMalloc,&d_sz,sizeof(deviceFFT_t)*params.nlocal);
 
     #ifdef VerboseInitializer
-    if (world_rank == 0)printf("%s      Allocated d_sx, d_sy, d_sz.\n",indent);
-    if (world_rank == 0)printf("%s   Calling get_delta_and_dotDelta...\n",indent);
+    if (params.world_rank == 0)printf("%s      Allocated d_sx, d_sy, d_sz.\n",indent);
+    if (params.world_rank == 0)printf("%s   Calling get_delta_and_dotDelta...\n",indent);
     #endif
 
     double delta;
     double dotDelta;
-    double this_a = (1/(z + 1)) - (deltaT/2.0f);
+    double this_a = (1/(params.z_ini + 1)) - (ts.deltaT/2.0f);
     double velZ = (1.0f/this_a) - 1.0f;
-    cosmo.get_delta_and_dotDelta(z,velZ,&delta,&dotDelta);
+    cosmo.get_delta_and_dotDelta(params.z_ini,velZ,&delta,&dotDelta);
 
-    if (world_rank == 0)printf("%s      Delta %g, dotDelta %g\n",indent,delta,dotDelta);
-
-    #ifdef VerboseInitializer
-    if (world_rank == 0)printf("%s      Called get_delta_and_dotDelta.\n",indent);
-    if (world_rank == 0)printf("%s   Calling transformDensityField...\n",indent);
-    #endif
-    int3 local_grid_size_vec = make_int3(local_grid_size[0],local_grid_size[1],local_grid_size[2]);
-    int3 dims_vec = make_int3(dims[0],dims[1],dims[2]);
-    int3 local_coords_vec = make_int3(local_coords[0],local_coords[1],local_coords[2]);
-    InvokeGPUKernelParallel(transformDensityField,numBlocks,blockSize,mem->d_grid,d_sx,d_sy,d_sz,delta,rl,1/(1+z),ng,nlocal,world_rank,local_grid_size_vec,local_coords_vec,dims_vec);
+    if (params.world_rank == 0)printf("%s      Delta %g, dotDelta %g\n",indent,delta,dotDelta);
 
     #ifdef VerboseInitializer
-    if (world_rank == 0)printf("%s      Called transformVelocityField.\n",indent);
-    if (world_rank == 0)printf("%s   Doing Backward FFTs...\n",indent);
+    if (params.world_rank == 0)printf("%s      Called get_delta_and_dotDelta.\n",indent);
+    if (params.world_rank == 0)printf("%s   Calling transformDensityField...\n",indent);
     #endif
 
-    HACCGPM::parallel::backward_fft(d_sx,ng,calls+1);
-    HACCGPM::parallel::backward_fft(d_sy,ng,calls+1);
-    HACCGPM::parallel::backward_fft(d_sz,ng,calls+1);
-
-    double scale_by = 1.0f/((double)(ng*ng*ng));
-
-    InvokeGPUKernelParallel(ScaleFFT,numBlocks,blockSize,d_sx,scale_by,nlocal);
-    InvokeGPUKernelParallel(ScaleFFT,numBlocks,blockSize,d_sy,scale_by,nlocal);
-    InvokeGPUKernelParallel(ScaleFFT,numBlocks,blockSize,d_sz,scale_by,nlocal);
+    InvokeGPUKernelParallel(transformDensityField,numBlocks,params.blockSize,mem.d_grid,d_sx,d_sy,d_sz,delta,params.rl,1/(1+params.z_ini),params.ng,params.nlocal,params.world_rank,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec);
 
     #ifdef VerboseInitializer
-    if (world_rank == 0)printf("%s      Done Backward FFTs.\n",indent);
+    if (params.world_rank == 0)printf("%s      Called transformVelocityField.\n",indent);
+    if (params.world_rank == 0)printf("%s   Doing Backward FFTs...\n",indent);
     #endif
 
-    InvokeGPUKernelParallel(placeParticles,numBlocks,blockSize,mem->d_pos,mem->d_vel,d_sx,d_sy,d_sz,delta,dotDelta,rl,1/(1+z),deltaT,fscal,ng,local_grid_size[0],local_grid_size[1],local_grid_size[2], nlocal, world_rank);
+    HACCGPM::parallel::backward_fft(d_sx,params.ng,calls+1);
+    HACCGPM::parallel::backward_fft(d_sy,params.ng,calls+1);
+    HACCGPM::parallel::backward_fft(d_sz,params.ng,calls+1);
+
+    double scale_by = 1.0f/((double)(params.ng*params.ng*params.ng));
+
+    InvokeGPUKernelParallel(ScaleFFT,numBlocks,params.blockSize,d_sx,scale_by,params.nlocal);
+    InvokeGPUKernelParallel(ScaleFFT,numBlocks,params.blockSize,d_sy,scale_by,params.nlocal);
+    InvokeGPUKernelParallel(ScaleFFT,numBlocks,params.blockSize,d_sz,scale_by,params.nlocal);
 
     #ifdef VerboseInitializer
-    if (world_rank == 0)printf("%s   Freeing d_sx, d_sy, d_sz...\n",indent);
+    if (params.world_rank == 0)printf("%s      Done Backward FFTs.\n",indent);
+    #endif
+
+    InvokeGPUKernelParallel(placeParticles,numBlocks,params.blockSize,mem.d_pos,mem.d_vel,d_sx,d_sy,d_sz,delta,dotDelta,params.rl,1/(1+params.z_ini),ts.deltaT,ts.fscal,params.ng,params.local_grid_size[0],params.local_grid_size[1],params.local_grid_size[2], params.nlocal, params.world_rank);
+
+    #ifdef VerboseInitializer
+    if (params.world_rank == 0)printf("%s   Freeing d_sx, d_sy, d_sz...\n",indent);
     #endif
 
     cudaFree(d_sx);
@@ -667,7 +682,7 @@ void HACCGPM::parallel::GenerateDisplacementIC(const char* params_file, HACCGPM:
     cudaFree(d_sz);
 
     #ifdef VerboseInitializer
-    if (world_rank == 0)printf("%s      Freed d_sx, d_sy, d_sz.\n",indent);
+    if (params.world_rank == 0)printf("%s      Freed d_sx, d_sy, d_sz.\n",indent);
     #endif
 
 }

@@ -96,6 +96,10 @@ namespace HACCGPM{
         bool dump_final;
         double ol;
         int overload;
+        int3 local_grid_start_vec;
+        int3 local_grid_size_vec;
+        int3 grid_dims_vec;
+        int3 grid_coords_vec;
     };
 
     Params read_params(const char* fname);
@@ -263,7 +267,7 @@ namespace HACCGPM{
         void TransferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls = 0);
         CPUTimer_t insertParticles(float4* d_pos, float4* d_vel, float4* h_swap, int n_new, int n_particles, int blockSize, int world_rank, int calls = 0);
 
-        void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager* mem, HACCGPM::CosmoClass& cosmo, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int world_rank, int world_size, int nlocal, int* local_grid_size, int* local_coords, int* dims, int calls = 0);
+        void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls = 0);
     
         void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int* local_grid_size_, int* local_coords_, int* dims_, int blockSize, int world_rank, int world_size, int overload, int calls = 0);
 
@@ -353,7 +357,7 @@ namespace HACCGPM{
 
         void GetFinerPowerSpectrum(float4* d_temp_pos, int ng, double rl, int nbins, int fftNg, const char* fname, int blockSize);
 
-        void GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager* mem, HACCGPM::CosmoClass& cosmo, int ng, double rl, double z, double deltaT, double fscal, int seed, int blockSize, int calls = 0);
+        void GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls = 0);
 
         void Solve(deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls = 0);
 

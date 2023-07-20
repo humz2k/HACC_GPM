@@ -168,6 +168,8 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
 
     getIndent(calls);
 
+    size_t bytes = 0;
+
     CPUTimer_t start = CPUTimer();
     
     int n_particles = params.n_particles;
@@ -215,25 +217,29 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
     }
     neighbor_ranks[params.world_rank] = false;
 
-    if(params.world_rank == 0)printf("Send Counts\n");
-
+    if(params.world_rank == 0)printf("%s   Send Counts\n",indent);
+    MPI_Barrier(MPI_COMM_WORLD);
     CPUTimer_t mpi_start = CPUTimer(); 
     for (int i = 0; i < params.world_size; i++){
         if (!neighbor_ranks[i])continue;
         if (i == params.world_rank)continue;
         MPI_Request req;
         MPI_Isend(&n_swaps[i],1,MPI_INT,i,0,MPI_COMM_WORLD,&req);
+        bytes += sizeof(int) * 1;
+        //printf("%s      Rank %d sending n_swaps[%d] = %d to rank %d\n",indent,params.world_rank,i,n_swaps[i],i);
         MPI_Request_free(&req);
         //printf("rank %d is neighbors with %d\n",params.world_rank,i);
     }
-
-    if(params.world_rank == 0)printf("Recv Counts\n");
-
+    MPI_Barrier(MPI_COMM_WORLD);
+    if(params.world_rank == 0)printf("%s   Recv Counts\n",indent);
+    MPI_Barrier(MPI_COMM_WORLD);
     for (int i = 0; i < params.world_size; i++){
         if (!neighbor_ranks[i])continue;
         if (i == params.world_rank)continue;
         MPI_Recv(&n_recvs[i],1,MPI_INT,i,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+        //printf("%s      Rank %d recieving n_recvs[%d] = %d from rank %d\n",indent,params.world_rank,i,n_recvs[i],i);
     }
+    MPI_Barrier(MPI_COMM_WORLD);
     int total_recieved = 0;
     int recv_starts[params.world_size];
     for (int i = 0; i < params.world_size; i++){
@@ -243,25 +249,29 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
     }
 
     float4* recieved = (float4*)malloc(sizeof(float4)*2*n_particles);
-
+    MPI_Barrier(MPI_COMM_WORLD);
     if(params.world_rank == 0)printf("%s   Send particles\n",indent);
-
+    MPI_Barrier(MPI_COMM_WORLD);
     for (int i = 0; i < params.world_size; i++){
         if ((!neighbor_ranks[i]) || (n_swaps[i] == 0))continue;
         if (i == params.world_rank)continue;
         MPI_Request req;
         MPI_Isend(&swap[starts[i]*2],n_swaps[i]*4*2,MPI_FLOAT,i,0,MPI_COMM_WORLD,&req);
+        bytes += sizeof(float) * 4 * 2 * n_swaps[i];
+        //printf("%s      Rank %d sending %d particles (start = %d) to rank %d\n",indent,params.world_rank,n_swaps[i],starts[i]*2,i);
         MPI_Request_free(&req);
     }
-    
+    MPI_Barrier(MPI_COMM_WORLD);
 
     if(params.world_rank == 0)printf("%s   Recv particles\n",indent);
-
+    MPI_Barrier(MPI_COMM_WORLD);
     for (int i = 0; i < params.world_size; i++){
         if ((!neighbor_ranks[i]) || (n_recvs[i] == 0))continue;
         if (i == params.world_rank)continue;
         MPI_Recv(&recieved[recv_starts[i]*2],n_recvs[i]*4*2,MPI_FLOAT,i,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+        //printf("%s      Rank %d reciving %d particles (start = %d) from rank %d\n",indent,params.world_rank,n_recvs[i],recv_starts[i]*2,i);
     }
+    MPI_Barrier(MPI_COMM_WORLD);
     CPUTimer_t mpi_end = CPUTimer();
 
     gpu_time += HACCGPM::parallel::insertParticles(mem.d_pos,mem.d_vel,recieved,total_recieved,params.n_particles,params.blockSize,params.world_rank,calls+1);
@@ -276,6 +286,7 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
     TRANSFER_TIME += total_time;
     TRANSFER_GPU_TIME += gpu_time;
     TRANSFER_MPI_TIME += mpi_end - mpi_start;
+    TRANSFER_BYTES += bytes;
 
 
     #ifdef VerboseTransfer
@@ -346,34 +357,16 @@ void HACCGPM::parallel::printTransferBytes(int world_rank){
 
 void HACCGPM::parallel::printTransferTimes(int world_rank){
     MPI_Barrier(MPI_COMM_WORLD);
-    CPUTimer_t total_min,total_max,total_mean,gpu_min,gpu_max,gpu_mean,mpi_min,mpi_max,mpi_mean;
-    total_min = 0;
-    total_max = 0;
-    total_mean = 0;
-    gpu_min = 0;
-    gpu_max = 0;
-    gpu_mean = 0;
-    mpi_min = 0;
-    mpi_max = 0;
-    mpi_mean = 0;
-    if (TRANSFER_CALLS == 0){
-        if (world_rank != 0)return;
-        printf("   transferParticles     -> calls: %d\n",TRANSFER_CALLS);
-        printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
-        printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",(total_mean-gpu_mean) - mpi_mean,(total_max - gpu_max) - mpi_max, (total_min - gpu_min) - mpi_min);
-        printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);
-        printf("                                 mpi: %10llu us mean | %10llu us max  | %10llu us min  |\n",mpi_mean,mpi_max,mpi_min);
-        printf("                                 avg: %10d us mean | %10d us max  | %10d us min  |\n",0,0,0);
-        return;
-    }
+    CPUTimer_t total_min,total_max,total_mean,gpu_min,gpu_max,gpu_mean,mpi_min,mpi_max,mpi_mean,cpu_min,cpu_max,cpu_mean;
     HACCGPM::parallel::timing_stats(TRANSFER_TIME,&total_min,&total_max,&total_mean);
     HACCGPM::parallel::timing_stats(TRANSFER_GPU_TIME,&gpu_min,&gpu_max,&gpu_mean);
     HACCGPM::parallel::timing_stats(TRANSFER_MPI_TIME,&mpi_min,&mpi_max,&mpi_mean);
+    HACCGPM::parallel::timing_stats(TRANSFER_TIME - (TRANSFER_GPU_TIME + TRANSFER_MPI_TIME),&cpu_min,&cpu_max,&cpu_mean);
     if (world_rank != 0)return;
     printf("   transferParticles     -> calls: %d\n",TRANSFER_CALLS);
     printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
-    printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",(total_mean-gpu_mean) - mpi_mean,(total_max - gpu_max) - mpi_max, (total_min - gpu_min) - mpi_min);
+    printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",cpu_mean,cpu_max, cpu_mean);
     printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);
     printf("                                 mpi: %10llu us mean | %10llu us max  | %10llu us min  |\n",mpi_mean,mpi_max,mpi_min);
-    printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / TRANSFER_CALLS,total_max / TRANSFER_CALLS,total_min / TRANSFER_CALLS);
+    if(TRANSFER_CALLS != 0)printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / TRANSFER_CALLS,total_max / TRANSFER_CALLS,total_min / TRANSFER_CALLS);
 }

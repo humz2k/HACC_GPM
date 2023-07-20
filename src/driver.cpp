@@ -28,19 +28,6 @@ int serial(const char* params_file){
     ts.reverseHalfStep();
 
     HACCGPM::CosmoClass cosmo(params);
-    /*double* i_pk;
-    int nbins;
-    double k_delta;
-    double k_max;
-    double k_min;
-    cosmo.read_ipk(&i_pk,&nbins,&k_delta,&k_max,&k_min);
-    free(i_pk);*/
-
-    //float _delta,_dotDelta;
-    //cosmo.get_delta_and_dotDelta(200,200,&_delta,&_dotDelta);
-    //cosmo.GrowthFactor(200,&_delta,&_dotDelta);
-    //printf("DELTA %f DOTDELTA %f\n",_delta,_dotDelta);
-    //return 0;
 
     #ifndef NOPYTHON
     init_python(0,0);
@@ -52,7 +39,7 @@ int serial(const char* params_file){
 
     CPUTimer_t start_init = CPUTimer();
 
-    HACCGPM::serial::GenerateDisplacementIC(params_file,&mem,cosmo,params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize);
+    HACCGPM::serial::GenerateDisplacementIC(params_file,mem,cosmo,params,ts);
     
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
@@ -67,7 +54,6 @@ int serial(const char* params_file){
         pytools.loadPyCosmoNotPython();
         pytools.import(params.analysis_py);
         pytools.initialize();
-        //import_analysis_module(params.analysis_dir,params.analysis_py);
     }
     #endif
     
@@ -76,8 +62,6 @@ int serial(const char* params_file){
     char stepstr[400];
     sprintf(stepstr, "%s.pk.ini", params.prefix);
     HACCGPM::serial::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,221,stepstr,params.pkFolds,params.blockSize);
-
-    //return 0;
 
     if (params.dump_init){
         sprintf(stepstr, "%s.particles.ini", params.prefix);
@@ -135,10 +119,6 @@ int serial(const char* params_file){
                 free(vels);
                 pytools.analysisStep(combined,params.ng*params.ng*params.ng,7,step,ts.aa,ts.z);
                 free(combined);
-                //call_analysis(step,ts.z,ts.aa,particles,params.ng*params.ng*params.ng,params.ng,params.rl);
-                //free(particles);
-                //printf("   Done Python Analysis Step\n");
-                //cudaCall(cudaDeviceSynchronize);
             }
         }
         #endif
@@ -155,7 +135,6 @@ int serial(const char* params_file){
     #ifndef NOPYTHON
     if (params.do_analysis){
         pytools.freePython();
-        //finalize_python(0);
     }
     #endif
 
@@ -204,7 +183,7 @@ int parallel(const char* params_file){
     
     CPUTimer_t start_init = CPUTimer();
 
-    HACCGPM::parallel::GenerateDisplacementIC(params_file,&mem, cosmo, params.ng,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.seed,params.blockSize,params.world_rank,params.world_size,params.nlocal,params.local_grid_size,params.grid_coords,params.grid_dims);
+    HACCGPM::parallel::GenerateDisplacementIC(params_file, mem, cosmo, params, ts);
     MPI_Barrier(MPI_COMM_WORLD);
     HACCGPM::parallel::TransferParticles(params,mem);
     //HACCGPM::parallel::TransferParticles(params,mem);
@@ -217,8 +196,12 @@ int parallel(const char* params_file){
 
     HACCGPM::parallel::UpdatePositions(mem.d_pos,mem.d_vel,ts,0.5,params.ng,params.n_particles,params.blockSize,params.world_rank);
 
-    HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk1.pk",0,params.blockSize,params.world_rank,params.world_size);
+    
+    
+    //HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk1.pk",0,params.blockSize,params.world_rank,params.world_size);
 
+    
+    
     CPUTimer_t end = CPUTimer();
 
     CPUTimer_t init_mean, init_max, init_min;

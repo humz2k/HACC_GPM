@@ -432,14 +432,15 @@ void HACCGPM::parallel::printGridExchangeBytes(int world_rank){
 
 void HACCGPM::parallel::printGridExchangeTimes(int world_rank){
     MPI_Barrier(MPI_COMM_WORLD);
-    CPUTimer_t total_min,total_max,total_mean,gpu_min,gpu_max,gpu_mean,mpi_min,mpi_max,mpi_mean;
+    CPUTimer_t total_min,total_max,total_mean,gpu_min,gpu_max,gpu_mean,mpi_min,mpi_max,mpi_mean,cpu_min,cpu_max,cpu_mean;
     HACCGPM::parallel::timing_stats(RESOLVE_TIME,&total_min,&total_max,&total_mean);
     HACCGPM::parallel::timing_stats(RESOLVE_GPU_TIME,&gpu_min,&gpu_max,&gpu_mean);
     HACCGPM::parallel::timing_stats(RESOLVE_MPI_TIME,&mpi_min,&mpi_max,&mpi_mean);
+    HACCGPM::parallel::timing_stats(RESOLVE_TIME - (RESOLVE_GPU_TIME + RESOLVE_MPI_TIME),&cpu_min,&cpu_max,&cpu_mean);
     if (world_rank != 0)return;
     printf("   gridExchange.resolve  -> calls: %d\n",RESOLVE_CALLS);
     printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
-    printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",(total_mean-gpu_mean) - mpi_mean,(total_max - gpu_max) - mpi_max, (total_min - gpu_min) - mpi_min);
+    printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",cpu_mean,cpu_max, cpu_min);
     printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);
     printf("                                 mpi: %10llu us mean | %10llu us max  | %10llu us min  |\n",mpi_mean,mpi_max,mpi_min);
     printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / RESOLVE_CALLS,total_max / RESOLVE_CALLS,total_min / RESOLVE_CALLS);

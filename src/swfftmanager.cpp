@@ -40,6 +40,11 @@ class FFTManager{
             params.grid_coords[0] = dist.coords[0];
             params.grid_coords[1] = dist.coords[1];
             params.grid_coords[2] = dist.coords[2];
+
+            params.local_grid_start_vec = make_int3(params.local_grid_start[0],params.local_grid_start[1],params.local_grid_start[2]);
+            params.local_grid_size_vec = make_int3(params.local_grid_size[0],params.local_grid_size[1],params.local_grid_size[2]);
+            params.grid_dims_vec = make_int3(params.grid_dims[0],params.grid_dims[1],params.grid_dims[2]);
+            params.grid_coords_vec = make_int3(params.grid_coords[0],params.grid_coords[1],params.grid_coords[2]);
             //printf("world_rank %d, world_size %d\n",params.world_rank,params.world_size);
         }
         ~FFTManager(){

@@ -12,13 +12,6 @@ cd HACC_GPM
 git submodule init
 git submodule update
 ```
-#### Building GC
-```
-cd bdwgc
-git clone https://github.com/ivmai/libatomic_ops.git
-make -f Makefile.direct check
-cd ..
-```
 #### Building HACC_GPM
 ```
 make all

@@ -14,10 +14,10 @@ git submodule update
 ```
 #### Building HACC_GPM
 ```
-make all
+make
 ```
 
-`haccgpm` needs `python3` with `camb` and `numpy` installed. To link to a specific version of python, build with `make main PY_LIB=-lpython3.xx[m]`.
+`haccgpm` needs `python3` with `camb` and `numpy` installed. To link to a specific version of python, build with `make PY_LIB=-lpython3.xx[m]`.
 
 To build without python, use `make nopython`.
 

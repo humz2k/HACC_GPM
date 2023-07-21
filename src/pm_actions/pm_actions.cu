@@ -16,14 +16,18 @@ CPUTimer_t UPDATE_VEL_TIME = 0;
 CPUTimer_t UPDATE_VEL_KERNEL_TIME = 0;
 int UPDATE_VEL_CALLS = 0;
 
+void HACCGPM::parallel::CIC(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager&mem, int calls){
+    HACCGPM::parallel::CIC(mem.d_grid,mem.d_tempgrid,mem.d_pos,params.ng,params.n_particles,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec,params.blockSize,params.world_rank,params.world_size,params.overload,calls);
+}
+
 void HACCGPM::parallel::CIC(deviceFFT_t* d_grid, 
                                     float* d_tempgrid, 
                                     float4* d_pos, 
                                     int ng, 
                                     int n_particles, 
-                                    int* local_grid_size_,
-                                    int* local_coords_,
-                                    int* dims_,
+                                    int3 local_grid_size,
+                                    int3 local_coords,
+                                    int3 dims,
                                     int blockSize, 
                                     int world_rank, 
                                     int world_size, 
@@ -31,9 +35,9 @@ void HACCGPM::parallel::CIC(deviceFFT_t* d_grid,
                                     int calls){
     CPUTimer_t start = CPUTimer();
     int numBlocks = (n_particles + (blockSize - 1))/blockSize;
-    int3 local_grid_size = make_int3(local_grid_size_[0],local_grid_size_[1],local_grid_size_[2]);
-    int3 local_coords = make_int3(local_coords_[0],local_coords_[1],local_coords_[2]);
-    int3 dims = make_int3(dims_[0],dims_[1],dims_[2]);
+    //int3 local_grid_size = make_int3(local_grid_size_[0],local_grid_size_[1],local_grid_size_[2]);
+    //int3 local_coords = make_int3(local_coords_[0],local_coords_[1],local_coords_[2]);
+    //int3 dims = make_int3(dims_[0],dims_[1],dims_[2]);
     getIndent(calls);
     #ifdef VerboseUpdate
     if (world_rank == 0)printf("%sCIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
@@ -58,6 +62,10 @@ void HACCGPM::parallel::CIC(deviceFFT_t* d_grid,
     if (world_rank == 0)printf("%s   CIC took %llu us\n",indent,t);
     CIC_TIME += t;
     CIC_CALLS += 1;
+}
+
+void HACCGPM::parallel::UpdatePositions(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, HACCGPM::Timestepper ts, float frac, int calls){
+    HACCGPM::parallel::UpdatePositions(mem.d_pos,mem.d_vel,ts,frac,params.ng,params.n_particles,params.blockSize,params.world_rank,calls);
 }
 
 void HACCGPM::parallel::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int n_particles, int blockSize, int world_rank, int calls){

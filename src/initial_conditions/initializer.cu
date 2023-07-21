@@ -11,7 +11,7 @@
 
 //#define NOPYTHON
 
-void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, deviceFFT_t* d_grid1, double z, int calls){
+void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, deviceFFT_t* d_grid1, double z, int calls){
     int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
 
     getIndent(calls);
@@ -81,7 +81,7 @@ void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cos
     #ifdef VerboseInitializer
     printf("%s   Getting Pk from Camb...\n",indent);
     #endif
-    get_pk(params_file,h_tmp,z,params.ng,params.rl,calls+1);
+    get_pk(params.fname,h_tmp,z,params.ng,params.rl,calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Got Pk from Camb.\n",indent);
@@ -116,16 +116,16 @@ void GenerateFourierAmplitudes(const char* params_file, HACCGPM::CosmoClass& cos
     #endif
 }
 
-void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls){
+void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls){
     int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
     getIndent(calls);
 
     #ifdef VerboseInitializer
-    printf("%sGenerateDisplacementIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   params %s\n",indent,indent,params.blockSize,indent,numBlocks,indent,params_file);
+    printf("%sGenerateDisplacementIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   params %s\n",indent,indent,params.blockSize,indent,numBlocks,indent,params.fname);
     printf("%s   Calling GenerateFourierAmplitudes...\n",indent);
     #endif
 
-    GenerateFourierAmplitudes(params_file, cosmo, params, mem.d_grid, params.z_ini, calls+1);
+    GenerateFourierAmplitudes(cosmo, params, mem.d_grid, params.z_ini, calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Called GenerateFourierAmplitudes.\n",indent);
@@ -194,7 +194,7 @@ void HACCGPM::serial::GenerateDisplacementIC(const char* params_file, HACCGPM::s
 }
 
 
-void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, deviceFFT_t* d_grid, double z, int calls){
+void GenerateFourierAmplitudesParallel(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, deviceFFT_t* d_grid, double z, int calls){
     int numBlocks = (params.nlocal + (params.blockSize - 1))/params.blockSize;
 
     /*int3 local_grid_size_vec = make_int3(params.local_grid_size[0],params.local_grid_size[1],params.local_grid_size[2]);
@@ -267,7 +267,7 @@ void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoCl
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s   Getting Pk from Camb...\n",indent);
     #endif
-    get_pk_parallel(params_file,h_tmp,z,params.ng,params.rl,params.nlocal,params.world_rank,calls+1);
+    get_pk_parallel(params.fname,h_tmp,z,params.ng,params.rl,params.nlocal,params.world_rank,calls+1);
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Got Pk from Camb.\n",indent);
     #endif
@@ -303,7 +303,7 @@ void GenerateFourierAmplitudesParallel(const char* params_file, HACCGPM::CosmoCl
     #endif
 }
 
-void HACCGPM::parallel::GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls){
+void HACCGPM::parallel::GenerateDisplacementIC(HACCGPM::parallel::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls){
 
     int world_rank = params.world_rank;
 
@@ -312,11 +312,11 @@ void HACCGPM::parallel::GenerateDisplacementIC(const char* params_file, HACCGPM:
 
 
     #ifdef VerboseInitializer
-    if (params.world_rank == 0)printf("%sGenerateDisplacementIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   params %s\n",indent,indent,params.blockSize,indent,numBlocks,indent,params_file);
+    if (params.world_rank == 0)printf("%sGenerateDisplacementIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   params %s\n",indent,indent,params.blockSize,indent,numBlocks,indent,params.fname);
     if (params.world_rank == 0)printf("%s   Calling GenerateFourierAmplitudesParallel...\n",indent);
     #endif
 
-    GenerateFourierAmplitudesParallel(params_file, cosmo, params, mem.d_grid, params.z_ini, calls+1);
+    GenerateFourierAmplitudesParallel(cosmo, params, mem.d_grid, params.z_ini, calls+1);
 
     #ifdef VerboseInitializer
     if (params.world_rank == 0)printf("%s      Called GenerateFourierAmplitudes.\n",indent);

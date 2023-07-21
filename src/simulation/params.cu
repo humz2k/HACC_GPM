@@ -14,7 +14,7 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
     char tempbuff[400];
 
     HACCGPM::Params out;
-
+    strcpy(out.fname,fname);
     out.do_analysis = false;
     out.frac = 1.5;
     out.world_rank = 0;

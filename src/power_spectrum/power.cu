@@ -73,7 +73,7 @@ void HACCGPM::parallel::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::paral
     if(params.world_rank == 0)printf("%s   Calling CIC\n",indent);
     #endif
 
-    HACCGPM::parallel::CIC(mem.d_grid,mem.d_tempgrid,mem.d_pos,params.ng,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.blockSize,params.world_rank, params.world_size,params.overload,calls+1);
+    HACCGPM::parallel::CIC(mem.d_grid,mem.d_tempgrid,mem.d_pos,params.ng,params.n_particles,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec,params.blockSize,params.world_rank, params.world_size,params.overload,calls+1);
 
     #ifdef VerbosePower
     if(params.world_rank == 0)printf("%s      Called CIC\n",indent);

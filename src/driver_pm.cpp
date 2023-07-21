@@ -38,7 +38,7 @@ int serial(const char* params_file){
 
     CPUTimer_t start_init = CPUTimer();
 
-    HACCGPM::serial::GenerateDisplacementIC(params_file,mem,cosmo,params,ts);
+    HACCGPM::serial::GenerateDisplacementIC(mem,cosmo,params,ts);
     
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
@@ -183,25 +183,25 @@ int parallel(const char* params_file){
     
     CPUTimer_t start_init = CPUTimer();
 
-    HACCGPM::parallel::GenerateDisplacementIC(params_file, mem, cosmo, params, ts);
+    HACCGPM::parallel::GenerateDisplacementIC(mem, cosmo, params, ts);
     MPI_Barrier(MPI_COMM_WORLD);
     HACCGPM::parallel::TransferParticles(params,mem);
     //HACCGPM::parallel::TransferParticles(params,mem);
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
 
-    HACCGPM::parallel::InitGreens(mem,params);
+    HACCGPM::parallel::InitGreens(params,mem);
 
     HACCGPM::parallel::GetPowerSpectrum(params,mem,221,"testpk.pk");
 
-    HACCGPM::parallel::UpdatePositions(mem.d_pos,mem.d_vel,ts,0.5,params.ng,params.n_particles,params.blockSize,params.world_rank);
+    HACCGPM::parallel::UpdatePositions(params,mem,ts,0.5);
 
-    
+    HACCGPM::parallel::CIC(params,mem);
+
+    HACCGPM::parallel::GetPowerSpectrum(params,mem,221,"testpk1.pk");
     
     //HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk1.pk",0,params.blockSize,params.world_rank,params.world_size);
 
-    
-    
     CPUTimer_t end = CPUTimer();
 
     CPUTimer_t init_mean, init_max, init_min;

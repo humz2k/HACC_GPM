@@ -73,7 +73,7 @@ void HACCGPM::serial::InitGreens(HACCGPM::Params& params, HACCGPM::serial::Memor
 
 }
 
-void HACCGPM::parallel::InitGreens(HACCGPM::parallel::MemoryManager& mem, HACCGPM::Params& params, int calls){
+void HACCGPM::parallel::InitGreens(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, int calls){
 
     int world_rank = params.world_rank;
     int numBlocks = (params.nlocal + (params.blockSize - 1))/params.blockSize;

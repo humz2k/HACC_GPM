@@ -58,6 +58,7 @@ __forceinline__ __host__ __device__ float3 operator*(int3 a, float s)
 namespace HACCGPM{
 
     struct Params{
+        char fname[300];
         int ng;
         double rl;
         int blockSize;
@@ -277,15 +278,19 @@ namespace HACCGPM{
         void TransferParticles(HACCGPM::Params& params,HACCGPM::parallel::MemoryManager& mem, int calls = 0);
         CPUTimer_t insertParticles(float4* d_pos, float4* d_vel, float4* h_swap, int n_new, int n_particles, int blockSize, int world_rank, int calls = 0);
 
-        void GenerateDisplacementIC(const char* params_file, HACCGPM::parallel::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls = 0);
-    
-        void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int* local_grid_size_, int* local_coords_, int* dims_, int blockSize, int world_rank, int world_size, int overload, int calls = 0);
+        void GenerateDisplacementIC(HACCGPM::parallel::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls = 0);
+
+        void CIC(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager&mem, int calls = 0);
+
+        void CIC(deviceFFT_t* d_grid, float* d_extragrid, float4* d_pos, int ng, int n_particles, int3 local_grid_size, int3 local_coords, int3 dims, int blockSize, int world_rank, int world_size, int overload, int calls = 0);
 
         void GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, int nbins, const char* fname, int calls = 0);
 
         void sendPower(int* binCounts, double* binVals, int nbins, int world_rank, int world_size, int calls = 0);
 
-        void InitGreens(HACCGPM::parallel::MemoryManager& mem, HACCGPM::Params& params, int calls = 0);
+        void InitGreens(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, int calls = 0);
+
+        void UpdatePositions(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, HACCGPM::Timestepper ts, float frac, int calls = 0);
 
         void UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int n_particles, int blockSize, int world_rank, int calls = 0);
 
@@ -348,7 +353,7 @@ namespace HACCGPM{
 
         void GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int nbins, const char* fname, int calls = 0);
 
-        void GenerateDisplacementIC(const char* params_file, HACCGPM::serial::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls = 0);
+        void GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls = 0);
 
         void Solve(deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls = 0);
 

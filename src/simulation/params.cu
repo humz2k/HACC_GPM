@@ -109,12 +109,17 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
                         token = strtok(NULL, ",");
                     }
                 } else if (strcmp(parameter,"PARTICLE_DUMP") == 0){
+                    if (strcmp(value,"all") == 0){
+                        for (int i = 0; i < MAX_STEPS; i++){
+                            out.dumps[i] = true;
+                        }
+                    } else{
                     char* token = strtok(value, ",");
                     while (token != NULL) {
                         int val = atoi(token);
                         out.dumps[val] = true;
                         token = strtok(NULL, ",");
-                    }
+                    }}
                 } else if (strcmp(parameter,"ANALYSIS_STEPS") == 0){
                     //printf("ANALYSIS: %s\n",value);
                     if (strcmp(value,"all") == 0){

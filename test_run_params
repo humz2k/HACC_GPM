@@ -32,7 +32,7 @@ ANALYSIS_PY /home/hqureshi/HACC_GPM/example_analysis/basic
 #DUMP_INIT
 #DUMP_FINAL
 
-#PARTICLE_DUMP 1,3
+#PARTICLE_DUMP all
 
 OL 1.0
 

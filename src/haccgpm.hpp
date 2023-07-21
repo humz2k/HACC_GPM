@@ -247,6 +247,8 @@ namespace HACCGPM{
                 GridExchange(int3 local_coords_, int3 local_grid_size_, int3 dims_, int ng_, int world_size_, int world_rank_, int overload_, int blockSize_);
 
                 void resolve(float* grid, int calls = 0);
+
+                void fill(float4* grad, int calls = 0);
         };
 
         __device__ __forceinline__ int3 get_local_index(int idx, int nx, int ny, int nz){
@@ -293,6 +295,10 @@ namespace HACCGPM{
         void UpdatePositions(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, HACCGPM::Timestepper ts, float frac, int calls = 0);
 
         void UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int n_particles, int blockSize, int world_rank, int calls = 0);
+
+        void SolveGradient(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, int calls = 0);
+
+        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int n_particles, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int world_size, int overload, int blockSize, int calls = 0);
 
         void printTransferTimes(int world_rank);
         void printCICTimes(int world_rank);

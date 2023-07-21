@@ -27,6 +27,116 @@ HACCGPM::parallel::GridExchange::GridExchange(int3 local_coords_, int3 local_gri
 
 #define VerboseResolve
 
+template<class ThisDim>
+void do_return(float4* grad, int left_rank, int right_rank, int size, int3 local_grid_size, int3 local_coords, int3 total_grid_dims, int overload, int world_rank, size_t* bytes, CPUTimer_t* mpi_time, int blockSize, int calls){
+
+    getIndent(calls);
+
+    //size = total_grid_dims.x * overload * local_grid_size.z;
+    float4* left_x_sends = (float4*)malloc(sizeof(float4)*size);
+    float4* left_x_recvs = (float4*)malloc(sizeof(float4)*size);
+
+    float4* right_x_sends = (float4*)malloc(sizeof(float4)*size);
+    float4* right_x_recvs = (float4*)malloc(sizeof(float4)*size);
+
+    ThisDim this_dim;
+
+    this_dim.load(left_x_sends,right_x_sends,grad,local_grid_size,total_grid_dims,overload,size,blockSize,world_rank,calls);
+
+    if(world_rank == 0)printf("%sSending...\n",indent);
+
+    CPUTimer_t mpi_start = CPUTimer();
+
+    {
+    MPI_Request req;
+    MPI_Isend(left_x_sends,size*4,MPI_FLOAT,left_rank,0,MPI_COMM_WORLD,&req);
+    MPI_Request_free(&req);
+    }
+
+    {
+    MPI_Request req;
+    MPI_Isend(right_x_sends,size*4,MPI_FLOAT,right_rank,0,MPI_COMM_WORLD,&req);
+    MPI_Request_free(&req);
+    }
+
+    *bytes += 2*size*sizeof(float4);
+
+    if(world_rank == 0)printf("%s   Sent %lu bytes\n",indent,2*size*sizeof(float4));
+    if(world_rank == 0)printf("%sRecieving...\n",indent);
+
+    MPI_Recv(left_x_recvs,size*4,MPI_FLOAT,right_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+
+    MPI_Recv(right_x_recvs,size*4,MPI_FLOAT,left_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+
+    if(world_rank == 0)printf("%s   Recieved %lu bytes\n",indent,2*size*sizeof(float4));
+
+    CPUTimer_t mpi_end = CPUTimer();
+    *mpi_time += mpi_end - mpi_start;
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    free(left_x_sends);
+    free(right_x_sends);
+
+    this_dim.store(left_x_recvs,right_x_recvs,grad,local_grid_size,total_grid_dims,overload,size,blockSize,world_rank,calls);
+
+    free(left_x_recvs);
+    free(right_x_recvs);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void HACCGPM::parallel::GridExchange::fill(float4* grad, int calls){
+    getIndent(calls);
+
+    CPUTimer_t mpi_start,mpi_end;
+    CPUTimer_t mpi_time = 0;
+    size_t bytes = 0;
+
+    #ifdef VerboseResolve
+    if(world_rank == 0)printf("%sDoing Grid Exchange Fill (called GridExchange.fill)\n",indent);
+    #endif
+
+    int3 total_grid_dims = make_int3(local_grid_size.x + 2*overload,local_grid_size.y + 2*overload,local_grid_size.z + 2*overload);
+    int total_grid_size = total_grid_dims.x*total_grid_dims.y*total_grid_dims.z;
+
+    #ifdef VerboseResolve
+    if(world_rank == 0)printf("%s   Overload Dimensions: [%d %d %d]\n",indent,total_grid_dims.x,total_grid_dims.y,total_grid_dims.z);
+    #endif
+    int size, left_rank, right_rank;
+    int3 left_coords, right_coords;
+
+    size = overload * local_grid_size.y * local_grid_size.z;
+
+    left_coords = make_int3((local_coords.x-1 + dims.x)%dims.x,local_coords.y,local_coords.z);
+    left_rank = left_coords.x * dims.y * dims.z + left_coords.y * dims.z + left_coords.z;
+
+    right_coords = make_int3((local_coords.x+1 + dims.x)%dims.x,local_coords.y,local_coords.z);
+    right_rank = right_coords.x * dims.y * dims.z + right_coords.y * dims.z + right_coords.z;
+    do_return<XReturn>(grad,left_rank,right_rank,size,local_grid_size,local_coords,total_grid_dims,overload,world_rank,&bytes,&mpi_time,blockSize,calls+1);
+
+
+    size = total_grid_dims.x * overload * local_grid_size.z;
+
+    left_coords = make_int3(local_coords.x,(local_coords.y-1 + dims.y)%dims.y,local_coords.z);
+    left_rank = left_coords.x * dims.y * dims.z + left_coords.y * dims.z + left_coords.z;
+
+    right_coords = make_int3(local_coords.x,(local_coords.y+1 + dims.y)%dims.y,local_coords.z);
+    right_rank = right_coords.x * dims.y * dims.z + right_coords.y * dims.z + right_coords.z;
+    do_return<YReturn>(grad,left_rank,right_rank,size,local_grid_size,local_coords,total_grid_dims,overload,world_rank,&bytes,&mpi_time,blockSize,calls+1);
+
+
+    size = total_grid_dims.x * total_grid_dims.y * overload;
+
+    left_coords = make_int3(local_coords.x,local_coords.y,(local_coords.z-1 + dims.z)%dims.z);
+    left_rank = left_coords.x * dims.y * dims.z + left_coords.y * dims.z + left_coords.z;
+
+    right_coords = make_int3(local_coords.x,local_coords.y,(local_coords.z+1 + dims.z)%dims.z);
+    right_rank = right_coords.x * dims.y * dims.z + right_coords.y * dims.z + right_coords.z;
+    do_return<ZReturn>(grad,left_rank,right_rank,size,local_grid_size,local_coords,total_grid_dims,overload,world_rank,&bytes,&mpi_time,blockSize,calls+1);
+
+}
+
 void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
     getIndent(calls);
 

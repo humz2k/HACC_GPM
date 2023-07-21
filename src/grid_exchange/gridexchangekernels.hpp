@@ -22,3 +22,24 @@ CPUTimer_t storeZLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload
 CPUTimer_t loadZRight(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls);
 
 CPUTimer_t storeZRight(float* h_out, float* d_in, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls);
+
+class XReturn{
+    public:
+        CPUTimer_t load(float4* h_left, float4* h_right, float4* d_in, int3 local_grid_size, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls);
+
+        CPUTimer_t store(float4* h_left, float4* h_right, float4* d_in, int3 local_grid_size, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls);
+};
+
+class YReturn{
+    public:
+        CPUTimer_t load(float4* h_left, float4* h_right, float4* d_in, int3 local_grid_size, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls);
+
+        CPUTimer_t store(float4* h_left, float4* h_right, float4* d_in, int3 local_grid_size, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls);
+};
+
+class ZReturn{
+    public:
+        CPUTimer_t load(float4* h_left, float4* h_right, float4* d_in, int3 local_grid_size, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls);
+
+        CPUTimer_t store(float4* h_left, float4* h_right, float4* d_in, int3 local_grid_size, int3 ol_grid_size, int overload, int size, int blockSize, int world_rank, int calls);
+};

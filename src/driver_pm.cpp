@@ -198,6 +198,8 @@ int parallel(const char* params_file){
 
     HACCGPM::parallel::CIC(params,mem);
 
+    HACCGPM::parallel::SolveGradient(params,mem);
+
     HACCGPM::parallel::GetPowerSpectrum(params,mem,221,"testpk1.pk");
     
     //HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk1.pk",0,params.blockSize,params.world_rank,params.world_size);

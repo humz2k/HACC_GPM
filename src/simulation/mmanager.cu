@@ -57,8 +57,8 @@ HACCGPM::parallel::MemoryManager::MemoryManager(HACCGPM::Params params){
     //cudaCall(cudaMalloc,&d_grid2,sizeof(deviceFFT_t)*params.nlocal);
     //if (params.world_rank == 0)printf("   Allocated d_grid: %lu bytes.\n",sizeof(deviceFFT_t)*params.nlocal);
 
-    cudaCall(cudaMalloc,&d_grad,sizeof(float4)*mem_frac);
-    if (params.world_rank == 0)printf("   Allocated d_grad: %lu bytes.\n",sizeof(float4)*mem_frac);
+    cudaCall(cudaMalloc,&d_grad,sizeof(float4)*extra_grid_size);
+    if (params.world_rank == 0)printf("   Allocated d_grad: %lu bytes.\n",sizeof(float4)*extra_grid_size);
 }
 
 HACCGPM::parallel::MemoryManager::~MemoryManager(){

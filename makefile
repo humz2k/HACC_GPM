@@ -3,7 +3,6 @@ PY_LD_FLAGS := $(shell python3-config --ldflags)
 PY_NP_FLAGS := $(shell python3 -c "import numpy as np;print(np.get_include())")
 
 SWFFT_DIR := swfft-all-to-all
-BDWGC_DIR := bdwgc
 PYCOSMO_DIR := pycosmotools
 
 HACCGPM_BUILD_DIR ?= build
@@ -16,7 +15,7 @@ CUDA_ARCH_FLAGS ?= -arch=sm_60 -gencode=arch=compute_60,code=sm_60 -gencode=arch
 
 PY_LIB ?= -lpython3.9
 
-HACCGPM_INCLUDE ?= -Isrc -Ibdwgc/include
+HACCGPM_INCLUDE ?= -Isrc -Ipycosmotools/include
 
 include src/*/*.include
 

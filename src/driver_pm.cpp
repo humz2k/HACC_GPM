@@ -7,7 +7,7 @@
 #include <mpi.h>
 #include "../swfft-all-to-all/include/swfft.hpp"
 #include "../cambTools/ccamb.h"
-#include "../pycosmotools/include/pycosmotools.hpp"
+//#include "../pycosmotools/include/pycosmotools.hpp"
 
 //#define NOPYTHON
 
@@ -56,7 +56,7 @@ int serial(const char* params_file){
     }
     #endif
     
-    HACCGPM::serial::InitGreens(mem,params);
+    HACCGPM::serial::InitGreens(params,mem);
 
     char stepstr[400];
     sprintf(stepstr, "%s.pk.ini", params.prefix);
@@ -73,18 +73,20 @@ int serial(const char* params_file){
 
         printf("\n=========\nSTEP %d\n",step);
 
-        HACCGPM::serial::UpdatePositions(mem.d_pos,mem.d_vel,ts,0.5,params.ng,params.blockSize);
+        //HACCGPM::serial::UpdatePositions(mem.d_pos,mem.d_vel,ts,0.5,params.ng,params.blockSize);
 
-        HACCGPM::serial::CIC(mem.d_grid,mem.d_tempgrid,mem.d_pos,params.ng,params.blockSize);
-        HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,params.ng,params.blockSize);
+        HACCGPM::serial::UpdatePositions(params,mem,ts,0.5);
 
-        ts.advanceHalfStep();
-
-        HACCGPM::serial::UpdateVelocities(mem.d_vel,mem.d_grad,mem.d_pos,ts,params.ng,params.blockSize);
+        HACCGPM::serial::CIC(params,mem);
+        HACCGPM::serial::SolveGradient(params,mem);
 
         ts.advanceHalfStep();
 
-        HACCGPM::serial::UpdatePositions(mem.d_pos,mem.d_vel,ts,0.5,params.ng,params.blockSize);
+        HACCGPM::serial::UpdateVelocities(params,mem,ts);
+
+        ts.advanceHalfStep();
+
+        HACCGPM::serial::UpdatePositions(params,mem,ts,0.5);
 
         if (params.pks[step]){
             sprintf(stepstr, "%s.pk.%d", params.prefix,step);
@@ -93,11 +95,12 @@ int serial(const char* params_file){
 
         if (params.dumps[step]){
             sprintf(stepstr, "%s.particles.%d", params.prefix,step);
-            HACCGPM::serial::writeOutput(stepstr,mem.d_pos,mem.d_vel,params.ng);
+            HACCGPM::serial::writeOutput(params,mem,stepstr);
         }
 
         #ifndef NOPYTHON
-        if (params.do_analysis){
+        HACCGPM::serial::PyAnalysis(params,mem,ts,pytools,step);
+        /*if (params.do_analysis){
             if (params.analysis[step]){
                 printf("Doing Python Analysis Step\n");
                 float4* particles = (float4*)malloc(sizeof(float4)*params.ng*params.ng*params.ng);
@@ -119,7 +122,7 @@ int serial(const char* params_file){
                 pytools.analysisStep(combined,params.ng*params.ng*params.ng,7,step,ts.aa,ts.z);
                 free(combined);
             }
-        }
+        }*/
         #endif
     }
 
@@ -128,7 +131,7 @@ int serial(const char* params_file){
 
     if(params.dump_final){
         sprintf(stepstr, "%s.particles.fin", params.prefix);
-        HACCGPM::serial::writeOutput(stepstr,mem.d_pos,mem.d_vel,params.ng);
+        HACCGPM::serial::writeOutput(params,mem,stepstr);
     }
 
     #ifndef NOPYTHON

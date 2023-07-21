@@ -93,6 +93,10 @@ void HACCGPM::serial::Solve(deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int
     #endif
 }
 
+void HACCGPM::serial::SolveGradient(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls){
+    HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,params.ng,params.blockSize,calls);
+}
+
 void HACCGPM::serial::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls){
     int numBlocks = (ng*ng*ng)/blockSize;
 

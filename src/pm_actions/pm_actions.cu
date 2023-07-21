@@ -91,6 +91,10 @@ void HACCGPM::parallel::printCICTimes(int world_rank){
     printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / CIC_CALLS,total_max / CIC_CALLS,total_min / CIC_CALLS);
 }
 
+void HACCGPM::serial::CIC(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls){
+    HACCGPM::serial::CIC(mem.d_grid,mem.d_tempgrid,mem.d_pos,params.ng,params.blockSize,calls);
+}
+
 void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls){
     CPUTimer_t start = CPUTimer();
     int numBlocks = (ng*ng*ng)/blockSize;
@@ -108,6 +112,10 @@ void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int
     CIC_CALLS += 1;
 }
 
+void HACCGPM::serial::UpdateVelocities(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper ts, int calls){
+    HACCGPM::serial::UpdateVelocities(mem.d_vel,mem.d_grad,mem.d_pos,ts,params.ng,params.blockSize,calls);
+}
+
 void HACCGPM::serial::UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls){
     CPUTimer_t start = CPUTimer();
     int numBlocks = (ng*ng*ng)/blockSize;
@@ -121,6 +129,10 @@ void HACCGPM::serial::UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_
     printf("%s   UpdateVelocities took %llu us\n",indent,t);
     UPDATE_VEL_TIME += t;
     UPDATE_VEL_CALLS += 1;
+}
+
+void HACCGPM::serial::UpdatePositions(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper ts, float frac, int calls){
+    HACCGPM::serial::UpdatePositions(mem.d_pos,mem.d_vel,ts,frac,params.ng,params.blockSize,calls);
 }
 
 void HACCGPM::serial::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int blockSize, int calls){

@@ -5,6 +5,10 @@
 CPUTimer_t OUTPUT_TIME = 0;
 int OUTPUT_CALLS = 0;
 
+void HACCGPM::serial::writeOutput(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, char* fname, int calls){
+    HACCGPM::serial::writeOutput(fname,mem.d_pos,mem.d_vel,params.ng,calls);
+}
+
 void HACCGPM::serial::writeOutput(char* fname, float4* d_pos, float4* d_vel, int ng, int calls){
 
     getIndent(calls);

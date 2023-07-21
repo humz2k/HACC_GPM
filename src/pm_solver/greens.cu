@@ -54,7 +54,7 @@ __global__ void getGreensParallel(hostFFT_t* __restrict d_greens, int ng, int3 l
 
 }
 
-void HACCGPM::serial::InitGreens(HACCGPM::serial::MemoryManager& mem, HACCGPM::Params& params, int calls){
+void HACCGPM::serial::InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls){
 
     int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
 

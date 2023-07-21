@@ -4,6 +4,11 @@
 #include <time.h>
 #include <sys/time.h>
 #include <cstring>
+
+#ifndef NOPYTHON
+#include "pycosmotools.hpp"
+#endif
+
 #define USECPSEC 1000000ULL
 
 #define STRINGIFY(x) #x
@@ -319,15 +324,23 @@ namespace HACCGPM{
             return out;
         }
 
+        void UpdatePositions(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper ts, float frac, int calls = 0);
+
         void UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int blockSize, int calls = 0);
+
+        void UpdateVelocities(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper ts, int calls = 0);
 
         void UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls = 0);
 
         void CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls = 0);
 
+        void CIC(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
+
         double get_fscal(double m_aa, double m_adot, double m_omega_cb);
 
         double get_adot(double m_aa, double m_w, double m_wa, double m_omega_cb, double m_omega_radiation, double m_f_nu_massless, double m_f_nu_massive, double m_omega_matter, double m_omega_nu);
+
+        void writeOutput(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, char* fname, int calls = 0);
 
         void writeOutput(char* fname, float4* d_pos, float4* d_vel, int ng, int calls = 0);
 
@@ -339,9 +352,11 @@ namespace HACCGPM{
 
         void Solve(deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls = 0);
 
+        void SolveGradient(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
+
         void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls = 0);
 
-        void InitGreens(HACCGPM::serial::MemoryManager& mem, HACCGPM::Params& params, int calls = 0);
+        void InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 
         void forward_fft(deviceFFT_t* data, deviceFFT_t* out, int ng, int calls = 0);
 
@@ -360,5 +375,9 @@ namespace HACCGPM{
         void printPowerTimes();
 
         void printOutputTimes();
+
+        #ifndef NOPYTHON
+        void PyAnalysis(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper& ts, PyCosmoTools& pytools, int step);
+        #endif
     }
 }

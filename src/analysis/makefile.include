@@ -1,0 +1,3 @@
+PY_ANALYSIS := $(patsubst src/analysis/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/analysis/*.cpp)) $(patsubst src/analysis/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/analysis/*.cu))
+
+HACCGPM_FILES += $(PY_ANALYSIS)

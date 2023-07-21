@@ -73,8 +73,6 @@ int serial(const char* params_file){
 
         printf("\n=========\nSTEP %d\n",step);
 
-        //HACCGPM::serial::UpdatePositions(mem.d_pos,mem.d_vel,ts,0.5,params.ng,params.blockSize);
-
         HACCGPM::serial::UpdatePositions(params,mem,ts,0.5);
 
         HACCGPM::serial::CIC(params,mem);
@@ -100,29 +98,6 @@ int serial(const char* params_file){
 
         #ifndef NOPYTHON
         HACCGPM::serial::PyAnalysis(params,mem,ts,pytools,step);
-        /*if (params.do_analysis){
-            if (params.analysis[step]){
-                printf("Doing Python Analysis Step\n");
-                float4* particles = (float4*)malloc(sizeof(float4)*params.ng*params.ng*params.ng);
-                float4* vels = (float4*)malloc(sizeof(float4)*params.ng*params.ng*params.ng);
-                cudaCall(cudaMemcpy, particles, mem.d_pos, sizeof(float4)*params.ng*params.ng*params.ng, cudaMemcpyDeviceToHost);
-                cudaCall(cudaMemcpy, vels, mem.d_vel, sizeof(float4)*params.ng*params.ng*params.ng, cudaMemcpyDeviceToHost);
-                float* combined = (float*)malloc(sizeof(float)*params.ng*params.ng*params.ng*7);
-                for (int i = 0; i < params.ng*params.ng*params.ng; i++){
-                    combined[i*7] = particles[i].w;
-                    combined[i*7 + 1] = particles[i].x;
-                    combined[i*7 + 2] = particles[i].y;
-                    combined[i*7 + 3] = particles[i].z;
-                    combined[i*7 + 4] = vels[i].x;
-                    combined[i*7 + 5] = vels[i].y;
-                    combined[i*7 + 6] = vels[i].z;
-                }
-                free(particles);
-                free(vels);
-                pytools.analysisStep(combined,params.ng*params.ng*params.ng,7,step,ts.aa,ts.z);
-                free(combined);
-            }
-        }*/
         #endif
     }
 
@@ -186,21 +161,45 @@ int parallel(const char* params_file){
     HACCGPM::parallel::GenerateDisplacementIC(mem, cosmo, params, ts);
     MPI_Barrier(MPI_COMM_WORLD);
     HACCGPM::parallel::TransferParticles(params,mem);
-    //HACCGPM::parallel::TransferParticles(params,mem);
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
 
     HACCGPM::parallel::InitGreens(params,mem);
 
-    HACCGPM::parallel::GetPowerSpectrum(params,mem,221,"testpk.pk");
+    char stepstr[400];
+    sprintf(stepstr, "%s.pk.ini", params.prefix);
+    HACCGPM::parallel::GetPowerSpectrum(params,mem,221,stepstr);
 
-    HACCGPM::parallel::UpdatePositions(params,mem,ts,0.5);
+    ts.advanceHalfStep();
 
-    HACCGPM::parallel::CIC(params,mem);
+    for (int step = 0; step < params.lastStep; step++){
 
-    HACCGPM::parallel::SolveGradient(params,mem);
+        if(params.world_rank == 0)printf("\n=========\nSTEP %d\n",step);
 
-    HACCGPM::parallel::GetPowerSpectrum(params,mem,221,"testpk1.pk");
+        HACCGPM::parallel::UpdatePositions(params,mem,ts,0.5);
+
+        HACCGPM::parallel::CIC(params,mem);
+        HACCGPM::parallel::SolveGradient(params,mem);
+
+        ts.advanceHalfStep();
+
+        HACCGPM::parallel::UpdateVelocities(params,mem,ts);
+
+        ts.advanceHalfStep();
+
+        HACCGPM::parallel::UpdatePositions(params,mem,ts,0.5);
+
+        if (params.pks[step]){
+            sprintf(stepstr, "%s.pk.%d", params.prefix,step);
+            HACCGPM::parallel::GetPowerSpectrum(params,mem,221,stepstr);
+        }
+        
+        HACCGPM::parallel::TransferParticles(params,mem);
+
+    }
+
+    sprintf(stepstr, "%s.pk.fin", params.prefix);
+    HACCGPM::parallel::GetPowerSpectrum(params,mem,221,stepstr);
     
     //HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk1.pk",0,params.blockSize,params.world_rank,params.world_size);
 

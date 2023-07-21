@@ -13,3 +13,5 @@ __global__ void CICKernel(float* __restrict grid, const float4* __restrict my_po
 __global__ void CICKernelParallel(float* __restrict d_grid, const float4* __restrict d_pos, int ng, int overload, int3 local_grid_size, int n_particles, float mass);
 
 __global__ void ICICKernel(float4* __restrict d_vel, const float4* __restrict d_grad, const float4* __restrict my_pos, double deltaT, double fscal, int ng);
+
+__global__ void ICICKernelParallel(float4* __restrict d_vel, const float4* __restrict d_grad, const float4* __restrict my_pos, double deltaT, double fscal, int overload, int3 local_grid_size, int ng, int n_particles);

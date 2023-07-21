@@ -296,6 +296,10 @@ namespace HACCGPM{
 
         void UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int n_particles, int blockSize, int world_rank, int calls = 0);
 
+        void UpdateVelocities(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, HACCGPM::Timestepper ts, int calls = 0);
+
+        void UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_pos, HACCGPM::Timestepper ts, int n_particles, int ng, int overload, int3 local_grid_size, int blockSize, int world_rank, int calls = 0);
+
         void SolveGradient(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, int calls = 0);
 
         void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int n_particles, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int world_size, int overload, int blockSize, int calls = 0);

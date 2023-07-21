@@ -84,6 +84,27 @@ void HACCGPM::parallel::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::T
     UPDATE_POS_CALLS += 1;
 }
 
+void HACCGPM::parallel::UpdateVelocities(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, HACCGPM::Timestepper ts, int calls){
+    HACCGPM::parallel::UpdateVelocities(mem.d_vel,mem.d_grad,mem.d_pos,ts,params.n_particles,params.ng,params.overload,params.local_grid_size_vec,params.blockSize,params.world_rank,calls);
+}
+
+void HACCGPM::parallel::UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_pos, HACCGPM::Timestepper ts, int n_particles, int ng, int overload, int3 local_grid_size, int blockSize, int world_rank, int calls){
+    CPUTimer_t start = CPUTimer();
+    int numBlocks = (n_particles + (blockSize - 1))/blockSize;
+    getIndent(calls);
+    #ifdef VerboseUpdate
+    if(world_rank == 0)printf("%sUpdate Velocities was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    #endif
+    UPDATE_VEL_KERNEL_TIME += InvokeGPUKernelParallel(ICICKernelParallel,numBlocks,blockSize,d_vel,d_grad,d_pos,ts.deltaT,ts.fscal,overload,local_grid_size,ng,n_particles);
+    CPUTimer_t end = CPUTimer();
+    CPUTimer_t t = end-start;
+    #ifdef VerboseUpdate
+    if(world_rank == 0)printf("%s   UpdateVelocities took %llu us\n",indent,t);
+    #endif
+    UPDATE_VEL_TIME += t;
+    UPDATE_VEL_CALLS += 1;
+}
+
 void HACCGPM::parallel::printCICTimes(int world_rank){
     //MPI_Barrier(MPI_COMM_WORLD);
     CPUTimer_t total_min,total_max,total_mean,gpu_min,gpu_max,gpu_mean;

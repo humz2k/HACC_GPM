@@ -1,2 +1,6 @@
 export DFFT_CUDA_ARCH="-arch=sm_60"
 export CUDA_ARCH_FLAGS="-arch=sm_60"
+export PY_LIB="-lpython3.9"
+export CUDA_DIR="/usr/local/cuda"
+export CUDA_LIB_DIR="/usr/local/cuda/lib64"
+export CUDA_INC_DIR="/usr/local/cuda/include"

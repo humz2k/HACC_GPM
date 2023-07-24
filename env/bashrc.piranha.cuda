@@ -1,0 +1,2 @@
+export DFFT_CUDA_ARCH="-arch=sm_60"
+export CUDA_ARCH_FLAGS="-arch=sm_60"

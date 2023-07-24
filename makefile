@@ -64,6 +64,12 @@ $(HACCGPM_BUILD_DIR)/%.o: */*/%.cpp | $(HACCGPM_BUILD_DIR)
 $(HACCGPM_BUILD_DIR)/%.o: */*/%.cu | $(HACCGPM_BUILD_DIR)
 	nvcc $< -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g,-Wall, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@ 
 
+$(HACCGPM_BUILD_DIR)/%.o: */*/*/%.cpp | $(HACCGPM_BUILD_DIR)
+	mpicxx $< -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -c -o $@ -Wall
+
+$(HACCGPM_BUILD_DIR)/%.o: */*/*/%.cu | $(HACCGPM_BUILD_DIR)
+	nvcc $< -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g,-Wall, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@ 
+
 $(HACCGPM_NOPYTHON_DIR)/%.o: */%.cpp | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
 	mpicxx $< -DNOPYTHON -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -c -o $@ -Wall
 

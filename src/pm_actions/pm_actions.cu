@@ -52,7 +52,8 @@ void HACCGPM::parallel::CIC(deviceFFT_t* d_grid,
     gexch.resolve(d_tempgrid,calls+1);
     
     numBlocks = ((local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload) + (blockSize - 1))/blockSize;
-    InvokeGPUKernelParallel(float2complex,numBlocks,blockSize,d_grid,d_tempgrid,local_grid_size,overload);
+    //InvokeGPUKernelParallel(float2complex,numBlocks,blockSize,d_grid,d_tempgrid,local_grid_size,overload);
+    CIC_KERNEL_TIME += launch_f2c(d_grid,d_tempgrid,local_grid_size,overload,world_rank,numBlocks,blockSize,calls);
 
     //deviceFFT_t* h_tempgrid = (deviceFFT_t*)malloc(sizeof(deviceFFT_t)*(local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z));
     //cudaCall(cudaMemcpy, h_tempgrid, d_grid, sizeof(deviceFFT_t)*(local_grid_size.x)*(local_grid_size.y)*(local_grid_size.z), cudaMemcpyDeviceToHost);
@@ -136,7 +137,8 @@ void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int
     //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
     //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
     CIC_KERNEL_TIME += launch_cic(d_temp,d_pos,ng,1.0f,numBlocks,blockSize,calls);
-    CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
+    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
+    CIC_KERNEL_TIME += launch_f2c(d_grid,d_temp,ng,numBlocks,blockSize,calls);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
     printf("%s   CIC (complex,float) took %llu us\n",indent,t);

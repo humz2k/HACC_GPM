@@ -1,4 +1,4 @@
-#include "pm_kernels.hpp"
+#include "../pm_kernels.hpp"
 
 __global__ void float2complex(deviceFFT_t* __restrict d_out, const float* __restrict d_in, int n){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
@@ -34,4 +34,14 @@ __global__ void float2complex(deviceFFT_t* __restrict d_out, const float* __rest
     out.y = 0;
     int outidx = idx3d.x * local_grid_size.y * local_grid_size.z + idx3d.y * local_grid_size.z + idx3d.z;
     d_out[outidx] = out;
+}
+
+CPUTimer_t launch_f2c(deviceFFT_t* d_out, float* d_in, int ng, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernel(float2complex,numBlocks,blockSize,d_out,d_in,ng*ng*ng);
+}
+
+CPUTimer_t launch_f2c(deviceFFT_t* d_out, float* d_in, int3 local_grid_size, int overload, int world_rank, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernelParallel(float2complex,numBlocks,blockSize,d_out,d_in,local_grid_size,overload);
 }

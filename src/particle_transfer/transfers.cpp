@@ -39,7 +39,8 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
     if(params.world_rank == 0)printf("%s   Loading buffers\n",indent);
     #endif
 
-    float4* swap = (float4*)malloc(sizeof(float4)*2*n_particles);
+    //float4* swap = (float4*)malloc(sizeof(float4)*2*n_particles);
+    float4* swap; HostMalloc(&swap,sizeof(float4)*2*n_particles);
 
     CPUTimer_t gpu_time = 0;
     gpu_time += HACCGPM::parallel::LoadIntoBuffers(swap,n_swaps,starts,mem.d_pos,mem.d_vel,params.nlocal,local_grid_size,grid_coords,global_grid_size,n_particles,params.ng,params.blockSize,params.world_rank,params.world_size,calls+1);
@@ -95,7 +96,8 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
         total_recieved += n_recvs[i];
     }
 
-    float4* recieved = (float4*)malloc(sizeof(float4)*2*n_particles);
+    //float4* recieved = (float4*)malloc(sizeof(float4)*2*n_particles);
+    float4* recieved; HostMalloc(&recieved,sizeof(float4)*2*n_particles);
     MPI_Barrier(MPI_COMM_WORLD);
     if(params.world_rank == 0)printf("%s   Send particles\n",indent);
     MPI_Barrier(MPI_COMM_WORLD);
@@ -123,8 +125,9 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
 
     gpu_time += HACCGPM::parallel::insertParticles(mem.d_pos,mem.d_vel,recieved,total_recieved,params.n_particles,params.blockSize,params.world_rank,calls+1);
 
-    free(swap);
-    free(recieved);
+    //free(swap);
+    HostFree(swap);
+    HostFree(recieved);
 
     CPUTimer_t end = CPUTimer();
     CPUTimer_t total_time = end-start;

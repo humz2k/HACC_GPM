@@ -2,7 +2,7 @@
 
 CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int ng, int numBlocks, int blockSize, int calls);
 
-CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int n, int world_rank, int numBlocks, int blockSize, int calls);
+CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int n, int3 local_grid_size, int overload, int* do_refresh, int world_rank, int numBlocks, int blockSize, int calls);
 
 CPUTimer_t launch_cic(float* d_grid, float4* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls);
 

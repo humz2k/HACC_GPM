@@ -195,7 +195,7 @@ int parallel(const char* params_file){
             HACCGPM::parallel::GetPowerSpectrum(params,mem,221,stepstr);
         }
         
-        HACCGPM::parallel::TransferParticles(params,mem);
+        //HACCGPM::parallel::TransferParticles(params,mem);
 
     }
 

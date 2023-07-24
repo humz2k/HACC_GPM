@@ -17,7 +17,7 @@ __global__ void UpdatePosKernel(float4* __restrict d_pos, const float4* __restri
     d_pos[idx] = my_pos;
 }
 
-__global__ void UpdatePosKernelParallel(float4* __restrict d_pos, const float4* __restrict d_vel, float prefactor, int n){
+__global__ void UpdatePosKernelParallel(float4* __restrict d_pos, const float4* __restrict d_vel, float prefactor, int n, int* do_refresh, int3 local_grid_size, int overload){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     if (idx >= n)return;
     float4 my_pos = __ldg(&d_pos[idx]);
@@ -27,6 +27,15 @@ __global__ void UpdatePosKernelParallel(float4* __restrict d_pos, const float4* 
     my_pos.y += my_vel.y * prefactor;
     my_pos.z += my_vel.z * prefactor;
     d_pos[idx] = my_pos;
+
+    if ((my_pos.x < -overload) || 
+        (my_pos.y < -overload) ||
+        (my_pos.z < -overload) ||
+        (my_pos.x > (local_grid_size.x - 1) + overload) ||
+        (my_pos.y > (local_grid_size.y - 1) + overload) ||
+        (my_pos.z > (local_grid_size.z - 1) + overload)){
+        *do_refresh = 1;
+    }
 }
 
 CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int ng, int numBlocks, int blockSize, int calls){
@@ -34,7 +43,12 @@ CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int n
     return InvokeGPUKernel(UpdatePosKernel,numBlocks,blockSize,d_pos,d_vel,prefactor,(float)ng);
 }
 
-CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int n_particles, int world_rank, int numBlocks, int blockSize, int calls){
+CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int n_particles, int3 local_grid_size, int overload, int* h_do_refresh, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    return InvokeGPUKernelParallel(UpdatePosKernelParallel,numBlocks,blockSize,d_pos,d_vel,prefactor,n_particles);   
+    int* do_refresh; cudaCall(cudaMalloc,&do_refresh,sizeof(int));
+    cudaCall(cudaMemset,do_refresh,0,sizeof(int));
+    CPUTimer_t out = InvokeGPUKernelParallel(UpdatePosKernelParallel,numBlocks,blockSize,d_pos,d_vel,prefactor,n_particles,do_refresh,local_grid_size,overload);
+    cudaCall(cudaMemcpy,h_do_refresh,do_refresh,sizeof(int),cudaMemcpyDeviceToHost);
+    cudaCall(cudaFree,do_refresh);
+    return out;
 }

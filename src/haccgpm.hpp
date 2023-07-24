@@ -50,6 +50,9 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 #define MAX_STEPS 1000
 
+#define HostMalloc(ptr,sz) cudaCall(cudaMallocHost,ptr,sz)
+#define HostFree(ptr) cudaCall(cudaFreeHost,ptr)
+
 __forceinline__ __host__ __device__ float3 operator*(int3 a, float s)
 {
     return make_float3(a.x * s, a.y * s, a.z * s);
@@ -297,7 +300,7 @@ namespace HACCGPM{
 
         void UpdatePositions(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, HACCGPM::Timestepper ts, float frac, int calls = 0);
 
-        void UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int n_particles, int blockSize, int world_rank, int calls = 0);
+        int UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int n_particles, int3 local_grid_size, int overload, int blockSize, int world_rank, int calls = 0);
 
         void UpdateVelocities(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, HACCGPM::Timestepper ts, int calls = 0);
 

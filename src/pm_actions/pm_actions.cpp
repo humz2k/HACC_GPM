@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "pm_kernels.hpp"
+#include <mpi.h>
 
 #define VerboseUpdate
 
@@ -68,10 +69,13 @@ void HACCGPM::parallel::CIC(deviceFFT_t* d_grid,
 }
 
 void HACCGPM::parallel::UpdatePositions(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, HACCGPM::Timestepper ts, float frac, int calls){
-    HACCGPM::parallel::UpdatePositions(mem.d_pos,mem.d_vel,ts,frac,params.ng,params.n_particles,params.blockSize,params.world_rank,calls);
+    if(HACCGPM::parallel::UpdatePositions(mem.d_pos,mem.d_vel,ts,frac,params.ng,params.n_particles,params.local_grid_size_vec,params.overload,params.blockSize,params.world_rank,calls)){
+        if(params.world_rank == 0)printf("DOING TRANSFER!!!!\n");
+        HACCGPM::parallel::TransferParticles(params,mem);
+    }
 }
 
-void HACCGPM::parallel::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int n_particles, int blockSize, int world_rank, int calls){
+int HACCGPM::parallel::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int n_particles, int3 local_grid_size, int overload, int blockSize, int world_rank, int calls){
     CPUTimer_t start = CPUTimer();
     int numBlocks = (n_particles + (blockSize - 1))/blockSize;
     float prefactor = ((ts.deltaT)/(ts.aa * ts.aa * ts.adot)) * frac;
@@ -80,12 +84,21 @@ void HACCGPM::parallel::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::T
     if(world_rank == 0)printf("%sUpdate Positions was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   frac %g\n%s   prefactor %g\n",indent,indent,blockSize,indent,numBlocks,indent,frac,indent,prefactor);
     #endif
     //UPDATE_POS_KERNEL_TIME += InvokeGPUKernelParallel(UpdatePosKernelParallel,numBlocks,blockSize,d_pos,d_vel,prefactor,n_particles);
-    UPDATE_POS_KERNEL_TIME += launch_updatepos(d_pos,d_vel,prefactor,n_particles,world_rank,numBlocks,blockSize,calls);
+    int do_refresh;
+    UPDATE_POS_KERNEL_TIME += launch_updatepos(d_pos,d_vel,prefactor,n_particles,local_grid_size,overload,&do_refresh,world_rank,numBlocks,blockSize,calls);
+    //printf("DO_REFRESH %d\n",do_refresh);
+    int refresh_now;
+    MPI_Allreduce(&do_refresh,&refresh_now,1,MPI_INT,MPI_LOR,MPI_COMM_WORLD);
+    //printf("refresh_now %d\n",refresh_now);
+    //if (refresh_now){
+    //    printf("ALLL!!!!\n");
+    //}
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
     if (world_rank == 0)printf("%s   UpdatePositions took %llu us\n",indent,t);
     UPDATE_POS_TIME += t;
     UPDATE_POS_CALLS += 1;
+    return refresh_now;
 }
 
 void HACCGPM::parallel::UpdateVelocities(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, HACCGPM::Timestepper ts, int calls){

@@ -16,9 +16,7 @@ void HACCGPM::serial::InitGreens(HACCGPM::Params& params, HACCGPM::serial::Memor
     printf("%s   Calling getGreens...\n",indent);
     #endif
 
-    getGreens(mem.d_greens,params.ng,numBlocks,params.blockSize,calls);
-
-    //InvokeGPUKernel(getGreens,numBlocks,params.blockSize,mem.d_greens,params.ng);
+    launch_getgreens(mem.d_greens,params.ng,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseGreens
     printf("%s      Called getGreens...\n",indent);
@@ -38,9 +36,7 @@ void HACCGPM::parallel::InitGreens(HACCGPM::Params& params, HACCGPM::parallel::M
     if(params.world_rank == 0)printf("%s   Calling getGreens...\n",indent);
     #endif
 
-    getGreens(mem.d_greens,params.ng,params.nlocal,params.local_grid_size_vec,params.grid_coords_vec,params.world_rank,numBlocks,params.blockSize,calls);
-
-    //InvokeGPUKernelParallel(getGreensParallel,numBlocks,params.blockSize,mem.d_greens,params.ng,params.local_grid_size_vec,params.grid_coords_vec);
+    launch_getgreens(mem.d_greens,params.ng,params.nlocal,params.local_grid_size_vec,params.grid_coords_vec,params.world_rank,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseGreens
     if(params.world_rank == 0)printf("%s      Called getGreens...\n",indent);

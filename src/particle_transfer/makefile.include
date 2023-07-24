@@ -1,4 +1,9 @@
-PARICLE_TRANSFER := $(patsubst src/particle_transfer/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/particle_transfer/*.cpp)) $(patsubst src/particle_transfer/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/particle_transfer/*.cu))
+#PARICLE_TRANSFER := $(patsubst src/particle_transfer/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/particle_transfer/*.cpp)) $(patsubst src/particle_transfer/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/particle_transfer/*.cu))
 
-HACCGPM_FILES += $(PARICLE_TRANSFER)
-HACCGPM_NOPYTHON_FILES += $(PARICLE_TRANSFER)
+
+HACCGPM_PARTICLE_TRANSFER_DIR = $(HACCGPM_BUILD_DIR)/particle_transfer
+
+HACCGPM_BUILD_FOLDERS += $(HACCGPM_PARTICLE_TRANSFER_DIR) $(HACCGPM_PARTICLE_TRANSFER_DIR)/cuda
+
+HACCGPM_FILES += $(HACCGPM_PARTICLE_TRANSFER_DIR)/transfers.o $(HACCGPM_PARTICLE_TRANSFER_DIR)/particleswapkernels.o $(HACCGPM_PARTICLE_TRANSFER_DIR)/cuda/count_buffer.o $(HACCGPM_PARTICLE_TRANSFER_DIR)/cuda/load_buffer.o $(HACCGPM_PARTICLE_TRANSFER_DIR)/cuda/combine_particles.o
+HACCGPM_NOPYTHON_FILES += $(HACCGPM_PARTICLE_TRANSFER_DIR)/transfers.o $(HACCGPM_PARTICLE_TRANSFER_DIR)/particleswapkernels.o $(HACCGPM_PARTICLE_TRANSFER_DIR)/cuda/count_buffer.o $(HACCGPM_PARTICLE_TRANSFER_DIR)/cuda/load_buffer.o $(HACCGPM_PARTICLE_TRANSFER_DIR)/cuda/combine_particles.o

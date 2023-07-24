@@ -55,18 +55,18 @@ __global__ void getGreensParallelKernel(hostFFT_t* __restrict d_greens, int ng, 
 }
 
 
-void getGreens(hostFFT_t* __restrict d_greens, int ng, int numBlocks, int blockSize, int calls){
+CPUTimer_t launch_getgreens(hostFFT_t* __restrict d_greens, int ng, int numBlocks, int blockSize, int calls){
 
     getIndent(calls);
 
-    InvokeGPUKernel(getGreensKernel,numBlocks,blockSize,d_greens,ng);
+    return InvokeGPUKernel(getGreensKernel,numBlocks,blockSize,d_greens,ng);
 
 }
 
-void getGreens(hostFFT_t* __restrict d_greens, int ng, int nlocal, int3 local_grid_size_vec, int3 grid_coords_vec, int world_rank, int numBlocks, int blockSize,  int calls){
+CPUTimer_t launch_getgreens(hostFFT_t* __restrict d_greens, int ng, int nlocal, int3 local_grid_size_vec, int3 grid_coords_vec, int world_rank, int numBlocks, int blockSize,  int calls){
 
     getIndent(calls);
 
-    InvokeGPUKernelParallel(getGreensParallelKernel,numBlocks,blockSize,d_greens,ng,local_grid_size_vec,grid_coords_vec);
+    return InvokeGPUKernelParallel(getGreensParallelKernel,numBlocks,blockSize,d_greens,ng,local_grid_size_vec,grid_coords_vec);
 
 }

@@ -1,4 +1,4 @@
-#include "pm_kernels.hpp"
+#include "../pm_kernels.hpp"
 
 __global__ void CICKernel(float* __restrict grid, const float4* __restrict my_pos, int ng, float mass){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
@@ -91,4 +91,16 @@ __global__ void CICKernelParallel(float* __restrict d_grid, const float4* __rest
             }
         }
     }
+}
+
+CPUTimer_t launch_cic(float* d_grid, float4* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    cudaCall(cudaMemset,d_grid,0,sizeof(float)*ng*ng*ng);
+    return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
+}
+
+CPUTimer_t launch_cic(float* d_grid, float4* d_pos, int ng, int overload, int3 local_grid_size, int n_particles, float mass, int world_rank, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    cudaCall(cudaMemset,d_grid,0,sizeof(float)*(local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload));
+    return InvokeGPUKernelParallel(CICKernelParallel,numBlocks,blockSize,d_grid,d_pos,ng,overload,local_grid_size,n_particles,1.0f);
 }

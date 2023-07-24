@@ -42,8 +42,10 @@ void HACCGPM::parallel::CIC(deviceFFT_t* d_grid,
     #ifdef VerboseUpdate
     if (world_rank == 0)printf("%sCIC was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
-    cudaCall(cudaMemset,d_tempgrid,0,sizeof(float)*(local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload));
-    CIC_KERNEL_TIME += InvokeGPUKernelParallel(CICKernelParallel,numBlocks,blockSize,d_tempgrid,d_pos,ng,overload,local_grid_size,n_particles,1.0f);
+    //cudaCall(cudaMemset,d_tempgrid,0,sizeof(float)*(local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload));
+    //CIC_KERNEL_TIME += InvokeGPUKernelParallel(CICKernelParallel,numBlocks,blockSize,d_tempgrid,d_pos,ng,overload,local_grid_size,n_particles,1.0f);
+
+    CIC_KERNEL_TIME += launch_cic(d_tempgrid,d_pos,ng,overload,local_grid_size,n_particles,1.0f,world_rank,numBlocks,blockSize,calls);
 
     HACCGPM::parallel::GridExchange gexch(local_coords,local_grid_size,dims,ng,world_size,world_rank,overload,blockSize);
 
@@ -131,8 +133,9 @@ void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int
     #ifdef VerboseUpdate
     printf("%sCIC (complex,float) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
-    cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
-    CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
+    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
+    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
+    CIC_KERNEL_TIME += launch_cic(d_temp,d_pos,ng,1.0f,numBlocks,blockSize,calls);
     CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;

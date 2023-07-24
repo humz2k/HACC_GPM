@@ -17,6 +17,8 @@ PY_LIB ?= -lpython3.9
 
 HACCGPM_INCLUDE ?= -Isrc -Ipycosmotools/include
 
+HACCGPM_BUILD_FOLDERS ?=
+
 include src/*/*.include
 
 all: main nopython
@@ -39,8 +41,11 @@ swfft:
 pycosmo:
 	cd $(PYCOSMO_DIR) && $(MAKE) PY_LIB=$(PY_LIB)
 
-$(HACCGPM_BUILD_DIR): 
+$(HACCGPM_BUILD_DIR):
 	mkdir -p $(HACCGPM_BUILD_DIR)
+	$(foreach dir,$(HACCGPM_BUILD_FOLDERS),mkdir -p $(dir);)
+#	mkdir -p $(HACCGPM_BUILD_DIR)/pm_solver
+#	mkdir -p $(HACCGPM_BUILD_DIR)/pm_solver/cuda
 
 $(HACCGPM_NOPYTHON_DIR): 
 	mkdir -p $(HACCGPM_NOPYTHON_DIR)
@@ -65,6 +70,12 @@ $(HACCGPM_BUILD_DIR)/%.o: */*/*/%.cpp | $(HACCGPM_BUILD_DIR)
 	mpicxx $< -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -c -o $@ -Wall
 
 $(HACCGPM_BUILD_DIR)/%.o: */*/*/%.cu | $(HACCGPM_BUILD_DIR)
+	nvcc $< -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g,-Wall, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@ 
+
+$(HACCGPM_BUILD_DIR)/%.o: */*/*/*/%.cpp | $(HACCGPM_BUILD_DIR)
+	mpicxx $< -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -c -o $@ -Wall
+
+$(HACCGPM_BUILD_DIR)/%.o: */*/*/*/%.cu | $(HACCGPM_BUILD_DIR)
 	nvcc $< -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g,-Wall, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@ 
 
 $(HACCGPM_NOPYTHON_DIR)/%.o: */%.cpp | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)

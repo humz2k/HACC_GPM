@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 //#include <string.h>
+#include <unistd.h>
 #include "haccgpm.hpp"
 #define GPU
 #define alltoall
@@ -241,21 +242,54 @@ int main(int argc, char** argv){
     MPI_Comm_rank(MPI_COMM_WORLD,&world_rank);
     MPI_Comm_size(MPI_COMM_WORLD,&world_size);
 
-    if (argc != 2){
-        printf("USAGE: main params\n");
+    if ((argc < 2) && (argc > 3)){
+        printf("USAGE: main <params> [+nXX]\n");
         return 1;
     }
     int out = 1;
+
+    char* params_file;
+    char* n_proc_flag;
+    for (int i = 1; i < argc; i++){
+        if (argv[i][0] == '+'){
+            n_proc_flag = argv[i];
+        } else{
+            params_file = argv[i];
+        }
+    }
+
+    //printf("Params: %s\n N_PROC %s\n",params_file,n_proc_flag);
 
     //char static_array[256];
     //setvbuf(stdout, static_array, _IOFBF, sizeof(static_array));
 
     if (world_size == 1){
+        if ((argc == 3) && (n_proc_flag != NULL)){
+            if ((n_proc_flag[0] == '+') && (n_proc_flag[1] == 'n')){
+                int n_proc = atoi(&n_proc_flag[2]);
+                if (n_proc != 1){
+                    char* args[5];
+                    char mpirun[] = "mpirun";
+                    char np[] = "-np";
+                    char nranks[20];
+                    sprintf(nranks,"%d",n_proc);
+                    args[0] = mpirun;
+                    args[1] = np;
+                    args[2] = nranks;
+                    args[3] = argv[0];
+                    args[4] = params_file;
+                    //printf("%s %s %s %s %s\n",args[0],args[1],args[2],args[3],args[4]);
+                    execvp("mpirun",args);
+                    return 0;
+                }
+            }
+        }
         printf("\n=========\nRUNNING IN SERIAL MODE\n=========\n");
         out = serial(argv[1]);
     } else{
         if (world_rank == 0){
             printf("\n=========\nRUNNING IN PARLLEL MODE\n=========\n");
+            printf("   n = %d\n",world_size);
         }
         out = parallel(argv[1]);
     }

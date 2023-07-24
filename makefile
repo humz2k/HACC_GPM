@@ -39,9 +39,6 @@ swfft:
 pycosmo:
 	cd $(PYCOSMO_DIR) && $(MAKE) PY_LIB=$(PY_LIB)
 
-bdwgc:
-	cd $(BDWGC_DIR) && $(MAKE) -f Makefile.direct check
-
 $(HACCGPM_BUILD_DIR): 
 	mkdir -p $(HACCGPM_BUILD_DIR)
 

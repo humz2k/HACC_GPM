@@ -222,6 +222,9 @@ namespace HACCGPM{
                 float4* d_grad;
                 hostFFT_t* d_greens;
                 deviceFFT_t* d_grid;
+                deviceFFT_t* d_x;
+                deviceFFT_t* d_y;
+                deviceFFT_t* d_z;
                 float* d_tempgrid;
                 //deviceFFT_t* d_grid2;
 
@@ -302,7 +305,7 @@ namespace HACCGPM{
 
         void SolveGradient(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, int calls = 0);
 
-        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int n_particles, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int world_size, int overload, int blockSize, int calls = 0);
+        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int n_particles, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int world_size, int overload, int blockSize, int calls = 0);
 
         void printTransferTimes(int world_rank);
         void printCICTimes(int world_rank);
@@ -325,6 +328,9 @@ namespace HACCGPM{
                 hostFFT_t* d_greens;
                 deviceFFT_t* d_grid;
                 float* d_tempgrid;
+                deviceFFT_t* d_x;
+                deviceFFT_t* d_y;
+                deviceFFT_t* d_z;
 
                 MemoryManager(HACCGPM::Params params);
 
@@ -369,7 +375,7 @@ namespace HACCGPM{
 
         void SolveGradient(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 
-        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls = 0);
+        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int blockSize, int calls = 0);
 
         void InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 

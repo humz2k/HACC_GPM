@@ -79,7 +79,8 @@ void HACCGPM::parallel::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::T
     #ifdef VerboseUpdate
     if(world_rank == 0)printf("%sUpdate Positions was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   frac %g\n%s   prefactor %g\n",indent,indent,blockSize,indent,numBlocks,indent,frac,indent,prefactor);
     #endif
-    UPDATE_POS_KERNEL_TIME += InvokeGPUKernelParallel(UpdatePosKernelParallel,numBlocks,blockSize,d_pos,d_vel,prefactor,n_particles);
+    //UPDATE_POS_KERNEL_TIME += InvokeGPUKernelParallel(UpdatePosKernelParallel,numBlocks,blockSize,d_pos,d_vel,prefactor,n_particles);
+    UPDATE_POS_KERNEL_TIME += launch_updatepos(d_pos,d_vel,prefactor,n_particles,world_rank,numBlocks,blockSize,calls);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
     if (world_rank == 0)printf("%s   UpdatePositions took %llu us\n",indent,t);
@@ -98,7 +99,7 @@ void HACCGPM::parallel::UpdateVelocities(float4* d_vel, float4* d_grad, float4* 
     #ifdef VerboseUpdate
     if(world_rank == 0)printf("%sUpdate Velocities was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
-    UPDATE_VEL_KERNEL_TIME += InvokeGPUKernelParallel(ICICKernelParallel,numBlocks,blockSize,d_vel,d_grad,d_pos,ts.deltaT,ts.fscal,overload,local_grid_size,ng,n_particles);
+    UPDATE_VEL_KERNEL_TIME += launch_icic(d_vel,d_grad,d_pos,ts.deltaT,ts.fscal,overload,local_grid_size,ng,n_particles,world_rank,numBlocks,blockSize,calls);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
     #ifdef VerboseUpdate
@@ -157,7 +158,7 @@ void HACCGPM::serial::UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_
     #ifdef VerboseUpdate
     printf("%sUpdate Velocities was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
-    UPDATE_VEL_KERNEL_TIME += InvokeGPUKernel(ICICKernel,numBlocks,blockSize,d_vel,d_grad,d_pos,ts.deltaT,ts.fscal,ng);
+    UPDATE_VEL_KERNEL_TIME += launch_icic(d_vel,d_grad,d_pos,ts.deltaT,ts.fscal,ng,numBlocks,blockSize,calls);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
     printf("%s   UpdateVelocities took %llu us\n",indent,t);
@@ -177,7 +178,8 @@ void HACCGPM::serial::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Tim
     #ifdef VerboseUpdate
     printf("%sUpdate Positions was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   frac %g\n%s   prefactor %g\n",indent,indent,blockSize,indent,numBlocks,indent,frac,indent,prefactor);
     #endif
-    UPDATE_POS_KERNEL_TIME += InvokeGPUKernel(UpdatePosKernel,numBlocks,blockSize,d_pos,d_vel,prefactor,(float)ng);
+    //UPDATE_POS_KERNEL_TIME += InvokeGPUKernel(UpdatePosKernel,numBlocks,blockSize,d_pos,d_vel,prefactor,(float)ng);
+    UPDATE_POS_KERNEL_TIME += launch_updatepos(d_pos,d_vel,prefactor,ng,numBlocks,blockSize,calls);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
     printf("%s   UpdatePositions took %llu us\n",indent,t);

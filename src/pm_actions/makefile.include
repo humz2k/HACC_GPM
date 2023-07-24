@@ -4,5 +4,5 @@ HACCGPM_PM_ACTIONS_DIR = $(HACCGPM_BUILD_DIR)/pm_actions
 
 HACCGPM_BUILD_FOLDERS += $(HACCGPM_PM_ACTIONS_DIR) $(HACCGPM_PM_ACTIONS_DIR)/cuda
 
-HACCGPM_FILES += $(HACCGPM_PM_ACTIONS_DIR)/pm_actions.o $(HACCGPM_PM_ACTIONS_DIR)/update_positions_pm.o $(HACCGPM_PM_ACTIONS_DIR)/icic_pm.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/float_to_complex_pm.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/cic_pm.o
-HACCGPM_NOPYTHON_FILES += $(HACCGPM_PM_ACTIONS_DIR)/pm_actions.o $(HACCGPM_PM_ACTIONS_DIR)/update_positions_pm.o $(HACCGPM_PM_ACTIONS_DIR)/icic_pm.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/float_to_complex_pm.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/cic_pm.o
+HACCGPM_FILES += $(HACCGPM_PM_ACTIONS_DIR)/pm_actions.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/update_positions_pm.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/icic_pm.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/float_to_complex_pm.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/cic_pm.o
+HACCGPM_NOPYTHON_FILES += $(HACCGPM_PM_ACTIONS_DIR)/pm_actions.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/update_positions_pm.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/icic_pm.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/float_to_complex_pm.o $(HACCGPM_PM_ACTIONS_DIR)/cuda/cic_pm.o

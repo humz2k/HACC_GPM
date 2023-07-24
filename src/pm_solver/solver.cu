@@ -136,10 +136,10 @@ __global__ void combine_parallel(float4* __restrict out, const deviceFFT_t* __re
 }
 
 void HACCGPM::parallel::SolveGradient(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, int calls){
-    HACCGPM::parallel::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,params.ng,params.n_particles,params.nlocal,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec,params.world_rank,params.world_size,params.overload,params.blockSize,calls);
+    HACCGPM::parallel::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,mem.d_x,mem.d_y,mem.d_z,params.ng,params.n_particles,params.nlocal,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec,params.world_rank,params.world_size,params.overload,params.blockSize,calls);
 }
 
-void HACCGPM::parallel::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int n_particles, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int world_size, int overload, int blockSize, int calls){
+void HACCGPM::parallel::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int n_particles, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int world_size, int overload, int blockSize, int calls){
     int numBlocks = (nlocal + (blockSize - 1))/blockSize;
 
     getIndent(calls);
@@ -153,13 +153,13 @@ void HACCGPM::parallel::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFF
 
     #ifdef VerboseSolver
     if(world_rank == 0)printf("%s      Done forward fft.\n",indent);
-    if(world_rank == 0)printf("%s   Allocating d_x, d_y, d_z...\n",indent);
+    //if(world_rank == 0)printf("%s   Allocating d_x, d_y, d_z...\n",indent);
     #endif
-    deviceFFT_t* d_x; cudaCall(cudaMalloc,&d_x,sizeof(deviceFFT_t)*nlocal);
-    deviceFFT_t* d_y; cudaCall(cudaMalloc,&d_y,sizeof(deviceFFT_t)*nlocal);
-    deviceFFT_t* d_z; cudaCall(cudaMalloc,&d_z,sizeof(deviceFFT_t)*nlocal);
+    //deviceFFT_t* d_x; cudaCall(cudaMalloc,&d_x,sizeof(deviceFFT_t)*nlocal);
+    //deviceFFT_t* d_y; cudaCall(cudaMalloc,&d_y,sizeof(deviceFFT_t)*nlocal);
+    //deviceFFT_t* d_z; cudaCall(cudaMalloc,&d_z,sizeof(deviceFFT_t)*nlocal);
     #ifdef VerboseSolver
-    if(world_rank == 0)printf("%s      Allocated d_x, d_y, d_z\n",indent);
+    //if(world_rank == 0)printf("%s      Allocated d_x, d_y, d_z\n",indent);
     if(world_rank == 0)printf("%s   Calling kspace_solve_gradient_parallel...\n",indent);
     #endif
     double const b1 =   4.0 / 3.0;
@@ -183,15 +183,15 @@ void HACCGPM::parallel::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFF
 
     #ifdef VerboseSolver
     if(world_rank == 0)printf("%s      Done combine_parallel.\n",indent);
-    if(world_rank == 0)printf("%s   Freeing d_x, d_y, d_z...\n",indent);
+    //if(world_rank == 0)printf("%s   Freeing d_x, d_y, d_z...\n",indent);
     #endif
 
-    cudaCall(cudaFree,d_x);
-    cudaCall(cudaFree,d_y);
-    cudaCall(cudaFree,d_z);
+    //cudaCall(cudaFree,d_x);
+    //cudaCall(cudaFree,d_y);
+    //cudaCall(cudaFree,d_z);
 
     #ifdef VerboseSolver
-    if(world_rank == 0)printf("%s      Freed d_x, d_y, d_z.\n",indent);
+    //if(world_rank == 0)printf("%s      Freed d_x, d_y, d_z.\n",indent);
     #endif
 
     HACCGPM::parallel::GridExchange gexch(local_coords,local_grid_size,dims,ng,world_size,world_rank,overload,blockSize);
@@ -250,10 +250,10 @@ void HACCGPM::serial::Solve(deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int
 }
 
 void HACCGPM::serial::SolveGradient(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls){
-    HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,params.ng,params.blockSize,calls);
+    HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,mem.d_x,mem.d_y,mem.d_z,params.ng,params.blockSize,calls);
 }
 
-void HACCGPM::serial::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls){
+void HACCGPM::serial::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int blockSize, int calls){
     int numBlocks = (ng*ng*ng)/blockSize;
 
     getIndent(calls);
@@ -265,13 +265,6 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_
     HACCGPM::serial::forward_fft(d_rho,ng,calls+1);
     #ifdef VerboseSolver
     printf("%s      Done forward fft.\n",indent);
-    printf("%s   Allocating d_x, d_y, d_z...\n",indent);
-    #endif
-    deviceFFT_t* d_x; cudaCall(cudaMalloc,&d_x,sizeof(deviceFFT_t)*ng*ng*ng);
-    deviceFFT_t* d_y; cudaCall(cudaMalloc,&d_y,sizeof(deviceFFT_t)*ng*ng*ng);
-    deviceFFT_t* d_z; cudaCall(cudaMalloc,&d_z,sizeof(deviceFFT_t)*ng*ng*ng);
-    #ifdef VerboseSolver
-    printf("%s      Allocated d_x, d_y, d_z\n",indent);
     printf("%s   Calling kspace_solve_gradient...\n",indent);
     #endif
 
@@ -300,14 +293,5 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_
 
     #ifdef VerboseSolver
     printf("%s      Called combine.\n",indent);
-    printf("%s   Freeing d_x, d_y, d_z...\n",indent);
-    #endif
-
-    cudaCall(cudaFree,d_x);
-    cudaCall(cudaFree,d_y);
-    cudaCall(cudaFree,d_z);
-
-    #ifdef VerboseSolver
-    printf("%s      Freed d_x, d_y, d_z.\n",indent);
     #endif
 }

@@ -1,4 +1,4 @@
-#include "pm_kernels.hpp"
+#include "../pm_kernels.hpp"
 
 __global__ void ICICKernelParallel(float4* __restrict d_vel, const float4* __restrict d_grad, const float4* __restrict my_pos, double deltaT, double fscal, int overload, int3 local_grid_size, int ng, int n_particles){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
@@ -121,4 +121,14 @@ __global__ void ICICKernel(float4* __restrict d_vel, const float4* __restrict d_
 
     d_vel[idx] = my_vel;
 
+}
+
+CPUTimer_t launch_icic(float4* d_vel, float4* d_grad, float4* d_pos, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernel(ICICKernel,numBlocks,blockSize,d_vel,d_grad,d_pos,deltaT,fscal,ng);
+}
+
+CPUTimer_t launch_icic(float4* d_vel, float4* d_grad, float4* d_pos, double deltaT, double fscal, int overload, int3 local_grid_size, int ng, int n_particles, int world_rank, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernelParallel(ICICKernelParallel,numBlocks,blockSize,d_vel,d_grad,d_pos,deltaT,fscal,overload,local_grid_size,ng,n_particles);
 }

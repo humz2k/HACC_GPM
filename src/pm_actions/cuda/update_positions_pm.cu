@@ -1,4 +1,4 @@
-#include "pm_kernels.hpp"
+#include "../pm_kernels.hpp"
 
 __global__ void UpdatePosKernel(float4* __restrict d_pos, const float4* __restrict d_vel, float prefactor, float ng){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
@@ -27,4 +27,14 @@ __global__ void UpdatePosKernelParallel(float4* __restrict d_pos, const float4* 
     my_pos.y += my_vel.y * prefactor;
     my_pos.z += my_vel.z * prefactor;
     d_pos[idx] = my_pos;
+}
+
+CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int ng, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernel(UpdatePosKernel,numBlocks,blockSize,d_pos,d_vel,prefactor,(float)ng);
+}
+
+CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int n_particles, int world_rank, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernelParallel(UpdatePosKernelParallel,numBlocks,blockSize,d_pos,d_vel,prefactor,n_particles);   
 }

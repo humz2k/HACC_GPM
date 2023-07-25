@@ -5,13 +5,7 @@
 
 //#define NOPYTHON
 
-#ifndef NOPYTHON
-#include "../cambTools/ccamb.h"
-#endif
-
 #define VerboseInitializer
-
-//#define NOPYTHON
 
 void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, deviceFFT_t* d_grid1, hostFFT_t* d_pkScale, double z, int calls){
     int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
@@ -20,13 +14,6 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
 
     #ifdef VerboseInitializer
     printf("%sGenerateFourierAmplitudes was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   z %g\n",indent,indent,params.blockSize,indent,numBlocks,indent,z);
-    printf("%s   Allocating h_tmp...\n",indent);
-    #endif
-
-    hostFFT_t* h_tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*params.ng*params.ng*params.ng);
-
-    #ifdef VerboseInitializer
-    printf("%s      Allocated h_tmp.\n",indent);
     printf("%s   Calling generate_rng...\n",indent);
     #endif
 
@@ -44,53 +31,24 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
     
     #endif
 
-    //init_python(calls + 1);
     #ifdef NOPYTHON
-    #ifdef VerboseInitializer
-    printf("%s   Getting Pk from ipk...\n",indent);
-    #endif
-    /*double* h_ipk;
-    int ipk_bins;
-    double ipk_delta;
-    double ipk_max;
-    double ipk_min;
-    cosmo.read_ipk(&h_ipk,&ipk_bins,&ipk_delta,&ipk_max,&ipk_min,calls+1);
-    double* d_ipk; cudaCall(cudaMalloc,&d_ipk,sizeof(double)*ipk_bins);
-    cudaCall(cudaMemcpy, d_ipk, h_ipk, sizeof(double)*ipk_bins, cudaMemcpyHostToDevice);
+        #ifdef VerboseInitializer
+        printf("%s   Getting Pk from ipk...\n",indent);
+        #endif
 
-    double maxK = ((params.ng/2)*2*M_PI)/params.rl;
-    maxK = sqrt(maxK*maxK*maxK);
-    printf("%s      maxK = %g\n",indent,maxK);
-    if (maxK > ipk_max){
-        printf("%s      input ipk only goes to %g\n",indent,ipk_max);
-        exit(1);
-    }
-
-    InvokeGPUKernel(interpolatePowerSpectrum,numBlocks,params.blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,params.rl,params.ng);
-
-    free(h_ipk);
-    cudaCall(cudaFree,d_ipk);*/
-
-    interpolate_pk(cosmo,d_pkScale,params.ng,params.rl,numBlocks,params.blockSize,calls);
+        launch_interpolate_pk(cosmo,d_pkScale,params.ng,params.rl,numBlocks,params.blockSize,calls);
 
     #else
-    #ifdef VerboseInitializer
-    printf("%s   Getting Pk from Camb...\n",indent);
-    #endif
-    get_pk(params.fname,h_tmp,z,params.ng,params.rl,calls+1);
+        #ifdef VerboseInitializer
+        printf("%s   Getting Pk from Camb...\n",indent);
+        #endif
 
-    #ifdef VerboseInitializer
-    printf("%s      Got Pk from Camb.\n",indent);
-    printf("%s   Copying Pk from host to device...\n",indent);
-    #endif
-    cudaCall(cudaMemcpy, d_pkScale, h_tmp, sizeof(hostFFT_t)*params.ng*params.ng*params.ng, cudaMemcpyHostToDevice);
-    
-    #ifdef VerboseInitializer
-    printf("%s      Copied Pk from host to device.\n",indent);
-    #endif
+        launch_get_pk(d_pkScale,z,params.fname,params.ng,params.rl,calls);
 
+        #ifdef VerboseInitializer
+        printf("%s      Got Pk from Camb.\n",indent);
+        #endif
     #endif
-    
     
     #ifdef VerboseInitializer
     printf("%s   Scaling Amplitudes...\n",indent);
@@ -100,13 +58,6 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
 
     #ifdef VerboseInitializer
     printf("%s      Scaled Amplitudes.\n",indent);
-    printf("%s   Freeing h_tmp...\n",indent);
-    #endif
-
-    free(h_tmp);
-
-    #ifdef VerboseInitializer
-    printf("%s      Freed h_tmp.\n",indent);
     #endif
 }
 
@@ -181,15 +132,9 @@ void GenerateFourierAmplitudesParallel(HACCGPM::CosmoClass& cosmo, HACCGPM::Para
 
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%sGenerateFourierAmplitudesParallel was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   z %g\n",indent,indent,params.blockSize,indent,numBlocks,indent,z);
-    if(world_rank == 0)printf("%s   Allocating h_tmp...\n",indent);
-    #endif
-
-    hostFFT_t* h_tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*params.nlocal);
-
-    #ifdef VerboseInitializer
-    if(world_rank == 0)printf("%s      Allocated h_tmp.\n",indent);
     if(world_rank == 0)printf("%s   Calling generate_rng...\n",indent);
     #endif
+
     launch_generate_rng(d_grid,params.ng,params.seed,params.nlocal,params.local_grid_size_vec,params.grid_coords_vec,params.world_rank,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseInitializer
@@ -206,44 +151,16 @@ void GenerateFourierAmplitudesParallel(HACCGPM::CosmoClass& cosmo, HACCGPM::Para
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s   Getting Pk from ipk...\n",indent);
     #endif
-    double* h_ipk;
-    int ipk_bins;
-    double ipk_delta;
-    double ipk_max;
-    double ipk_min;
-    cosmo.read_ipk(&h_ipk,&ipk_bins,&ipk_delta,&ipk_max,&ipk_min,calls+1);
-    double* d_ipk; cudaCall(cudaMalloc,&d_ipk,sizeof(double)*ipk_bins);
-    cudaCall(cudaMemcpy, d_ipk, h_ipk, sizeof(double)*ipk_bins, cudaMemcpyHostToDevice);
 
-    double maxK = ((params.ng/2)*2*M_PI)/params.rl;
-    maxK = sqrt(maxK*maxK*maxK);
-    if(world_rank == 0)printf("%s      maxK = %g\n",indent,maxK);
-    if (maxK > ipk_max){
-        if(world_rank == 0)printf("%s      input ipk only goes to %g\n",indent,ipk_max);
-        exit(1);
-    }
+    launch_interpolate_pk(cosmo,d_pkScale,params.ng,params.rl,params.nlocal,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec,params.world_rank,numBlocks,params.blockSize,calls);
     
-    InvokeGPUKernelParallel(interpolatePowerSpectrum,numBlocks,params.blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,params.rl,params.ng,params.nlocal,params.world_rank,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec);
-
-    free(h_ipk);
-    cudaCall(cudaFree,d_ipk);
     #else
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s   Getting Pk from Camb...\n",indent);
     #endif
-    get_pk_parallel(params.fname,h_tmp,z,params.ng,params.rl,params.nlocal,params.world_rank,calls+1);
+    launch_get_pk(d_pkScale,z,params.fname,params.ng,params.rl,params.nlocal,params.world_rank,calls);
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Got Pk from Camb.\n",indent);
-    #endif
-    #ifdef VerboseInitializer
-    if(world_rank == 0)printf("%s   Copying Pk from host to device...\n",indent);
-    #endif
-
-    cudaCall(cudaMemcpy, d_pkScale, h_tmp, sizeof(hostFFT_t)*params.nlocal, cudaMemcpyHostToDevice);
-
-    #ifdef VerboseInitializer
-    if(world_rank == 0)printf("%s      Copied Pk from host to device.\n",indent);
-    if(world_rank == 0)printf("%s   Scaling Amplitudes...\n",indent);
     #endif
     #endif
 
@@ -255,15 +172,6 @@ void GenerateFourierAmplitudesParallel(HACCGPM::CosmoClass& cosmo, HACCGPM::Para
 
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Scaled Amplitudes.\n",indent);
-    if(world_rank == 0)printf("%s   Freeing h_tmp...\n",indent);
-    #endif
-
-    free(h_tmp);
-    //cudaFree(d_pkScale);
-    //cudaFree(rngState);
-
-    #ifdef VerboseInitializer
-    if(world_rank == 0)printf("%s      Freed h_tmp.\n",indent);
     #endif
 }
 

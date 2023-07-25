@@ -49,7 +49,7 @@ __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, 
 
 }
 
-void interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int ng, double rl, int numBlocks, int blockSize, int calls){
+void launch_interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int ng, double rl, int numBlocks, int blockSize, int calls){
     getIndent(calls);
 
     double* h_ipk;
@@ -70,6 +70,31 @@ void interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int ng, do
     }
 
     InvokeGPUKernel(interpolatePowerSpectrum,numBlocks,blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,rl,ng);
+
+    free(h_ipk);
+    cudaCall(cudaFree,d_ipk);
+}
+
+void launch_interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int ng, double rl, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    double* h_ipk;
+    int ipk_bins;
+    double ipk_delta;
+    double ipk_max;
+    double ipk_min;
+    cosmo.read_ipk(&h_ipk,&ipk_bins,&ipk_delta,&ipk_max,&ipk_min,calls+1);
+    double* d_ipk; cudaCall(cudaMalloc,&d_ipk,sizeof(double)*ipk_bins);
+    cudaCall(cudaMemcpy, d_ipk, h_ipk, sizeof(double)*ipk_bins, cudaMemcpyHostToDevice);
+
+    double maxK = ((ng/2)*2*M_PI)/rl;
+    maxK = sqrt(maxK*maxK*maxK);
+    if(world_rank == 0)printf("%s      maxK = %g\n",indent,maxK);
+    if (maxK > ipk_max){
+        if(world_rank == 0)printf("%s      input ipk only goes to %g\n",indent,ipk_max);
+        exit(1);
+    }
+    
+    InvokeGPUKernelParallel(interpolatePowerSpectrum,numBlocks,blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,rl,ng,nlocal,world_rank,local_grid_size,local_coords,dims);
 
     free(h_ipk);
     cudaCall(cudaFree,d_ipk);

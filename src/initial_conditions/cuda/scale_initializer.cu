@@ -33,3 +33,12 @@ __global__ void ScaleFFT(deviceFFT_t* __restrict data, double scale, int nlocal)
     data[idx] = old;
 
 }
+
+void launch_scale_fft(deviceFFT_t* data, double scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    InvokeGPUKernelParallel(ScaleFFT,numBlocks,blockSize,data,scale,nlocal);
+}
+
+void launch_scale_fft(deviceFFT_t* data, double scale, int nlocal, int numBlocks, int blockSize, int calls){
+    launch_scale_fft(data,scale,nlocal,0,numBlocks,blockSize,calls);
+}

@@ -6,13 +6,15 @@ void launch_generate_rng(deviceFFT_t* d_grid1, int ng, int seed, int numBlocks, 
 
 void launch_generate_rng(deviceFFT_t* d_grid1, int ng, int seed, int nlocal, int3 local_grid_size, int3 local_coords, int world_rank, int numBlocks, int blockSize, int calls);
 
-__global__ void ScaleAmplitudes(deviceFFT_t* __restrict grid, const hostFFT_t* __restrict scale, int nlocal);
-
 void launch_scale_amplitudes(deviceFFT_t* grid, hostFFT_t* scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls);
 
 void launch_scale_amplitudes(deviceFFT_t* grid, hostFFT_t* scale, int nlocal, int numBlocks, int blockSize, int calls);
 
-__global__ void ScaleFFT(deviceFFT_t* __restrict data, double scale, int nlocal);
+//__global__ void ScaleFFT(deviceFFT_t* __restrict data, double scale, int nlocal);
+
+void launch_scale_fft(deviceFFT_t* data, double scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls);
+
+void launch_scale_fft(deviceFFT_t* data, double scale, int nlocal, int numBlocks, int blockSize, int calls);
 
 __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, double k_delta, double k_min, double rl, int ng);
 

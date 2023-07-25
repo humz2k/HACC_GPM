@@ -1,4 +1,4 @@
-#include "ic_kernels.hpp"
+#include "../ic_kernels.hpp"
 
 __global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_vel, deviceFFT_t* __restrict outSx, deviceFFT_t* __restrict outSy, deviceFFT_t* __restrict outSz, double delta, double dotDelta, double rl, double a, double deltaT, double fscal, int ng){
 

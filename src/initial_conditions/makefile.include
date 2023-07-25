@@ -1,6 +1,9 @@
-ICS_PYTHON := $(patsubst src/initial_conditions/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/initial_conditions/*.cpp)) $(patsubst src/initial_conditions/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/initial_conditions/*.cu))
+#ICS_PYTHON := $(patsubst src/initial_conditions/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/initial_conditions/*.cpp)) $(patsubst src/initial_conditions/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/initial_conditions/*.cu))
 
-ICS_NOPYTHON := $(patsubst src/initial_conditions/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/initial_conditions/*.cpp)) $(patsubst src/initial_conditions/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(filter-out src/initial_conditions/initializer.cu, $(wildcard src/initial_conditions/*.cu))) $(HACCGPM_NOPYTHON_DIR)/initializer.o
+#ICS_NOPYTHON := $(patsubst src/initial_conditions/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/initial_conditions/*.cpp)) $(patsubst src/initial_conditions/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(filter-out src/initial_conditions/initializer.cu, $(wildcard src/initial_conditions/*.cu))) $(HACCGPM_NOPYTHON_DIR)/initializer.o
 
-HACCGPM_FILES += $(ICS_PYTHON)
-HACCGPM_NOPYTHON_FILES += $(ICS_NOPYTHON)
+HACCGPM_INITIAL_CONDITIONS_DIR = $(HACCGPM_BUILD_DIR)/initial_conditions
+HACCGPM_BUILD_FOLDERS += $(HACCGPM_INITIAL_CONDITIONS_DIR) $(HACCGPM_INITIAL_CONDITIONS_DIR)/cuda
+
+HACCGPM_FILES += $(HACCGPM_INITIAL_CONDITIONS_DIR)/initializer.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cosmo.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cuda/interpolation_initializer.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cuda/place_particles_initializer.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cuda/rng_initializer.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cuda/scale_initializer.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cuda/transform_density_field_initializer.o 
+HACCGPM_NOPYTHON_FILES += $(HACCGPM_NOPYTHON_DIR)/initializer.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cosmo.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cuda/interpolation_initializer.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cuda/place_particles_initializer.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cuda/rng_initializer.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cuda/scale_initializer.o $(HACCGPM_INITIAL_CONDITIONS_DIR)/cuda/transform_density_field_initializer.o

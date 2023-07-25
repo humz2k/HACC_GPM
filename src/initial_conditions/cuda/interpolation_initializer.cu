@@ -1,4 +1,4 @@
-#include "ic_kernels.hpp"
+#include "../ic_kernels.hpp"
 
 __forceinline__ __device__ double do_pk_interpolation(int3 idx3d, double* in, double k_delta, double k_min, double rl, int ng){
     

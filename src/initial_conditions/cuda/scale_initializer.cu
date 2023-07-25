@@ -1,4 +1,4 @@
-#include "ic_kernels.hpp"
+#include "../ic_kernels.hpp"
 
 __global__ void ScaleAmplitudes(deviceFFT_t* __restrict grid, const hostFFT_t* __restrict scale, int nlocal){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;

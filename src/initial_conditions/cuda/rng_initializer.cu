@@ -1,4 +1,4 @@
-#include "ic_kernels.hpp"
+#include "../ic_kernels.hpp"
 
 __global__ void initRNG(curandState *state, int seed){
 
@@ -25,4 +25,12 @@ __global__ void GenerateRealRandom(curandState* state, deviceFFT_t* __restrict g
     out.x = amp;
     out.y = 0;
     grid[idx] = out;
+}
+
+void launch_generate_rng(deviceFFT_t* d_grid1, int ng, int seed, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*ng*ng*ng);
+    InvokeGPUKernel(initRNG,numBlocks,blockSize,rngState,seed);
+    InvokeGPUKernel(GenerateRealRandom,numBlocks,blockSize,rngState,d_grid1,ng*ng*ng);
+    cudaCall(cudaFree,rngState);
 }

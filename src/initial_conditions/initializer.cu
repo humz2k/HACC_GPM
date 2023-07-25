@@ -27,20 +27,22 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
 
     #ifdef VerboseInitializer
     printf("%s      Allocated rngState, h_tmp, d_pkScale.\n",indent);
-    printf("%s   Calling initRNG...\n",indent);
+    //printf("%s   Calling initRNG...\n",indent);
     #endif
 
-    InvokeGPUKernel(initRNG,numBlocks,params.blockSize,rngState,params.seed);
+    //InvokeGPUKernel(initRNG,numBlocks,params.blockSize,rngState,params.seed);
 
     #ifdef VerboseInitializer
-    printf("%s      Called initRNG.\n",indent);
-    printf("%s   Calling GenerateRealRandom...\n",indent);
+    //printf("%s      Called initRNG.\n",indent);
+    printf("%s   Calling generate_rng...\n",indent);
     #endif
 
-    InvokeGPUKernel(GenerateRealRandom,numBlocks,params.blockSize,rngState,d_grid1,params.ng*params.ng*params.ng);
+    //InvokeGPUKernel(GenerateRealRandom,numBlocks,params.blockSize,rngState,d_grid1,params.ng*params.ng*params.ng);
+
+    launch_generate_rng(d_grid1,params.ng,params.seed,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseInitializer
-    printf("%s      Called GenerateRealRandom.\n",indent);
+    printf("%s      Called generate_rng.\n",indent);
     printf("%s   Doing Forward FFT...\n",indent);
     #endif
 

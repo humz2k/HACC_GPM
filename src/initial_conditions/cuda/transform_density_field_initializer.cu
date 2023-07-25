@@ -1,4 +1,4 @@
-#include "ic_kernels.hpp"
+#include "../ic_kernels.hpp"
 
 __global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, deviceFFT_t* __restrict outSx, deviceFFT_t* __restrict outSy, deviceFFT_t* __restrict outSz, double delta, double rl, double a, int ng){
 

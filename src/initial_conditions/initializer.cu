@@ -3,6 +3,8 @@
 #include "ic_kernels.hpp"
 #include <math.h>
 
+//#define NOPYTHON
+
 #ifndef NOPYTHON
 #include "../cambTools/ccamb.h"
 #endif
@@ -47,7 +49,7 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
     #ifdef VerboseInitializer
     printf("%s   Getting Pk from ipk...\n",indent);
     #endif
-    double* h_ipk;
+    /*double* h_ipk;
     int ipk_bins;
     double ipk_delta;
     double ipk_max;
@@ -67,7 +69,10 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
     InvokeGPUKernel(interpolatePowerSpectrum,numBlocks,params.blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,params.rl,params.ng);
 
     free(h_ipk);
-    cudaCall(cudaFree,d_ipk);
+    cudaCall(cudaFree,d_ipk);*/
+
+    interpolate_pk(cosmo,d_pkScale,params.ng,params.rl,numBlocks,params.blockSize,calls);
+
     #else
     #ifdef VerboseInitializer
     printf("%s   Getting Pk from Camb...\n",indent);

@@ -16,6 +16,8 @@ void launch_scale_fft(deviceFFT_t* data, double scale, int nlocal, int world_ran
 
 void launch_scale_fft(deviceFFT_t* data, double scale, int nlocal, int numBlocks, int blockSize, int calls);
 
+void interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int ng, double rl, int numBlocks, int blockSize, int calls);
+
 __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, double k_delta, double k_min, double rl, int ng);
 
 __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, double k_delta, double k_min, double rl, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims);

@@ -48,3 +48,29 @@ __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, 
     out[idx] = do_pk_interpolation(idx3d,in,k_delta,k_min,rl,ng);
 
 }
+
+void interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int ng, double rl, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+
+    double* h_ipk;
+    int ipk_bins;
+    double ipk_delta;
+    double ipk_max;
+    double ipk_min;
+    cosmo.read_ipk(&h_ipk,&ipk_bins,&ipk_delta,&ipk_max,&ipk_min,calls+1);
+    double* d_ipk; cudaCall(cudaMalloc,&d_ipk,sizeof(double)*ipk_bins);
+    cudaCall(cudaMemcpy, d_ipk, h_ipk, sizeof(double)*ipk_bins, cudaMemcpyHostToDevice);
+
+    double maxK = ((ng/2)*2*M_PI)/rl;
+    maxK = sqrt(maxK*maxK*maxK);
+    printf("%s      maxK = %g\n",indent,maxK);
+    if (maxK > ipk_max){
+        printf("%s      input ipk only goes to %g\n",indent,ipk_max);
+        exit(1);
+    }
+
+    InvokeGPUKernel(interpolatePowerSpectrum,numBlocks,blockSize,d_pkScale,d_ipk,ipk_bins,ipk_delta,ipk_min,rl,ng);
+
+    free(h_ipk);
+    cudaCall(cudaFree,d_ipk);
+}

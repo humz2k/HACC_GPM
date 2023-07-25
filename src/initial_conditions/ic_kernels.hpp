@@ -2,17 +2,15 @@
 #include <curand.h>
 #include <curand_kernel.h>
 
-__global__ void initRNG(curandState *state, int seed);
-
-__global__ void initRNG(curandState *state, int seed, int nlocal, int ng, int3 local_grid_size, int3 local_coords);
-
-__global__ void GenerateRealRandom(curandState* state, deviceFFT_t* __restrict grid, int nlocal);
-
 void launch_generate_rng(deviceFFT_t* d_grid1, int ng, int seed, int numBlocks, int blockSize, int calls);
 
 void launch_generate_rng(deviceFFT_t* d_grid1, int ng, int seed, int nlocal, int3 local_grid_size, int3 local_coords, int world_rank, int numBlocks, int blockSize, int calls);
 
 __global__ void ScaleAmplitudes(deviceFFT_t* __restrict grid, const hostFFT_t* __restrict scale, int nlocal);
+
+void launch_scale_amplitudes(deviceFFT_t* grid, hostFFT_t* scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls);
+
+void launch_scale_amplitudes(deviceFFT_t* grid, hostFFT_t* scale, int nlocal, int numBlocks, int blockSize, int calls);
 
 __global__ void ScaleFFT(deviceFFT_t* __restrict data, double scale, int nlocal);
 

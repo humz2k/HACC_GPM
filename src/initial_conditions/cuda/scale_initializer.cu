@@ -11,6 +11,15 @@ __global__ void ScaleAmplitudes(deviceFFT_t* __restrict grid, const hostFFT_t* _
     grid[idx] = current;
 }
 
+void launch_scale_amplitudes(deviceFFT_t* grid, hostFFT_t* scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    InvokeGPUKernelParallel(ScaleAmplitudes,numBlocks,blockSize,grid,scale,nlocal);
+}
+
+void launch_scale_amplitudes(deviceFFT_t* grid, hostFFT_t* scale, int nlocal, int numBlocks, int blockSize, int calls){
+    launch_scale_amplitudes(grid,scale,nlocal,0,numBlocks,blockSize,calls);
+}
+
 __global__ void ScaleFFT(deviceFFT_t* __restrict data, double scale, int nlocal){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;

@@ -34,3 +34,11 @@ void launch_generate_rng(deviceFFT_t* d_grid1, int ng, int seed, int numBlocks, 
     InvokeGPUKernel(GenerateRealRandom,numBlocks,blockSize,rngState,d_grid1,ng*ng*ng);
     cudaCall(cudaFree,rngState);
 }
+
+void launch_generate_rng(deviceFFT_t* d_grid1, int ng, int seed, int nlocal, int3 local_grid_size, int3 local_coords, int world_rank, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*nlocal);
+    InvokeGPUKernelParallel(initRNG,numBlocks,blockSize,rngState,seed,nlocal,ng,local_grid_size,local_coords);
+    InvokeGPUKernelParallel(GenerateRealRandom,numBlocks,blockSize,rngState,d_grid1,nlocal);
+    cudaCall(cudaFree,rngState);
+}

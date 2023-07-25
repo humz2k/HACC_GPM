@@ -21,23 +21,13 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
     printf("%s   Allocating rngState, h_tmp, d_pkScale...\n",indent);
     #endif
 
-    curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*params.ng*params.ng*params.ng);
     hostFFT_t* h_tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*params.ng*params.ng*params.ng);
     hostFFT_t* d_pkScale; cudaCall(cudaMalloc,&d_pkScale,sizeof(hostFFT_t)*params.ng*params.ng*params.ng);
 
     #ifdef VerboseInitializer
     printf("%s      Allocated rngState, h_tmp, d_pkScale.\n",indent);
-    //printf("%s   Calling initRNG...\n",indent);
-    #endif
-
-    //InvokeGPUKernel(initRNG,numBlocks,params.blockSize,rngState,params.seed);
-
-    #ifdef VerboseInitializer
-    //printf("%s      Called initRNG.\n",indent);
     printf("%s   Calling generate_rng...\n",indent);
     #endif
-
-    //InvokeGPUKernel(GenerateRealRandom,numBlocks,params.blockSize,rngState,d_grid1,params.ng*params.ng*params.ng);
 
     launch_generate_rng(d_grid1,params.ng,params.seed,numBlocks,params.blockSize,calls);
 
@@ -111,7 +101,6 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
 
     free(h_tmp);
     cudaCall(cudaFree,d_pkScale);
-    cudaCall(cudaFree,rngState);
 
     #ifdef VerboseInitializer
     printf("%s      Freed rngState, h_tmp, d_pkScale.\n",indent);
@@ -212,26 +201,26 @@ void GenerateFourierAmplitudesParallel(HACCGPM::CosmoClass& cosmo, HACCGPM::Para
     if(world_rank == 0)printf("%s   Allocating rngState, h_tmp, d_pkScale...\n",indent);
     #endif
 
-    curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*params.nlocal);
+    //curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*params.nlocal);
     hostFFT_t* h_tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*params.nlocal);
     hostFFT_t* d_pkScale; cudaCall(cudaMalloc,&d_pkScale,sizeof(hostFFT_t)*params.nlocal);
 
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Allocated rngState, h_tmp, d_pkScale.\n",indent);
-    if(world_rank == 0)printf("%s   Calling initRNG...\n",indent);
+    //if(world_rank == 0)printf("%s   Calling initRNG...\n",indent);
     #endif
 
-    InvokeGPUKernelParallel(initRNG,numBlocks,params.blockSize,rngState,params.seed,params.nlocal,params.ng,params.local_grid_size_vec,params.grid_coords_vec);
+    //InvokeGPUKernelParallel(initRNG,numBlocks,params.blockSize,rngState,params.seed,params.nlocal,params.ng,params.local_grid_size_vec,params.grid_coords_vec);
 
     #ifdef VerboseInitializer
-    if(world_rank == 0)printf("%s      Called initRNG.\n",indent);
-    if(world_rank == 0)printf("%s   Calling GenerateRealRandom...\n",indent);
+    //if(world_rank == 0)printf("%s      Called initRNG.\n",indent);
+    if(world_rank == 0)printf("%s   Calling generate_rng...\n",indent);
     #endif
-
-    InvokeGPUKernelParallel(GenerateRealRandom,numBlocks,params.blockSize,rngState,d_grid,params.nlocal);
+    launch_generate_rng(d_grid,params.ng,params.seed,params.nlocal,params.local_grid_size_vec,params.grid_coords_vec,params.world_rank,numBlocks,params.blockSize,calls);
+    //InvokeGPUKernelParallel(GenerateRealRandom,numBlocks,params.blockSize,rngState,d_grid,params.nlocal);
 
     #ifdef VerboseInitializer
-    if(world_rank == 0)printf("%s      Called GenerateRealRandom.\n",indent);
+    if(world_rank == 0)printf("%s      Called generate_rng.\n",indent);
     if(world_rank == 0)printf("%s   Doing Forward FFT...\n",indent);
     #endif
 
@@ -298,7 +287,7 @@ void GenerateFourierAmplitudesParallel(HACCGPM::CosmoClass& cosmo, HACCGPM::Para
 
     free(h_tmp);
     cudaFree(d_pkScale);
-    cudaFree(rngState);
+    //cudaFree(rngState);
 
     #ifdef VerboseInitializer
     if(world_rank == 0)printf("%s      Freed rngState, h_tmp, d_pkScale.\n",indent);

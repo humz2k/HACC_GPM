@@ -1,5 +1,7 @@
 # HACC_GPM
 
+![build](https://github.com/humz2k/HACC_GPM/actions/workflows/helloAction.yml/badge.svg)
+
 ### Building From Source
 These are the steps to build from source:
 #### Cloning Repo

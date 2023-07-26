@@ -24,5 +24,7 @@ jobs:
         run: echo $CUDA_PATH
       - name: See mpicc
         run: mpicc --help
+      - name: make env
+        run: source env/bashrc.github.cuda
       - name: NoPython
         run: make nopython

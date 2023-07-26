@@ -20,6 +20,8 @@ HACCGPM_INCLUDE ?= -Isrc -Ipycosmotools/include
 HACCGPM_BUILD_FOLDERS ?=
 
 MPI_OBJECT_FLAGS ?= -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -c -Wall
+NVCC_OBJECT_FLAGS ?= -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g,-Wall, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c
+CAMB_TOOLS_FLAGS ?= $(PY_C_FLAGS) $(PY_LD_FLAGS) $(PY_LIB) -I$(PY_NP_FLAGS) -fPIC -c -O3 -Wno-unused-but-set-variable -Wno-return-type
 
 include src/*/*.include
 
@@ -46,43 +48,25 @@ $(HACCGPM_NOPYTHON_DIR):
 
 $(HACCGPM_BUILD_DIR)/ccamb.o: cambTools/ccamb.c | $(HACCGPM_BUILD_DIR)
 	python3 cambTools/package_cambpy.py
-	gcc $< $(PY_C_FLAGS) -o $@ $(PY_LD_FLAGS) $(PY_LIB) -I$(PY_NP_FLAGS) -fPIC -c -O3 -Wno-unused-but-set-variable -Wno-return-type
+	gcc $< -o $@ $(CAMB_TOOLS_FLAGS)
 
 $(HACCGPM_BUILD_DIR)/%.o: **/%.cpp | $(HACCGPM_BUILD_DIR)
-	mpicxx $< -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -c -o $@ -Wall
+	mpicxx $< $(MPI_OBJECT_FLAGS) -o $@
 
-$(HACCGPM_BUILD_DIR)/%.o: */%.cu | $(HACCGPM_BUILD_DIR)
-	nvcc $< -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g,-Wall, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@ 
+$(HACCGPM_BUILD_DIR)/%.o: **/%.cu | $(HACCGPM_BUILD_DIR)
+	nvcc $< $(NVCC_OBJECT_FLAGS) -o $@ 
 
-#$(HACCGPM_BUILD_DIR)/%.o: */*/%.cpp | $(HACCGPM_BUILD_DIR)
-#	mpicxx $< $(MPI_OBJECT_FLAGS) -o $@
-
-$(HACCGPM_BUILD_DIR)/%.o: */*/%.cu | $(HACCGPM_BUILD_DIR)
-	nvcc $< -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g,-Wall, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@ 
-
-#$(HACCGPM_BUILD_DIR)/%.o: */*/*/%.cpp | $(HACCGPM_BUILD_DIR)
-#	mpicxx $< $(MPI_OBJECT_FLAGS) -o $@
-
-$(HACCGPM_BUILD_DIR)/%.o: */*/*/%.cu | $(HACCGPM_BUILD_DIR)
-	nvcc $< -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g,-Wall, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@ 
-
-#$(HACCGPM_BUILD_DIR)/%.o: */*/*/*/%.cpp | $(HACCGPM_BUILD_DIR)
-#	mpicxx $< $(MPI_OBJECT_FLAGS) -o $@
-
-$(HACCGPM_BUILD_DIR)/%.o: */*/*/*/%.cu | $(HACCGPM_BUILD_DIR)
-	nvcc $< -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g,-Wall, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@ 
-
-$(HACCGPM_NOPYTHON_DIR)/%.o: */%.cpp | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
+$(HACCGPM_NOPYTHON_DIR)/%.o: **/%.cpp | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
 	mpicxx $< -DNOPYTHON $(MPI_OBJECT_FLAGS) -o $@
 
-$(HACCGPM_NOPYTHON_DIR)/%.o: */%.cu | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
-	nvcc $< -DNOPYTHON -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g,-Wall, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@ 
+$(HACCGPM_NOPYTHON_DIR)/%.o: **/%.cu | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
+	nvcc $< -DNOPYTHON $(NVCC_OBJECT_FLAGS) -o $@ 
 
 $(HACCGPM_NOPYTHON_DIR)/%.o: */*/%.cpp | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
 	mpicxx $< -DNOPYTHON $(MPI_OBJECT_FLAGS) -o $@
 
 $(HACCGPM_NOPYTHON_DIR)/%.o: */*/%.cu | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
-	nvcc $< -DNOPYTHON -lcufft -lineinfo -Xptxas -v -Xcompiler -fPIC,-O3,-fopenmp,-g,-Wall, $(CUDA_ARCH_FLAGS) $(HACCGPM_INCLUDE) -c -o $@ 
+	nvcc $< -DNOPYTHON $(NVCC_OBJECT_FLAGS) -o $@
 
 .PHONY: clean
 clean:

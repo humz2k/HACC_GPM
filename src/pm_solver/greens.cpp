@@ -3,7 +3,7 @@
 #include <cassert>
 #include "kernels.hpp"
 
-#define VerboseGreens
+//#define VerboseGreens
 
 void HACCGPM::serial::InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls){
 

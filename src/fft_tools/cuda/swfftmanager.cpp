@@ -6,7 +6,7 @@
 #include "../swfft-all-to-all/include/swfft.hpp"
 #include <cstring>
 
-#define VerboseFFT
+//#define VerboseFFT
 
 CPUTimer_t FORWARD_FFT_TIME = 0;
 int FORWARD_FFT_CALLS = 0;

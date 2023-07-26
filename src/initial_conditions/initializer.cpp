@@ -5,7 +5,7 @@
 
 //#define NOPYTHON
 
-#define VerboseInitializer
+//#define VerboseInitializer
 
 void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, deviceFFT_t* d_grid1, hostFFT_t* d_pkScale, double z, int calls){
     int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;

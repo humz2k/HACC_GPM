@@ -3,7 +3,7 @@
 #include <mpi.h>
 #include "haccgpm.hpp"
 
-#define VerboseTransfer
+//#define VerboseTransfer
 
 int TRANSFER_CALLS = 0;
 CPUTimer_t TRANSFER_TIME = 0;

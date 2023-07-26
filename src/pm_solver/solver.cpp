@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "kernels.hpp"
 
-#define VerboseSolver
+//#define VerboseSolver
 
 void HACCGPM::parallel::SolveGradient(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, int calls){
     HACCGPM::parallel::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,mem.d_x,mem.d_y,mem.d_z,params.ng,params.n_particles,params.nlocal,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec,params.world_rank,params.world_size,params.overload,params.blockSize,calls);

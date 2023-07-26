@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "haccgpm.hpp"
 
+//#define VerboseTS
+
 double omega_nu_massive(double a, double m_omega_nu, double m_f_nu_massive, double m_omega_radiation){
     double mat = m_omega_nu/pow(a,3.0);
     double rad = m_f_nu_massive*m_omega_radiation/pow(a,4.0);
@@ -44,7 +46,9 @@ void HACCGPM::Timestepper::setInitialZ(double z){
     aa = 1.0/(z+1.0);
     adot = HACCGPM::serial::get_adot(aa,params.m_w_de,params.m_wa_de,params.m_omega_cb,params.m_omega_radiation,params.m_f_nu_massless,params.m_f_nu_massive,params.m_omega_matter,params.m_omega_nu);
     fscal = HACCGPM::serial::get_fscal(aa,adot,params.m_omega_cb);
+    #ifdef VerboseTS
     if(world_rank == 0)printf("Timestepper: a=%g, z=%g, adot=%g, fscal=%g\n",aa,z,adot,fscal);
+    #endif
 }
 
 void HACCGPM::Timestepper::advanceHalfStep(){
@@ -52,7 +56,9 @@ void HACCGPM::Timestepper::advanceHalfStep(){
     z = (1.0f/aa) - 1;
     adot = HACCGPM::serial::get_adot(aa,params.m_w_de,params.m_wa_de,params.m_omega_cb,params.m_omega_radiation,params.m_f_nu_massless,params.m_f_nu_massive,params.m_omega_matter,params.m_omega_nu);
     fscal = HACCGPM::serial::get_fscal(aa,adot,params.m_omega_cb);
+    #ifdef VerboseTS
     if(world_rank == 0)printf("Timestepper: a=%g, z=%g, adot=%g, fscal=%g\n",aa,z,adot,fscal);
+    #endif
 }
 
 void HACCGPM::Timestepper::reverseHalfStep(){

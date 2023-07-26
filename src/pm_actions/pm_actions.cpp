@@ -3,7 +3,7 @@
 #include "pm_kernels.hpp"
 #include <mpi.h>
 
-#define VerboseUpdate
+//#define VerboseUpdate
 
 CPUTimer_t CIC_TIME = 0;
 CPUTimer_t CIC_KERNEL_TIME = 0;
@@ -63,14 +63,16 @@ void HACCGPM::parallel::CIC(deviceFFT_t* d_grid,
     
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
+    #ifdef VerboseUpdate
     if (world_rank == 0)printf("%s   CIC took %llu us\n",indent,t);
+    #endif
     CIC_TIME += t;
     CIC_CALLS += 1;
 }
 
 void HACCGPM::parallel::UpdatePositions(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager& mem, HACCGPM::Timestepper ts, float frac, int calls){
     if(HACCGPM::parallel::UpdatePositions(mem.d_pos,mem.d_vel,ts,frac,params.ng,params.n_particles,params.local_grid_size_vec,params.overload,params.blockSize,params.world_rank,calls)){
-        if(params.world_rank == 0)printf("DOING TRANSFER!!!!\n");
+        //if(params.world_rank == 0)printf("DOING TRANSFER!!!!\n");
         HACCGPM::parallel::TransferParticles(params,mem);
     }
 }
@@ -95,7 +97,9 @@ int HACCGPM::parallel::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Ti
     //}
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
+    #ifdef VerboseUpdate
     if (world_rank == 0)printf("%s   UpdatePositions took %llu us\n",indent,t);
+    #endif
     UPDATE_POS_TIME += t;
     UPDATE_POS_CALLS += 1;
     return refresh_now;
@@ -155,7 +159,9 @@ void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int
     CIC_KERNEL_TIME += launch_f2c(d_grid,d_temp,ng,numBlocks,blockSize,calls);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
+    #ifdef VerboseUpdate
     printf("%s   CIC (complex,float) took %llu us\n",indent,t);
+    #endif
     CIC_TIME += t;
     CIC_CALLS += 1;
 }
@@ -174,7 +180,9 @@ void HACCGPM::serial::UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_
     UPDATE_VEL_KERNEL_TIME += launch_icic(d_vel,d_grad,d_pos,ts.deltaT,ts.fscal,ng,numBlocks,blockSize,calls);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
+    #ifdef VerboseUpdate
     printf("%s   UpdateVelocities took %llu us\n",indent,t);
+    #endif
     UPDATE_VEL_TIME += t;
     UPDATE_VEL_CALLS += 1;
 }
@@ -195,7 +203,9 @@ void HACCGPM::serial::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Tim
     UPDATE_POS_KERNEL_TIME += launch_updatepos(d_pos,d_vel,prefactor,ng,numBlocks,blockSize,calls);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
+    #ifdef VerboseUpdate
     printf("%s   UpdatePositions took %llu us\n",indent,t);
+    #endif
     UPDATE_POS_TIME += t;
     UPDATE_POS_CALLS += 1;
 }

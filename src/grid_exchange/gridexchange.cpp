@@ -25,7 +25,7 @@ HACCGPM::parallel::GridExchange::GridExchange(int3 local_coords_, int3 local_gri
 
 //#define VerboseResolveSends
 
-#define VerboseResolve
+//#define VerboseResolve
 
 template<class ThisDim>
 void do_return(float4* grad, int left_rank, int right_rank, int size, int3 local_grid_size, int3 local_coords, int3 total_grid_dims, int overload, int world_rank, size_t* bytes, CPUTimer_t* mpi_time, int blockSize, int calls){

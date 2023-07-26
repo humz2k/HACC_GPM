@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define VerbosePower
+//#define VerbosePower
 
 CPUTimer_t POWER_TIME = 0;
 int POWER_CALLS = 0;
@@ -200,8 +200,9 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
     CPUTimer_t t = end-start;
     POWER_CALLS++;
     POWER_TIME += t;
-
+    #ifdef VerbosePower
     printf("%s   GetPowerSpectrum took %llu us\n",indent,t);
+    #endif
 
 }
 

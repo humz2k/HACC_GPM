@@ -70,6 +70,8 @@ int serial(const char* params_file){
 
     ts.advanceHalfStep();
 
+    CPUTimer_t timestepper_start = CPUTimer();
+
     for (int step = 0; step < params.lastStep; step++){
 
         printf("\n=========\nSTEP %d\n",step);
@@ -100,6 +102,13 @@ int serial(const char* params_file){
         #ifndef NOPYTHON
         HACCGPM::serial::PyAnalysis(params,mem,ts,pytools,step);
         #endif
+
+        CPUTimer_t timestepper_im = CPUTimer();
+        CPUTimer_t current_timestepper_time = timestepper_im - timestepper_start;
+        double time_per_step = ((double)current_timestepper_time) / ((double)step + 1);
+        int steps_remaining = (params.lastStep - step);
+        double time_remaining = time_per_step * steps_remaining;
+        printf("   %g minutes remaining\n",time_remaining * 1.66667e-8);
     }
 
     sprintf(stepstr, "%s.pk.fin", params.prefix);

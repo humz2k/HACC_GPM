@@ -41,9 +41,19 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 #define cudaCall(func,...) if (func(__VA_ARGS__) != cudaSuccess)printf("Error >> %s\n", cudaGetErrorString(cudaGetLastError()));cudaDeviceSynchronize()
 
-#define InvokeGPUKernel(func,numBlocks,blockSize,...) ({printf("%s   Invoked %s\n",indent,TOSTRING(func));CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start;printf("%s      %s took %llu us\n",indent,TOSTRING(func),t); t;})
+//#define VerboseCuda
 
+#ifdef VerboseCuda
+
+#define InvokeGPUKernel(func,numBlocks,blockSize,...) ({printf("%s   Invoked %s\n",indent,TOSTRING(func));CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start;printf("%s      %s took %llu us\n",indent,TOSTRING(func),t); t;})
 #define InvokeGPUKernelParallel(func,numBlocks,blockSize,...) ({if(world_rank == 0)printf("%s   Invoked %s\n",indent,TOSTRING(func));CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start;if(world_rank == 0)printf("%s      %s took %llu us\n",indent,TOSTRING(func),t); t;})
+
+#else
+
+#define InvokeGPUKernel(func,numBlocks,blockSize,...) ({CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start; t;})
+#define InvokeGPUKernelParallel(func,numBlocks,blockSize,...) ({CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start; t;})
+
+#endif
 
 #define hostFFT_t double
 #define deviceFFT_t cufftDoubleComplex

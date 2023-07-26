@@ -1,6 +1,6 @@
 #include "kernels.hpp"
 
-#define VerboseSwap
+//#define VerboseSwap
 
 CPUTimer_t HACCGPM::parallel::insertParticles(float4* d_pos, float4* d_vel, float4* h_swap, int n_new, int n_particles, int blockSize, int world_rank, int calls){
     int numBlocks = (n_particles + blockSize - 1) / blockSize;

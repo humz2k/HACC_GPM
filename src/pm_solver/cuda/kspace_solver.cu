@@ -15,7 +15,8 @@ __global__ void kspace_solve(deviceFFT_t* __restrict d_rho, const hostFFT_t* __r
     d_rho[idx] = rho;
 }
 
-__global__ void kspace_solve_gradient(deviceFFT_t* __restrict d_x, deviceFFT_t* __restrict d_y, deviceFFT_t* __restrict d_z, const deviceFFT_t* __restrict d_rho, const hostFFT_t* __restrict d_greens, int ng){
+template<class T>
+__global__ void kspace_solve_gradient(T* __restrict d_x, T* __restrict d_y, T* __restrict d_z, const T* __restrict d_rho, const hostFFT_t* __restrict d_greens, int ng){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     double d = ((2*M_PI)/(((double)(ng))));
@@ -30,21 +31,21 @@ __global__ void kspace_solve_gradient(deviceFFT_t* __restrict d_x, deviceFFT_t* 
     c.y = -get_gradient(kmodes.y) * greens;
     c.z = -get_gradient(kmodes.z) * greens;
 
-    deviceFFT_t rho = __ldg(&d_rho[idx]);
+    T rho = __ldg(&d_rho[idx]);
 
-    deviceFFT_t out_x;
+    T out_x;
     out_x.x = -c.x * rho.y;
     out_x.y = c.x * rho.x;
 
     d_x[idx] = out_x;
 
-    deviceFFT_t out_y;
+    T out_y;
     out_y.x = -c.y * rho.y;
     out_y.y = c.y * rho.x;
 
     d_y[idx] = out_y;
 
-    deviceFFT_t out_z;
+    T out_z;
     out_z.x = -c.z * rho.y;
     out_z.y = c.z * rho.x;
 
@@ -96,6 +97,11 @@ CPUTimer_t launch_kspace_solve(deviceFFT_t* d_rho, hostFFT_t* d_greens, int numB
 }
 
 CPUTimer_t launch_kspace_solve_gradient(deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernel(kspace_solve_gradient,numBlocks,blockSize,d_x,d_y,d_z,d_rho,d_greens,ng);
+}
+
+CPUTimer_t launch_kspace_solve_gradient(floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, floatFFT_t* d_rho, hostFFT_t* d_greens, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     return InvokeGPUKernel(kspace_solve_gradient,numBlocks,blockSize,d_x,d_y,d_z,d_rho,d_greens,ng);
 }

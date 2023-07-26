@@ -1,6 +1,7 @@
 #include "../ic_kernels.hpp"
 
-__global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_vel, deviceFFT_t* __restrict outSx, deviceFFT_t* __restrict outSy, deviceFFT_t* __restrict outSz, double delta, double dotDelta, double rl, double a, double deltaT, double fscal, int ng){
+template<class T>
+__global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_vel, T* __restrict outSx, T* __restrict outSy, T* __restrict outSz, double delta, double dotDelta, double rl, double a, double deltaT, double fscal, int ng){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -8,9 +9,9 @@ __global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_ve
 
     float4 my_particle = make_float4(idx3d.x,idx3d.y,idx3d.z,idx);
 
-    deviceFFT_t thisSx = __ldg(&outSx[idx]);
-    deviceFFT_t thisSy = __ldg(&outSy[idx]);
-    deviceFFT_t thisSz = __ldg(&outSz[idx]);
+    T thisSx = __ldg(&outSx[idx]);
+    T thisSy = __ldg(&outSy[idx]);
+    T thisSz = __ldg(&outSz[idx]);
 
     float3 s = make_float3(thisSx.x,thisSy.x,thisSz.x);
 
@@ -57,6 +58,11 @@ __global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_ve
 }
 
 void launch_place_particles(float4* d_pos, float4* d_vel, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
+}
+
+void launch_place_particles(float4* d_pos, float4* d_vel, cufftComplex* d_x, cufftComplex* d_y, cufftComplex* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
 }

@@ -24,6 +24,7 @@ inline unsigned long long CPUTimer(unsigned long long start=0){
 }
 
 #define deviceFFT_t cufftDoubleComplex
+#define floatFFT_t cufftComplex
 #define hostFFT_t double
 
 #define getIndent(calls) char indent[50] = ""; for (int i = 0; i < (calls*6); i++){strcat(indent," ");}
@@ -57,6 +58,8 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 #define hostFFT_t double
 #define deviceFFT_t cufftDoubleComplex
+
+//#define USE_SINGLE_FFT
 
 #define MAX_STEPS 1000
 
@@ -340,11 +343,24 @@ namespace HACCGPM{
                 float4* d_vel;
                 float4* d_grad;
                 hostFFT_t* d_greens;
+
+                #ifdef USE_SINGLE_FFT
+
+                floatFFT_t* d_grid;
+                float* d_tempgrid;
+                floatFFT_t* d_x;
+                floatFFT_t* d_y;
+                floatFFT_t* d_z;
+
+                #else
+
                 deviceFFT_t* d_grid;
                 float* d_tempgrid;
                 deviceFFT_t* d_x;
                 deviceFFT_t* d_y;
                 deviceFFT_t* d_z;
+
+                #endif
 
                 MemoryManager(HACCGPM::Params params);
 
@@ -369,6 +385,8 @@ namespace HACCGPM{
 
         void CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls = 0);
 
+        void CIC(floatFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls = 0);
+
         void CIC(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 
         double get_fscal(double m_aa, double m_adot, double m_omega_cb);
@@ -391,11 +409,16 @@ namespace HACCGPM{
 
         void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int blockSize, int calls = 0);
 
+        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, hostFFT_t* d_greens, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int ng, int blockSize, int calls = 0);
+
         void InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 
         void forward_fft(deviceFFT_t* data, deviceFFT_t* out, int ng, int calls = 0);
 
         void forward_fft(deviceFFT_t* data, int ng, int calls = 0);
+
+        void forward_fft(floatFFT_t* d_grid, int ng, int calls = 0);
+        void backward_fft(floatFFT_t* d_grid, int ng, int calls = 0);
 
         void backward_fft(deviceFFT_t* data, deviceFFT_t* out, int ng, int calls = 0);
 

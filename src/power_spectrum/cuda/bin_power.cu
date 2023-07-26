@@ -27,6 +27,18 @@ __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restric
 
 }
 
+__global__ void BinPower(const floatFFT_t* __restrict d_grid, double* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng){
+
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    int3 idx3d = HACCGPM::serial::get_index(idx,ng);
+
+    floatFFT_t this_val = __ldg(&d_grid[idx]);
+
+    calc_power_bins(d_binVals,d_binCounts,this_val.x,idx,idx3d,minK,binDelta,rl,ng);
+
+}
+
 __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;

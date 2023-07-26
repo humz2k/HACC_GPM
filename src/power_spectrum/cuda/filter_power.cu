@@ -56,3 +56,16 @@ __global__ void PkCICFilter(deviceFFT_t* __restrict grid, int ng){
     grid[idx] = my_grid;
     
 }
+
+__global__ void PkCICFilter(floatFFT_t* __restrict grid, int ng){
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    int3 idx3d = HACCGPM::serial::get_index(idx,ng);
+
+    double filter = get_pk_cic_filter(idx3d,ng);
+
+    floatFFT_t my_grid = __ldg(&grid[idx]);
+    my_grid.x *= filter;
+    grid[idx] = my_grid;
+    
+}

@@ -43,5 +43,5 @@ void HACCGPM::serial::writeOutput(char* fname, float4* d_pos, float4* d_vel, int
 }
 
 void HACCGPM::serial::printOutputTimes(){
-    printf("   writeOutput       -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10d us | mean: %10.2f us\n",OUTPUT_CALLS,OUTPUT_TIME,OUTPUT_TIME,0,((float)OUTPUT_TIME)/((float)(OUTPUT_CALLS)));
+    printf("   writeOutput        -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10d us | mean: %10.2f us\n",OUTPUT_CALLS,OUTPUT_TIME,OUTPUT_TIME,0,((float)OUTPUT_TIME)/((float)(OUTPUT_CALLS)));
 }

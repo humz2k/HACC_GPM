@@ -10,6 +10,8 @@ CPUTimer_t launch_cic(float* d_grid, float4* d_pos, int ng, int overload, int3 l
 
 CPUTimer_t launch_f2c(deviceFFT_t* d_out, float* d_in, int ng, int numBlocks, int blockSize, int calls);
 
+CPUTimer_t launch_f2c(cufftComplex* d_out, float* d_in, int ng, int numBlocks, int blockSize, int calls);
+
 CPUTimer_t launch_f2c(deviceFFT_t* d_out, float* d_in, int3 local_grid_size, int overload, int world_rank, int numBlocks, int blockSize, int calls);
 
 CPUTimer_t launch_icic(float4* d_vel, float4* d_grad, float4* d_pos, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls);

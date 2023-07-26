@@ -1,6 +1,7 @@
 #include "../ic_kernels.hpp"
 
-__global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, deviceFFT_t* __restrict outSx, deviceFFT_t* __restrict outSy, deviceFFT_t* __restrict outSz, double delta, double rl, double a, int ng){
+template<class T>
+__global__ void transformDensityField(const T* __restrict oldGrid, T* __restrict outSx, T* __restrict outSy, T* __restrict outSz, double delta, double rl, double a, int ng){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -18,11 +19,11 @@ __global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, dev
 
     double mul = (1/delta) * k2mul;
 
-    deviceFFT_t current = __ldg(&oldGrid[idx]);
+    T current = __ldg(&oldGrid[idx]);
     current.x *= mul;
     current.y *= mul;
 
-    deviceFFT_t sx,sy,sz;
+    T sx,sy,sz;
 
     sx.x = current.y * kmodes.x;
     sx.y = -current.x * kmodes.x;
@@ -81,6 +82,11 @@ __global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, dev
 }
 
 void launch_transform_density_field(deviceFFT_t* d_grid, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double rl, double z_ini, int ng, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    InvokeGPUKernel(transformDensityField,numBlocks,blockSize,d_grid,d_x,d_y,d_z,delta,rl,1/(1+z_ini),ng);
+}
+
+void launch_transform_density_field(floatFFT_t* d_grid, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, double delta, double rl, double z_ini, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     InvokeGPUKernel(transformDensityField,numBlocks,blockSize,d_grid,d_x,d_y,d_z,delta,rl,1/(1+z_ini),ng);
 }

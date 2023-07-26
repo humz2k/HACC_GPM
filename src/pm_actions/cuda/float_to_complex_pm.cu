@@ -1,10 +1,11 @@
 #include "../pm_kernels.hpp"
 
-__global__ void float2complex(deviceFFT_t* __restrict d_out, const float* __restrict d_in, int n){
+template<class T>
+__global__ void float2complex(T* __restrict d_out, const float* __restrict d_in, int n){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     if(idx >= n)return;
     float my_grid = __ldg(&d_in[idx]);
-    deviceFFT_t out;
+    T out;
     out.x = my_grid;
     out.y = 0;
     d_out[idx] = out;
@@ -37,6 +38,11 @@ __global__ void float2complex(deviceFFT_t* __restrict d_out, const float* __rest
 }
 
 CPUTimer_t launch_f2c(deviceFFT_t* d_out, float* d_in, int ng, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernel(float2complex,numBlocks,blockSize,d_out,d_in,ng*ng*ng);
+}
+
+CPUTimer_t launch_f2c(floatFFT_t* d_out, float* d_in, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     return InvokeGPUKernel(float2complex,numBlocks,blockSize,d_out,d_in,ng*ng*ng);
 }

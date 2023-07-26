@@ -207,5 +207,5 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
 }
 
 void HACCGPM::serial::printPowerTimes(){
-    printf("   GetPowerSpectrum  -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",POWER_CALLS,POWER_TIME,POWER_TIME - POWER_KERNEL_TIME,POWER_KERNEL_TIME,((float)POWER_TIME)/((float)(POWER_CALLS)));
+    printf("   GetPowerSpectrum   -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",POWER_CALLS,POWER_TIME,POWER_TIME - POWER_KERNEL_TIME,POWER_KERNEL_TIME,((float)POWER_TIME)/((float)(POWER_CALLS)));
 }

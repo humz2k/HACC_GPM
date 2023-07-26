@@ -22,10 +22,25 @@ int FFT_FORWARD_CALLS_OP = 0;
 int FFT_BACKWARD_CALLS_IP = 0;
 int FFT_BACKWARD_CALLS_OP = 0;
 
+CPUTimer_t SINGLE_FFT_FORWARD_TIME_IP = 0;
+CPUTimer_t SINGLE_FFT_FORWARD_PLAN_TIME_IP = 0;
+CPUTimer_t SINGLE_FFT_BACKWARD_TIME_IP = 0;
+CPUTimer_t SINGLE_FFT_BACKWARD_PLAN_TIME_IP = 0;
+CPUTimer_t SINGLE_FFT_FORWARD_TIME_OP = 0;
+CPUTimer_t SINGLE_FFT_FORWARD_PLAN_TIME_OP = 0;
+CPUTimer_t SINGLE_FFT_BACKWARD_TIME_OP = 0;
+CPUTimer_t SINGLE_FFT_BACKWARD_PLAN_TIME_OP = 0;
+
+int SINGLE_FFT_FORWARD_CALLS_IP = 0;
+int SINGLE_FFT_FORWARD_CALLS_OP = 0;
+int SINGLE_FFT_BACKWARD_CALLS_IP = 0;
+int SINGLE_FFT_BACKWARD_CALLS_OP = 0;
+
 class PlanManager{
     public:
         cufftHandle plans[FFTCacheSize];
         int ngs[FFTCacheSize];
+        bool is_single[FFTCacheSize];
         int used;
         PlanManager(){
             //printf("FFT PlanManager:\n");
@@ -47,14 +62,14 @@ class PlanManager{
                 //printf("   No plans to free\n");
             }
         }
-        cufftHandle get_plan(int ng, int calls){
+        cufftHandle get_plan(int ng, bool single_precision, int calls){
             getIndent(calls);
             #ifdef VerboseFFT
             printf("%sFFT PlanManager:\n",indent);
             printf("%s   Searching for cached plan %d\n",indent,ng);
             #endif
             for (int i = 0; i < used; i++){
-                if (ngs[i] == ng){
+                if ((ngs[i] == ng) && (is_single[i] == single_precision)){
                     #ifdef VerboseFFT
                     printf("%s   Found cached plan %d\n",indent,ngs[i]);
                     #endif
@@ -70,13 +85,24 @@ class PlanManager{
             #ifdef VerboseFFT
             printf("%s   No cached plan %d found, creating one\n",indent,ng);
             #endif
-            if (cufftPlan3d(&plans[used], ng, ng, ng, CUFFT_Z2Z) != CUFFT_SUCCESS){
-                #ifdef VerboseFFT
-                printf("CUFFT error: Plan creation failed\n");
-                #endif
-                exit(1);
-            };
+            if (single_precision){
+                if (cufftPlan3d(&plans[used], ng, ng, ng, CUFFT_C2C) != CUFFT_SUCCESS){
+                    #ifdef VerboseFFT
+                    printf("CUFFT error: Plan creation failed\n");
+                    #endif
+                    exit(1);
+                };
+
+            } else{
+                if (cufftPlan3d(&plans[used], ng, ng, ng, CUFFT_Z2Z) != CUFFT_SUCCESS){
+                    #ifdef VerboseFFT
+                    printf("CUFFT error: Plan creation failed\n");
+                    #endif
+                    exit(1);
+                };
+            }
             ngs[used] = ng;
+            is_single[used] = single_precision;
             used++;
             return plans[used-1];
         }
@@ -88,7 +114,7 @@ PlanManager plan_manager;
 
 void HACCGPM::serial::fft_cache_plan(int ng){
     #ifdef UsePlanManager
-    plan_manager.get_plan(ng,0);
+    plan_manager.get_plan(ng,false,0);
     #endif
 }
 
@@ -104,7 +130,7 @@ void HACCGPM::serial::forward_fft(deviceFFT_t* data, deviceFFT_t* out, int ng, i
 
     cufftHandle plan;
     #ifdef UsePlanManager
-    plan = plan_manager.get_plan(ng,calls+1);
+    plan = plan_manager.get_plan(ng,false,calls+1);
     #else
     printf("%s   Creating plan %d\n",indent,ng);
     if (cufftPlan3d(&plan, ng, ng, ng, CUFFT_Z2Z) != CUFFT_SUCCESS){
@@ -152,7 +178,7 @@ void HACCGPM::serial::forward_fft(deviceFFT_t* data, int ng, int calls){
 
     cufftHandle plan;
     #ifdef UsePlanManager
-    plan = plan_manager.get_plan(ng,calls+1);
+    plan = plan_manager.get_plan(ng,false,calls+1);
     #else
     #ifdef VerboseFFT
     printf("%s   Creating plan %d\n",indent,ng);
@@ -190,6 +216,56 @@ void HACCGPM::serial::forward_fft(deviceFFT_t* data, int ng, int calls){
     FFT_FORWARD_PLAN_TIME_IP += plan_time;
 }
 
+void HACCGPM::serial::forward_fft(floatFFT_t* data, int ng, int calls){
+
+    CPUTimer_t start = CPUTimer();
+
+    getIndent(calls);
+
+    #ifdef VerboseFFT
+    printf("%sforward_fft (in place) was called with\n%s   ng %d\n",indent,indent,ng);
+    #endif
+
+    cufftHandle plan;
+    #ifdef UsePlanManager
+    plan = plan_manager.get_plan(ng,true,calls+1);
+    #else
+    #ifdef VerboseFFT
+    printf("%s   Creating plan %d\n",indent,ng);
+    #endif
+    if (cufftPlan3d(&plan, ng, ng, ng, CUFFT_C2C) != CUFFT_SUCCESS){
+        printf("CUFFT error: Plan creation failed\n");
+        return;
+    };
+    #endif
+    
+    CPUTimer_t plan_t = CPUTimer();
+    #ifdef VerboseFFT
+    printf("%s   Executing C2C CUFFT_FORWARD\n",indent);
+    #endif
+    if (cufftExecC2C(plan, data, data, CUFFT_FORWARD) != CUFFT_SUCCESS){
+        printf("CUFFT error: ExecC2C Forward failed\n");
+        return;	
+    }
+
+    cudaDeviceSynchronize();
+
+    #ifndef UsePlanManager
+    printf("%s   Destroying plan %d\n",indent,ng);
+    cufftDestroy(plan);
+    #endif
+
+    CPUTimer_t end = CPUTimer();
+    CPUTimer_t plan_time = plan_t - start;
+    CPUTimer_t t = end-start;
+    #ifdef VerboseFFT
+    printf("%s   forward_fft (in place) took %llu us (%llu us planning)\n",indent,t,plan_time);
+    #endif
+    SINGLE_FFT_FORWARD_CALLS_IP++;
+    SINGLE_FFT_FORWARD_TIME_IP += t;
+    SINGLE_FFT_FORWARD_PLAN_TIME_IP += plan_time;
+}
+
 void HACCGPM::serial::backward_fft(deviceFFT_t* data, deviceFFT_t* out, int ng, int calls){
 
     CPUTimer_t start = CPUTimer();
@@ -202,7 +278,7 @@ void HACCGPM::serial::backward_fft(deviceFFT_t* data, deviceFFT_t* out, int ng, 
 
     cufftHandle plan;
     #ifdef UsePlanManager
-    plan = plan_manager.get_plan(ng,calls+1);
+    plan = plan_manager.get_plan(ng,false,calls+1);
     #else
     printf("%s   Creating plan %d\n",indent,ng);
     if (cufftPlan3d(&plan, ng, ng, ng, CUFFT_Z2Z) != CUFFT_SUCCESS){
@@ -232,7 +308,7 @@ void HACCGPM::serial::backward_fft(deviceFFT_t* data, deviceFFT_t* out, int ng, 
     CPUTimer_t plan_time = plan_t - start;
     CPUTimer_t t = end-start;
     #ifdef VerboseFFT
-    printf("%s   backward_fft (out of place) took %llu us (%llu us planning)\n",indent,t,plan_time);
+    printf("%s   inverse_fft (out of place) took %llu us (%llu us planning)\n",indent,t,plan_time);
     #endif
     FFT_BACKWARD_CALLS_OP++;
     FFT_BACKWARD_TIME_OP += t;
@@ -251,7 +327,7 @@ void HACCGPM::serial::backward_fft(deviceFFT_t* data, int ng, int calls){
 
     cufftHandle plan;
     #ifdef UsePlanManager
-    plan = plan_manager.get_plan(ng,calls+1);
+    plan = plan_manager.get_plan(ng,false,calls+1);
     #else
     #ifdef VerboseFFT
     printf("%s   Creating plan %d\n",indent,ng);
@@ -280,24 +356,85 @@ void HACCGPM::serial::backward_fft(deviceFFT_t* data, int ng, int calls){
     CPUTimer_t plan_time = plan_t - start;
     CPUTimer_t t = end-start;
     #ifdef VerboseFFT
-    printf("%s   backward_fft (in place) took %llu us (%llu us planning)\n",indent,t,plan_time);
+    printf("%s   inverse_fft (in place) took %llu us (%llu us planning)\n",indent,t,plan_time);
     #endif
     FFT_BACKWARD_CALLS_IP++;
     FFT_BACKWARD_TIME_IP += t;
     FFT_BACKWARD_PLAN_TIME_IP += plan_time;
 }
 
+void HACCGPM::serial::backward_fft(floatFFT_t* data, int ng, int calls){
+
+    CPUTimer_t start = CPUTimer();
+
+    getIndent(calls);
+
+    #ifdef VerboseFFT
+    printf("%sbackward_fft (in place) was called with\n%s   ng %d\n",indent,indent,ng);
+    #endif
+
+    cufftHandle plan;
+    #ifdef UsePlanManager
+    plan = plan_manager.get_plan(ng,true,calls+1);
+    #else
+    #ifdef VerboseFFT
+    printf("%s   Creating plan %d\n",indent,ng);
+    #endif
+    if (cufftPlan3d(&plan, ng, ng, ng, CUFFT_C2C) != CUFFT_SUCCESS){
+        printf("CUFFT error: Plan creation failed\n");
+        return;
+    };
+    #endif
+    CPUTimer_t plan_t = CPUTimer();
+    #ifdef VerboseFFT
+    printf("%s   Executing C2C CUFFT_INVERSE\n",indent);
+    #endif
+    if (cufftExecC2C(plan, data, data, CUFFT_INVERSE) != CUFFT_SUCCESS){
+        printf("CUFFT error: ExecC2C Backward failed\n");
+        return;	
+    }
+    cudaDeviceSynchronize();
+    #ifndef UsePlanManager
+    #ifdef VerboseFFT
+    printf("%s   Destroying plan %d\n",indent,ng);
+    #endif
+    cufftDestroy(plan);
+    #endif
+    CPUTimer_t end = CPUTimer();
+    CPUTimer_t plan_time = plan_t - start;
+    CPUTimer_t t = end-start;
+    #ifdef VerboseFFT
+    printf("%s   inverse_fft (in place) took %llu us (%llu us planning)\n",indent,t,plan_time);
+    #endif
+    SINGLE_FFT_BACKWARD_CALLS_IP++;
+    SINGLE_FFT_BACKWARD_TIME_IP += t;
+    SINGLE_FFT_BACKWARD_PLAN_TIME_IP += plan_time;
+}
+
 void HACCGPM::serial::printFFTTimes(){
     if (FFT_FORWARD_CALLS_OP != 0){
-        printf("   forward_fft (op)  -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",FFT_FORWARD_CALLS_OP,FFT_FORWARD_TIME_OP,FFT_FORWARD_PLAN_TIME_OP,FFT_FORWARD_TIME_OP - FFT_FORWARD_PLAN_TIME_OP,((float)FFT_FORWARD_TIME_OP)/((float)(FFT_FORWARD_CALLS_OP)));
+        printf("   forward_fft (d-op) -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",FFT_FORWARD_CALLS_OP,FFT_FORWARD_TIME_OP,FFT_FORWARD_PLAN_TIME_OP,FFT_FORWARD_TIME_OP - FFT_FORWARD_PLAN_TIME_OP,((float)FFT_FORWARD_TIME_OP)/((float)(FFT_FORWARD_CALLS_OP)));
     }
     if (FFT_FORWARD_CALLS_IP != 0){
-        printf("   forward_fft (ip)  -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",FFT_FORWARD_CALLS_IP,FFT_FORWARD_TIME_IP,FFT_FORWARD_PLAN_TIME_IP,FFT_FORWARD_TIME_IP - FFT_FORWARD_PLAN_TIME_IP,((float)FFT_FORWARD_TIME_IP)/((float)(FFT_FORWARD_CALLS_IP)));
+        printf("   forward_fft (d-ip) -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",FFT_FORWARD_CALLS_IP,FFT_FORWARD_TIME_IP,FFT_FORWARD_PLAN_TIME_IP,FFT_FORWARD_TIME_IP - FFT_FORWARD_PLAN_TIME_IP,((float)FFT_FORWARD_TIME_IP)/((float)(FFT_FORWARD_CALLS_IP)));
     }
     if (FFT_BACKWARD_CALLS_OP != 0){
-        printf("   backward_fft (op) -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",FFT_BACKWARD_CALLS_OP,FFT_BACKWARD_TIME_OP,FFT_BACKWARD_PLAN_TIME_OP,FFT_BACKWARD_TIME_OP - FFT_BACKWARD_PLAN_TIME_OP,((float)FFT_BACKWARD_TIME_OP)/((float)(FFT_BACKWARD_CALLS_OP)));
+        printf("   inverse_fft (d-op) -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",FFT_BACKWARD_CALLS_OP,FFT_BACKWARD_TIME_OP,FFT_BACKWARD_PLAN_TIME_OP,FFT_BACKWARD_TIME_OP - FFT_BACKWARD_PLAN_TIME_OP,((float)FFT_BACKWARD_TIME_OP)/((float)(FFT_BACKWARD_CALLS_OP)));
     }
     if (FFT_BACKWARD_CALLS_IP != 0){
-        printf("   backward_fft (ip) -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",FFT_BACKWARD_CALLS_IP,FFT_BACKWARD_TIME_IP,FFT_BACKWARD_PLAN_TIME_IP,FFT_BACKWARD_TIME_IP - FFT_BACKWARD_PLAN_TIME_IP,((float)FFT_BACKWARD_TIME_IP)/((float)(FFT_BACKWARD_CALLS_IP)));
+        printf("   inverse_fft (d-ip) -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",FFT_BACKWARD_CALLS_IP,FFT_BACKWARD_TIME_IP,FFT_BACKWARD_PLAN_TIME_IP,FFT_BACKWARD_TIME_IP - FFT_BACKWARD_PLAN_TIME_IP,((float)FFT_BACKWARD_TIME_IP)/((float)(FFT_BACKWARD_CALLS_IP)));
+    }
+
+    if (SINGLE_FFT_FORWARD_CALLS_OP != 0){
+        printf("   forward_fft (f-op) -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",SINGLE_FFT_FORWARD_CALLS_OP,SINGLE_FFT_FORWARD_TIME_OP,SINGLE_FFT_FORWARD_PLAN_TIME_OP,SINGLE_FFT_FORWARD_TIME_OP - SINGLE_FFT_FORWARD_PLAN_TIME_OP,((float)SINGLE_FFT_FORWARD_TIME_OP)/((float)(SINGLE_FFT_FORWARD_CALLS_OP)));
+    }
+    if (SINGLE_FFT_FORWARD_CALLS_IP != 0){
+        printf("   forward_fft (f-ip) -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",SINGLE_FFT_FORWARD_CALLS_IP,SINGLE_FFT_FORWARD_TIME_IP,SINGLE_FFT_FORWARD_PLAN_TIME_IP,SINGLE_FFT_FORWARD_TIME_IP - SINGLE_FFT_FORWARD_PLAN_TIME_IP,((float)SINGLE_FFT_FORWARD_TIME_IP)/((float)(SINGLE_FFT_FORWARD_CALLS_IP)));
+    }
+    if (SINGLE_FFT_BACKWARD_CALLS_OP != 0){
+        printf("   inverse_fft (f-op) -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",SINGLE_FFT_BACKWARD_CALLS_OP,SINGLE_FFT_BACKWARD_TIME_OP,SINGLE_FFT_BACKWARD_PLAN_TIME_OP,SINGLE_FFT_BACKWARD_TIME_OP - SINGLE_FFT_BACKWARD_PLAN_TIME_OP,((float)SINGLE_FFT_BACKWARD_TIME_OP)/((float)(SINGLE_FFT_BACKWARD_CALLS_OP)));
+    }
+    if (SINGLE_FFT_BACKWARD_CALLS_IP != 0){
+        printf("   inverse_fft (f-ip) -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",SINGLE_FFT_BACKWARD_CALLS_IP,SINGLE_FFT_BACKWARD_TIME_IP,SINGLE_FFT_BACKWARD_PLAN_TIME_IP,SINGLE_FFT_BACKWARD_TIME_IP - SINGLE_FFT_BACKWARD_PLAN_TIME_IP,((float)SINGLE_FFT_BACKWARD_TIME_IP)/((float)(SINGLE_FFT_BACKWARD_CALLS_IP)));
     }
 }

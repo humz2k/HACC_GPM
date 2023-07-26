@@ -1,10 +1,11 @@
 #include "../kernels.hpp"
 
-__global__ void combine(float4* __restrict out, const deviceFFT_t* __restrict d_x, const deviceFFT_t* __restrict d_y, const deviceFFT_t* __restrict d_z){
+template<class T>
+__global__ void combine(float4* __restrict out, const T* __restrict d_x, const T* __restrict d_y, const T* __restrict d_z){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    deviceFFT_t x = __ldg(&d_x[idx]);
-    deviceFFT_t y = __ldg(&d_y[idx]);
-    deviceFFT_t z = __ldg(&d_z[idx]);
+    T x = __ldg(&d_x[idx]);
+    T y = __ldg(&d_y[idx]);
+    T z = __ldg(&d_z[idx]);
 
     float4 this_out;
     this_out.x = x.x;
@@ -43,6 +44,11 @@ __global__ void combine_parallel(float4* __restrict out, const deviceFFT_t* __re
 }
 
 CPUTimer_t launch_combine(float4* d_grad, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernel(combine,numBlocks,blockSize,d_grad,d_x,d_y,d_z);
+}
+
+CPUTimer_t launch_combine(float4* d_grad, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     return InvokeGPUKernel(combine,numBlocks,blockSize,d_grad,d_x,d_y,d_z);
 }

@@ -172,6 +172,27 @@ void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int
     CIC_CALLS += 1;
 }
 
+void HACCGPM::serial::CIC(floatFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls){
+    CPUTimer_t start = CPUTimer();
+    int numBlocks = (ng*ng*ng)/blockSize;
+    getIndent(calls);
+    #ifdef VerboseUpdate
+    printf("%sCIC (fcomplex,float) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    #endif
+    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
+    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
+    CIC_KERNEL_TIME += launch_cic(d_temp,d_pos,ng,1.0f,numBlocks,blockSize,calls);
+    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
+    CIC_KERNEL_TIME += launch_f2c(d_grid,d_temp,ng,numBlocks,blockSize,calls);
+    CPUTimer_t end = CPUTimer();
+    CPUTimer_t t = end-start;
+    #ifdef VerboseUpdate
+    printf("%s   CIC (complex,float) took %llu us\n",indent,t);
+    #endif
+    CIC_TIME += t;
+    CIC_CALLS += 1;
+}
+
 void HACCGPM::serial::UpdateVelocities(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper ts, int calls){
     HACCGPM::serial::UpdateVelocities(mem.d_vel,mem.d_grad,mem.d_pos,ts,params.ng,params.blockSize,calls);
 }
@@ -217,7 +238,7 @@ void HACCGPM::serial::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Tim
 }
 
 void HACCGPM::serial::printCICTimes(){
-    printf("   CIC               -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",CIC_CALLS,CIC_TIME,CIC_TIME - CIC_KERNEL_TIME,CIC_KERNEL_TIME,((float)CIC_TIME)/((float)(CIC_CALLS)));
-    printf("   UpdatePositions   -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",UPDATE_POS_CALLS,UPDATE_POS_TIME,UPDATE_POS_TIME - UPDATE_POS_KERNEL_TIME,UPDATE_POS_KERNEL_TIME,((float)UPDATE_POS_TIME)/((float)(UPDATE_POS_CALLS)));
-    printf("   UpdateVelocities  -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",UPDATE_VEL_CALLS,UPDATE_VEL_TIME,UPDATE_VEL_TIME - UPDATE_VEL_KERNEL_TIME,UPDATE_VEL_KERNEL_TIME,((float)UPDATE_VEL_TIME)/((float)(UPDATE_VEL_CALLS)));
+    printf("   CIC                -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",CIC_CALLS,CIC_TIME,CIC_TIME - CIC_KERNEL_TIME,CIC_KERNEL_TIME,((float)CIC_TIME)/((float)(CIC_CALLS)));
+    printf("   UpdatePositions    -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",UPDATE_POS_CALLS,UPDATE_POS_TIME,UPDATE_POS_TIME - UPDATE_POS_KERNEL_TIME,UPDATE_POS_KERNEL_TIME,((float)UPDATE_POS_TIME)/((float)(UPDATE_POS_CALLS)));
+    printf("   UpdateVelocities   -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",UPDATE_VEL_CALLS,UPDATE_VEL_TIME,UPDATE_VEL_TIME - UPDATE_VEL_KERNEL_TIME,UPDATE_VEL_KERNEL_TIME,((float)UPDATE_VEL_TIME)/((float)(UPDATE_VEL_CALLS)));
 }

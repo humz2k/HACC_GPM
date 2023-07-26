@@ -23,12 +23,6 @@ include src/*/*.include
 
 all: main nopython
 
-thing1:
-	echo $(HACCGPM_FILES)
-	echo $(HACCGPM_NOPYTHON_FILES)
-#echo $(HACCGPM_CPP_FILES)
-	
-
 main: $(HACCGPM_BUILD_DIR)/driver_pm.o $(HACCGPM_FILES) $(HACCGPM_BUILD_DIR)/ccamb.o | swfft pycosmo
 	mpicxx $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft $(PY_LD_FLAGS) $(PY_LIB) -L$(PYCOSMO_DIR)/lib -lpycosmo -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpm
 
@@ -44,8 +38,6 @@ pycosmo:
 $(HACCGPM_BUILD_DIR):
 	mkdir -p $(HACCGPM_BUILD_DIR)
 	$(foreach dir,$(HACCGPM_BUILD_FOLDERS),mkdir -p $(dir);)
-#	mkdir -p $(HACCGPM_BUILD_DIR)/pm_solver
-#	mkdir -p $(HACCGPM_BUILD_DIR)/pm_solver/cuda
 
 $(HACCGPM_NOPYTHON_DIR): 
 	mkdir -p $(HACCGPM_NOPYTHON_DIR)

@@ -30,7 +30,7 @@ nopython: $(HACCGPM_NOPYTHON_DIR)/driver_pm.o $(HACCGPM_NOPYTHON_FILES) | swfft
 	mpicxx $^ -DNOPYTHON $(SWFFT_DIR)/lib/swfft_a2a_gpu.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpmnopython
 
 swfft:
-	cd $(SWFFT_DIR) && $(MAKE) alltoallgpu
+	cd $(SWFFT_DIR) && $(MAKE) alltoallgpu DFFT_MPI_CPPFLAGS="$(DFFT_MPI_CPPFLAGS)"
 
 pycosmo:
 	cd $(PYCOSMO_DIR) && $(MAKE) PY_LIB=$(PY_LIB)

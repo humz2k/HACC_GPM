@@ -65,6 +65,8 @@ void HACCGPM::parallel::CIC(deviceFFT_t* d_grid,
     CPUTimer_t t = end-start;
     #ifdef VerboseUpdate
     if (world_rank == 0)printf("%s   CIC took %llu us\n",indent,t);
+    #else
+    HACCGPM::parallel::printTimingStats("PMAC cicpm",((double)t) * 1e-6);
     #endif
     CIC_TIME += t;
     CIC_CALLS += 1;
@@ -99,6 +101,8 @@ int HACCGPM::parallel::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Ti
     CPUTimer_t t = end-start;
     #ifdef VerboseUpdate
     if (world_rank == 0)printf("%s   UpdatePositions took %llu us\n",indent,t);
+    #else
+    HACCGPM::parallel::printTimingStats("PMAC uppos",((double)t) * 1e-6);
     #endif
     UPDATE_POS_TIME += t;
     UPDATE_POS_CALLS += 1;
@@ -121,6 +125,8 @@ void HACCGPM::parallel::UpdateVelocities(float4* d_vel, float4* d_grad, float4* 
     CPUTimer_t t = end-start;
     #ifdef VerboseUpdate
     if(world_rank == 0)printf("%s   UpdateVelocities took %llu us\n",indent,t);
+    #else
+    HACCGPM::parallel::printTimingStats("PMAC upvel",((double)t) * 1e-6);
     #endif
     UPDATE_VEL_TIME += t;
     UPDATE_VEL_CALLS += 1;

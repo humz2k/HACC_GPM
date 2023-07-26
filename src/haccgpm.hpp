@@ -290,6 +290,7 @@ namespace HACCGPM{
         void backward_fft(deviceFFT_t* d_grid, int ng, int calls = 0);
 
         void timing_stats(CPUTimer_t t, CPUTimer_t* mint, CPUTimer_t* maxt, CPUTimer_t* meant);
+        void printTimingStats(const char *preamble, double dt);
 
         CPUTimer_t LoadIntoBuffers(float4* h_swap, int* n_swaps, int* h_starts, float4* d_pos, float4* d_vel, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int n_particles, int ng, int blockSize, int world_rank, int world_size, int calls = 0);
 

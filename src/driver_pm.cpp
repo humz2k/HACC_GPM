@@ -108,7 +108,7 @@ int serial(const char* params_file){
         double time_per_step = ((double)current_timestepper_time) / ((double)step + 1);
         int steps_remaining = (params.lastStep - step);
         double time_remaining = time_per_step * steps_remaining;
-        printf("   %g minutes remaining\n",time_remaining * 1.66667e-8);
+        printf("%g minutes remaining\n",time_remaining * 1.66667e-8);
     }
 
     sprintf(stepstr, "%s.pk.fin", params.prefix);
@@ -213,7 +213,7 @@ int parallel(const char* params_file){
         double time_per_step = ((double)current_timestepper_time) / ((double)step + 1);
         int steps_remaining = (params.lastStep - step);
         double time_remaining = time_per_step * steps_remaining;
-        if(params.world_rank == 0)printf("   %g minutes remaining\n",time_remaining * 1.66667e-8);
+        if(params.world_rank == 0)printf("\n%g minutes remaining\n",time_remaining * 1.66667e-8);
 
     }
 
@@ -307,7 +307,7 @@ int main(int argc, char** argv){
     } else{
         if (world_rank == 0){
             printf("\n=========\nRUNNING IN PARLLEL MODE\n=========\n");
-            printf("   n = %d\n",world_size);
+            //printf("   n = %d\n",world_size);
         }
         out = parallel(argv[1]);
     }

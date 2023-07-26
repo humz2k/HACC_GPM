@@ -31,7 +31,9 @@ CPUTimer_t HACCGPM::parallel::insertParticles(float4* d_pos, float4* d_vel, floa
     CPUTimer_t end = CPUTimer();
     CPUTimer_t total_time = end-start;
 
+    #ifdef VerboseSwap
     if(world_rank == 0)printf("%s   insertParticles took %llu us\n",indent,total_time);
+    #endif
     return gpu_time;
 }
 
@@ -81,7 +83,8 @@ CPUTimer_t HACCGPM::parallel::LoadIntoBuffers(float4* h_swap, int* n_swaps, int*
 
     CPUTimer_t end = CPUTimer();
     CPUTimer_t total_time = end-start;
-
+    #ifdef VerboseSwap
     if(world_rank == 0)printf("%s   LoadIntoBuffers took %llu us\n",indent,total_time);
+    #endif
     return gpu_time;
 }

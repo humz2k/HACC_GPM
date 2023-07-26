@@ -1,3 +1,6 @@
+pip3 install numpy
+pip3 install camb
+pip3 install pandas
 git submodule init
 git submodule update
 export CUDA_DIR=$CUDA_PATH

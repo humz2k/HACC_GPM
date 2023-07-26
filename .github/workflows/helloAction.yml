@@ -15,5 +15,8 @@ jobs:
         id: cuda-toolkit
         with:
           cuda: '12.1.0'
+          sub-packages: '["nvcc"]'
+          non-cuda-sub-packages: '["libcufft"]'
+          method: 'network'
       - name: See NVCC
         run: nvcc -V

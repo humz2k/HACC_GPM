@@ -6,3 +6,4 @@ git submodule update
 export CUDA_DIR=$CUDA_PATH
 export CUDA_LIB_DIR=$CUDA_PATH/lib64
 export CUDA_INC_DIR=$CUDA_PATH/include
+export PY_LIB=" -lpython3.8"

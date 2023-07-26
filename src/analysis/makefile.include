@@ -1,3 +1,4 @@
-PY_ANALYSIS := $(patsubst src/analysis/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/analysis/*.cpp)) $(patsubst src/analysis/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/analysis/*.cu))
+HACCGPM_ANALYSIS_DIR = $(HACCGPM_BUILD_DIR)/analysis
+HACCGPM_BUILD_FOLDERS += $(HACCGPM_ANALYSIS_DIR) $(HACCGPM_ANALYSIS_DIR)/cuda
 
-HACCGPM_FILES += $(PY_ANALYSIS)
+HACCGPM_FILES += $(HACCGPM_ANALYSIS_DIR)/cuda/py_analysis.o

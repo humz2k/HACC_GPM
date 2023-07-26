@@ -81,19 +81,17 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
     double dotDelta;
     double this_a = (1/(params.z_ini + 1)) - (ts.deltaT/2.0f);
     double velZ = (1.0f/this_a) - 1.0f;
-    //get_delta_and_dotDelta(params_file, z,velZ,&delta,&dotDelta,calls+1);
+
     cosmo.get_delta_and_dotDelta(params.z_ini,velZ,&delta,&dotDelta);
     
     printf("%s      Delta %g, dotDelta %g\n",indent,delta,dotDelta);
-
-    //finalize_python(calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Called get_delta_and_dotDelta.\n",indent);
     printf("%s   Calling transformDensityField...\n",indent);
     #endif
 
-    InvokeGPUKernel(transformDensityField,numBlocks,params.blockSize,mem.d_grid,mem.d_x,mem.d_y,mem.d_z,delta,params.rl,1/(1+params.z_ini),params.ng);
+    launch_transform_density_field(mem.d_grid,mem.d_x,mem.d_y,mem.d_z,delta,params.rl,params.z_ini,params.ng,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseInitializer
     printf("%s      Called transformVelocityField.\n",indent);
@@ -115,7 +113,7 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
     printf("%s   Calling placeParticles...\n",indent);
     #endif
 
-    InvokeGPUKernel(placeParticles,numBlocks,params.blockSize,mem.d_pos,mem.d_vel,mem.d_x,mem.d_y,mem.d_z,delta,dotDelta,params.rl,1/(1+params.z_ini),ts.deltaT,ts.fscal,params.ng);
+    launch_place_particles(mem.d_pos,mem.d_vel,mem.d_x,mem.d_y,mem.d_z,delta,dotDelta,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.ng,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseInitializer
     printf("%s      Called placeParticles.\n",indent);
@@ -207,7 +205,7 @@ void HACCGPM::parallel::GenerateDisplacementIC(HACCGPM::parallel::MemoryManager&
     if (params.world_rank == 0)printf("%s   Calling transformDensityField...\n",indent);
     #endif
 
-    InvokeGPUKernelParallel(transformDensityField,numBlocks,params.blockSize,mem.d_grid,mem.d_x,mem.d_y,mem.d_z,delta,params.rl,1/(1+params.z_ini),params.ng,params.nlocal,params.world_rank,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec);
+    launch_transform_density_field(mem.d_grid,mem.d_x,mem.d_y,mem.d_z,delta,params.rl,params.z_ini,params.ng,params.nlocal,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec,params.world_rank,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseInitializer
     if (params.world_rank == 0)printf("%s      Called transformVelocityField.\n",indent);
@@ -229,7 +227,7 @@ void HACCGPM::parallel::GenerateDisplacementIC(HACCGPM::parallel::MemoryManager&
     if (params.world_rank == 0)printf("%s   Calling placeParticles.\n",indent);
     #endif
 
-    InvokeGPUKernelParallel(placeParticles,numBlocks,params.blockSize,mem.d_pos,mem.d_vel,mem.d_x,mem.d_y,mem.d_z,delta,dotDelta,params.rl,1/(1+params.z_ini),ts.deltaT,ts.fscal,params.ng,params.local_grid_size[0],params.local_grid_size[1],params.local_grid_size[2], params.nlocal, params.world_rank);
+    launch_place_particles(mem.d_pos,mem.d_vel,mem.d_x,mem.d_y,mem.d_z,delta,dotDelta,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.ng,params.nlocal,params.local_grid_size_vec,params.world_rank,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseInitializer
     if (params.world_rank == 0)printf("%s      Called placeParticles.\n",indent);

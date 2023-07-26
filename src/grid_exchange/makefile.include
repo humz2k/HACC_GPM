@@ -1,4 +1,5 @@
-GRID_EXCHANGE := $(patsubst src/grid_exchange/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/grid_exchange/*.cpp)) $(patsubst src/grid_exchange/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/grid_exchange/*.cu))
+HACCGPM_GRID_EXCHANGE_DIR = $(HACCGPM_BUILD_DIR)/grid_exchange
+HACCGPM_BUILD_FOLDERS += $(HACCGPM_GRID_EXCHANGE_DIR) $(HACCGPM_GRID_EXCHANGE_DIR)/cuda
 
-HACCGPM_FILES += $(GRID_EXCHANGE)
-HACCGPM_NOPYTHON_FILES += $(GRID_EXCHANGE)
+HACCGPM_FILES += $(HACCGPM_GRID_EXCHANGE_DIR)/gridexchange.o $(HACCGPM_GRID_EXCHANGE_DIR)/cuda/gridexchangekernels.o $(HACCGPM_GRID_EXCHANGE_DIR)/cuda/gridreturnkernels.o
+HACCGPM_NOPYTHON_FILES += $(HACCGPM_GRID_EXCHANGE_DIR)/gridexchange.o $(HACCGPM_GRID_EXCHANGE_DIR)/cuda/gridexchangekernels.o $(HACCGPM_GRID_EXCHANGE_DIR)/cuda/gridreturnkernels.o

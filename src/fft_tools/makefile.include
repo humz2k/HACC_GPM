@@ -1,4 +1,7 @@
-FFT_TOOLS := $(patsubst src/fft_tools/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/fft_tools/*.cpp)) $(patsubst src/fft_tools/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/fft_tools/*.cu))
+#FFT_TOOLS := $(patsubst src/fft_tools/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/fft_tools/*.cpp)) $(patsubst src/fft_tools/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/fft_tools/*.cu))
 
-HACCGPM_FILES += $(FFT_TOOLS)
-HACCGPM_NOPYTHON_FILES += $(FFT_TOOLS)
+HACCGPM_FFT_DIR = $(HACCGPM_BUILD_DIR)/fft_tools
+HACCGPM_BUILD_FOLDERS += $(HACCGPM_FFT_DIR) $(HACCGPM_FFT_DIR)/cuda
+
+HACCGPM_FILES += $(HACCGPM_FFT_DIR)/cuda/swfftmanager.o $(HACCGPM_FFT_DIR)/cuda/ffts.o
+HACCGPM_NOPYTHON_FILES += $(HACCGPM_FFT_DIR)/cuda/swfftmanager.o $(HACCGPM_FFT_DIR)/cuda/ffts.o

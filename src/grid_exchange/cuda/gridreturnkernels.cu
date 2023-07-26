@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "haccgpm.hpp"
-#include "gridexchangekernels.hpp"
+#include "../gridexchangekernels.hpp"
 
 __global__ void loadXReturnKernel(float4* __restrict d_left, float4* __restrict d_right, const float4* __restrict d_in, int3 local_grid_size, int3 ol_grid_size, int overload, int n){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;

@@ -1,4 +1,6 @@
-SIMULATION := $(patsubst src/simulation/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/simulation/*.cpp)) $(patsubst src/simulation/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/simulation/*.cu))
+HACCGPM_SIMULATION_DIR = $(HACCGPM_BUILD_DIR)/simulation
 
-HACCGPM_FILES += $(SIMULATION)
-HACCGPM_NOPYTHON_FILES += $(SIMULATION)
+HACCGPM_BUILD_FOLDERS += $(HACCGPM_SIMULATION_DIR) $(HACCGPM_SIMULATION_DIR)/cuda
+
+HACCGPM_FILES += $(HACCGPM_SIMULATION_DIR)/params.o $(HACCGPM_SIMULATION_DIR)/timers.o $(HACCGPM_SIMULATION_DIR)/timestepper.o $(HACCGPM_SIMULATION_DIR)/cuda/io.o $(HACCGPM_SIMULATION_DIR)/cuda/mmanager.o
+HACCGPM_NOPYTHON_FILES += $(HACCGPM_SIMULATION_DIR)/params.o $(HACCGPM_SIMULATION_DIR)/timers.o $(HACCGPM_SIMULATION_DIR)/timestepper.o $(HACCGPM_SIMULATION_DIR)/cuda/io.o $(HACCGPM_SIMULATION_DIR)/cuda/mmanager.o

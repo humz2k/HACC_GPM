@@ -1,5 +1,3 @@
-#PM_ACTIONS := $(patsubst src/pm_actions/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/pm_actions/*.cpp)) $(patsubst src/pm_actions/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/pm_actions/*.cu))
-
 HACCGPM_PM_ACTIONS_DIR = $(HACCGPM_BUILD_DIR)/pm_actions
 
 HACCGPM_BUILD_FOLDERS += $(HACCGPM_PM_ACTIONS_DIR) $(HACCGPM_PM_ACTIONS_DIR)/cuda

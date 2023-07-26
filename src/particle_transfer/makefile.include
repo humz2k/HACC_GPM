@@ -1,6 +1,3 @@
-#PARICLE_TRANSFER := $(patsubst src/particle_transfer/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/particle_transfer/*.cpp)) $(patsubst src/particle_transfer/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/particle_transfer/*.cu))
-
-
 HACCGPM_PARTICLE_TRANSFER_DIR = $(HACCGPM_BUILD_DIR)/particle_transfer
 
 HACCGPM_BUILD_FOLDERS += $(HACCGPM_PARTICLE_TRANSFER_DIR) $(HACCGPM_PARTICLE_TRANSFER_DIR)/cuda

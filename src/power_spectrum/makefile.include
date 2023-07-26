@@ -1,4 +1,8 @@
-POWER_SPECTRUM := $(patsubst src/power_spectrum/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/power_spectrum/*.cpp)) $(patsubst src/power_spectrum/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/power_spectrum/*.cu))
+#POWER_SPECTRUM := $(patsubst src/power_spectrum/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/power_spectrum/*.cpp)) $(patsubst src/power_spectrum/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/power_spectrum/*.cu))
 
-HACCGPM_FILES += $(POWER_SPECTRUM)
-HACCGPM_NOPYTHON_FILES += $(POWER_SPECTRUM)
+HACCGPM_PK_DIR = $(HACCGPM_BUILD_DIR)/power_spectrum
+
+HACCGPM_BUILD_FOLDERS += $(HACCGPM_PK_DIR) $(HACCGPM_PK_DIR)/cuda
+
+HACCGPM_FILES += $(HACCGPM_PK_DIR)/cuda/bin_power.o $(HACCGPM_PK_DIR)/cuda/filter_power.o $(HACCGPM_PK_DIR)/cuda/fold_particles_power.o $(HACCGPM_PK_DIR)/cuda/power.o $(HACCGPM_PK_DIR)/cuda/scale_power.o
+HACCGPM_NOPYTHON_FILES += $(HACCGPM_PK_DIR)/cuda/bin_power.o $(HACCGPM_PK_DIR)/cuda/filter_power.o $(HACCGPM_PK_DIR)/cuda/fold_particles_power.o $(HACCGPM_PK_DIR)/cuda/power.o $(HACCGPM_PK_DIR)/cuda/scale_power.o

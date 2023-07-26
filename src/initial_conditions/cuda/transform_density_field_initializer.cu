@@ -79,3 +79,13 @@ __global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, dev
     outSz[idx] = sz;
 
 }
+
+void launch_transform_density_field(deviceFFT_t* d_grid, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double rl, double z_ini, int ng, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    InvokeGPUKernel(transformDensityField,numBlocks,blockSize,d_grid,d_x,d_y,d_z,delta,rl,1/(1+z_ini),ng);
+}
+
+void launch_transform_density_field(deviceFFT_t* d_grid, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double rl, double z_ini, int ng, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    InvokeGPUKernelParallel(transformDensityField,numBlocks,blockSize,d_grid,d_x,d_y,d_z,delta,rl,1/(1+z_ini),ng,nlocal,world_rank,local_grid_size,local_coords,dims);
+}

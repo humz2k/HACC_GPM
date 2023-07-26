@@ -1,11 +1,6 @@
-#PM_SOLVER := $(patsubst src/pm_solver/%.cpp,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/pm_solver/*.cpp)) $(patsubst src/pm_solver/%.cu,$(HACCGPM_BUILD_DIR)/%.o, $(wildcard src/pm_solver/*.cu))
-
 HACCGPM_PM_SOLVER_DIR = $(HACCGPM_BUILD_DIR)/pm_solver
 
 HACCGPM_BUILD_FOLDERS += $(HACCGPM_PM_SOLVER_DIR) $(HACCGPM_PM_SOLVER_DIR)/cuda
 
 HACCGPM_FILES += $(HACCGPM_PM_SOLVER_DIR)/greens.o $(HACCGPM_PM_SOLVER_DIR)/solver.o $(HACCGPM_PM_SOLVER_DIR)/cuda/get_greens.o $(HACCGPM_PM_SOLVER_DIR)/cuda/combine.o $(HACCGPM_PM_SOLVER_DIR)/cuda/kspace_solver.o
 HACCGPM_NOPYTHON_FILES += $(HACCGPM_PM_SOLVER_DIR)/greens.o $(HACCGPM_PM_SOLVER_DIR)/solver.o $(HACCGPM_PM_SOLVER_DIR)/cuda/get_greens.o $(HACCGPM_PM_SOLVER_DIR)/cuda/combine.o $(HACCGPM_PM_SOLVER_DIR)/cuda/kspace_solver.o
-
-#$(HACCGPM_PM_SOLVER_DIR): 
-#	mkdir -p $(HACCGPM_PM_SOLVER_DIR)

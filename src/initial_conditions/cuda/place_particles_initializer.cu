@@ -55,3 +55,13 @@ __global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_ve
     d_pos[idx] = my_particle;
     d_vel[idx] = my_vel;
 }
+
+void launch_place_particles(float4* d_pos, float4* d_vel, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
+}
+
+void launch_place_particles(float4* d_pos, float4* d_vel, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int nlocal, int3 local_grid_size, int world_rank, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    InvokeGPUKernelParallel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng,local_grid_size.x,local_grid_size.y,local_grid_size.z, nlocal, world_rank);
+}

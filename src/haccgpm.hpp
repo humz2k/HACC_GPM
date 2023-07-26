@@ -60,6 +60,19 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 #define deviceFFT_t cufftDoubleComplex
 
 //#define USE_SINGLE_FFT
+//#define USE_HALF_PRECISION
+
+#ifdef USE_HALF_PRECISION
+#include <cuda_fp16.h>
+
+class half4{
+    half x;
+    half y;
+    half z;
+    half w;
+};
+
+#endif
 
 #define MAX_STEPS 1000
 
@@ -339,7 +352,13 @@ namespace HACCGPM{
 
         class MemoryManager{
             public:
+
+                #ifdef USE_HALF_PRECISION
+                half4* d_pos;
+                #else
                 float4* d_pos;
+                #endif
+
                 float4* d_vel;
                 float4* d_grad;
                 hostFFT_t* d_greens;

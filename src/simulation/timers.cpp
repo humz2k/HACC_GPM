@@ -48,3 +48,14 @@ void HACCGPM::parallel::printTimingStats(const char *preamble, // text at beginn
 
   return;
 }
+
+void HACCGPM::serial::printTimers(CPUTimer_t init, CPUTimer_t total){
+  printf("\n\n=========\nTimers:\n");
+    HACCGPM::serial::printCICTimes();
+    HACCGPM::serial::printFFTTimes();
+    HACCGPM::serial::printPowerTimes();
+    HACCGPM::serial::printOutputTimes();
+    printf("   Initialization: %llu us (%5.2g minutes)\n",init,((double)(init)) * 1.66667e-8);
+    printf("   Total: %5.2g minutes\n",((double)(total)) * 1.66667e-8);
+    printf("=========\n\n");
+}

@@ -62,7 +62,7 @@ void launch_place_particles(float4* d_pos, float4* d_vel, deviceFFT_t* d_x, devi
     InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
 }
 
-void launch_place_particles(float4* d_pos, float4* d_vel, cufftComplex* d_x, cufftComplex* d_y, cufftComplex* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
+void launch_place_particles(float4* d_pos, float4* d_vel, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
 }

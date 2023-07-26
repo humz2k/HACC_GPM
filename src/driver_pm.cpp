@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-//#include <string.h>
 #include <unistd.h>
 #include "haccgpm.hpp"
 #define GPU
@@ -8,9 +7,15 @@
 #include <mpi.h>
 #include "../swfft-all-to-all/include/swfft.hpp"
 #include "../cambTools/ccamb.h"
-//#include "../pycosmotools/include/pycosmotools.hpp"
 
-//#define NOPYTHON
+void minutes_remaining(CPUTimer_t timestepper_start, int step, int lastStep, int world_rank = 0){
+    CPUTimer_t timestepper_im = CPUTimer();
+    CPUTimer_t current_timestepper_time = timestepper_im - timestepper_start;
+    double time_per_step = ((double)current_timestepper_time) / ((double)step + 1);
+    int steps_remaining = (lastStep - step);
+    double time_remaining = time_per_step * steps_remaining;
+    if(world_rank == 0)printf("%g minutes remaining\n",time_remaining * 1.66667e-8);
+}
 
 int serial(const char* params_file){
 
@@ -43,17 +48,14 @@ int serial(const char* params_file){
     
     CPUTimer_t end_init = CPUTimer();
     CPUTimer_t init_time = end_init - start_init;
-    //return 0;
 
     #ifndef NOPYTHON
-    if (!params.do_analysis){
-        finalize_python(0);
-    }
-
     if (params.do_analysis){
         pytools.loadPyCosmoNotPython();
         pytools.import(params.analysis_py);
         pytools.initialize();
+    } else {
+        finalize_python(0);
     }
     #endif
     
@@ -103,12 +105,7 @@ int serial(const char* params_file){
         HACCGPM::serial::PyAnalysis(params,mem,ts,pytools,step);
         #endif
 
-        CPUTimer_t timestepper_im = CPUTimer();
-        CPUTimer_t current_timestepper_time = timestepper_im - timestepper_start;
-        double time_per_step = ((double)current_timestepper_time) / ((double)step + 1);
-        int steps_remaining = (params.lastStep - step);
-        double time_remaining = time_per_step * steps_remaining;
-        printf("%g minutes remaining\n",time_remaining * 1.66667e-8);
+        minutes_remaining(timestepper_start,step,params.lastStep);
     }
 
     sprintf(stepstr, "%s.pk.fin", params.prefix);
@@ -127,14 +124,7 @@ int serial(const char* params_file){
 
     CPUTimer_t end = CPUTimer();
 
-    printf("\n\n=========\nTimers:\n");
-    HACCGPM::serial::printCICTimes();
-    HACCGPM::serial::printFFTTimes();
-    HACCGPM::serial::printPowerTimes();
-    HACCGPM::serial::printOutputTimes();
-    printf("   Initialization: %llu us (%5.2g minutes)\n",init_time,((double)(init_time)) * 1.66667e-8);
-    printf("   Total: %5.2g minutes\n",((double)(end-start)) * 1.66667e-8);
-    printf("=========\n\n");
+    HACCGPM::serial::printTimers(init_time,end-start);
 
     return 0;
 }
@@ -205,23 +195,14 @@ int parallel(const char* params_file){
             sprintf(stepstr, "%s.pk.%d", params.prefix,step);
             HACCGPM::parallel::GetPowerSpectrum(params,mem,221,stepstr);
         }
-        
-        //HACCGPM::parallel::TransferParticles(params,mem);
 
-        CPUTimer_t timestepper_im = CPUTimer();
-        CPUTimer_t current_timestepper_time = timestepper_im - timestepper_start;
-        double time_per_step = ((double)current_timestepper_time) / ((double)step + 1);
-        int steps_remaining = (params.lastStep - step);
-        double time_remaining = time_per_step * steps_remaining;
-        if(params.world_rank == 0)printf("\n%g minutes remaining\n",time_remaining * 1.66667e-8);
+        minutes_remaining(timestepper_start,step,params.lastStep,params.world_rank);
 
     }
 
     sprintf(stepstr, "%s.pk.fin", params.prefix);
     HACCGPM::parallel::GetPowerSpectrum(params,mem,221,stepstr);
     
-    //HACCGPM::parallel::GetPowerSpectrum(mem.d_pos,mem.d_grid,mem.d_tempgrid,params.ng,params.rl,params.overload,params.n_particles,params.local_grid_size,params.grid_coords,params.grid_dims,params.nlocal,221,"testpk1.pk",0,params.blockSize,params.world_rank,params.world_size);
-
     CPUTimer_t end = CPUTimer();
 
     CPUTimer_t init_mean, init_max, init_min;

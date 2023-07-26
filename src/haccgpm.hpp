@@ -453,6 +453,8 @@ namespace HACCGPM{
 
         void printOutputTimes();
 
+        void printTimers(CPUTimer_t init, CPUTimer_t total);
+
         #ifndef NOPYTHON
         void PyAnalysis(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper& ts, PyCosmoTools& pytools, int step);
         #endif

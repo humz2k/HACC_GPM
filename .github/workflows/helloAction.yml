@@ -18,5 +18,6 @@ jobs:
           sub-packages: '["nvcc"]'
           non-cuda-sub-packages: '["libcufft"]'
           method: 'network'
+      - uses: amarrerod/build_cmake_mpi@master
       - name: See NVCC
         run: nvcc -V

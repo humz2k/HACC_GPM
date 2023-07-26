@@ -16,4 +16,4 @@ jobs:
         id: cuda-toolkit
         with:
           cuda: '12.1.0'
-      run: nvcc -V
+      - run: nvcc -V

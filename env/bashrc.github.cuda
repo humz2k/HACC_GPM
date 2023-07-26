@@ -1,5 +1,5 @@
-git submodules init
-git submodules update
+git submodule init
+git submodule update
 export CUDA_DIR=$CUDA_PATH
 export CUDA_LIB_DIR=$CUDA_PATH/lib64
 export CUDA_INC_DIR=$CUDA_PATH/include

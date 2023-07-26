@@ -64,8 +64,9 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
         }
     }
     neighbor_ranks[params.world_rank] = false;
-
+    #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s   Send Counts\n",indent);
+    #endif
     MPI_Barrier(MPI_COMM_WORLD);
     CPUTimer_t mpi_start = CPUTimer(); 
     for (int i = 0; i < params.world_size; i++){
@@ -79,7 +80,9 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
         //printf("rank %d is neighbors with %d\n",params.world_rank,i);
     }
     MPI_Barrier(MPI_COMM_WORLD);
+    #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s   Recv Counts\n",indent);
+    #endif
     MPI_Barrier(MPI_COMM_WORLD);
     for (int i = 0; i < params.world_size; i++){
         if (!neighbor_ranks[i])continue;
@@ -99,7 +102,9 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
     //float4* recieved = (float4*)malloc(sizeof(float4)*2*n_particles);
     float4* recieved; HostMalloc(&recieved,sizeof(float4)*2*n_particles);
     MPI_Barrier(MPI_COMM_WORLD);
+    #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s   Send particles\n",indent);
+    #endif
     MPI_Barrier(MPI_COMM_WORLD);
     for (int i = 0; i < params.world_size; i++){
         if ((!neighbor_ranks[i]) || (n_swaps[i] == 0))continue;
@@ -111,8 +116,9 @@ void HACCGPM::parallel::TransferParticles(HACCGPM::Params& params,HACCGPM::paral
         MPI_Request_free(&req);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-
+    #ifdef VerboseTransfer
     if(params.world_rank == 0)printf("%s   Recv particles\n",indent);
+    #endif
     MPI_Barrier(MPI_COMM_WORLD);
     for (int i = 0; i < params.world_size; i++){
         if ((!neighbor_ranks[i]) || (n_recvs[i] == 0))continue;

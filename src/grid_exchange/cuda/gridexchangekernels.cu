@@ -3,6 +3,8 @@
 #include "haccgpm.hpp"
 #include "../gridexchangekernels.hpp"
 
+//#define VerboseGEKernels
+
 __global__ void loadXLeftKernel(float* __restrict d_out, const float* __restrict d_in, int3 ol_grid_size, int overload, int n){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
     //int n = (local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload);
@@ -26,16 +28,18 @@ CPUTimer_t loadXLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload,
     getIndent(calls);
 
     CPUTimer_t gpu_time;
-
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sLoading X Left Buffer\n",indent);
+    #endif
 
     int n = size;//ol_grid_size.x * ol_grid_size.y * ol_grid_size.z;
     int numBlocks = (n + (blockSize - 1))/blockSize;
-
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
     gpu_time = InvokeGPUKernelParallel(loadXLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
@@ -64,15 +68,19 @@ CPUTimer_t storeXLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload
 
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sStoring X Left Buffer\n",indent);
+    #endif
 
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);
@@ -109,15 +117,19 @@ CPUTimer_t loadXRight(float* h_out, float* d_in, int3 ol_grid_size, int overload
 
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sLoading X Right Buffer\n",indent);
+    #endif
 
     int n = size;//ol_grid_size.x * ol_grid_size.y * ol_grid_size.z;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
     gpu_time = InvokeGPUKernelParallel(loadXRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
@@ -150,15 +162,19 @@ CPUTimer_t storeXRight(float* d_out, float* h_in, int3 ol_grid_size, int overloa
 
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sStoring X Right Buffer\n",indent);
+    #endif
 
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);
@@ -193,15 +209,19 @@ CPUTimer_t loadYLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload,
 
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sLoading Y Left Buffer\n",indent);
+    #endif
 
     int n = size;//ol_grid_size.x * ol_grid_size.y * ol_grid_size.z;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
     gpu_time = InvokeGPUKernelParallel(loadYLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
@@ -230,15 +250,19 @@ CPUTimer_t storeYLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload
 
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sStoring Y Left Buffer\n",indent);
+    #endif
 
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);
@@ -275,15 +299,19 @@ CPUTimer_t loadYRight(float* h_out, float* d_in, int3 ol_grid_size, int overload
 
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sLoading Y Right Buffer\n",indent);
+    #endif
 
     int n = size;//ol_grid_size.x * ol_grid_size.y * ol_grid_size.z;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
     gpu_time = InvokeGPUKernelParallel(loadYRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
@@ -315,15 +343,19 @@ CPUTimer_t storeYRight(float* d_out, float* h_in, int3 ol_grid_size, int overloa
 
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sStoring Y Right Buffer\n",indent);
+    #endif
 
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);
@@ -362,15 +394,19 @@ CPUTimer_t loadZLeft(float* h_out, float* d_in, int3 ol_grid_size, int overload,
 
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sLoading Z Left Buffer\n",indent);
+    #endif
 
     int n = size;//ol_grid_size.x * ol_grid_size.y * ol_grid_size.z;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
     gpu_time = InvokeGPUKernelParallel(loadZLeftKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
@@ -399,15 +435,19 @@ CPUTimer_t storeZLeft(float* d_out, float* h_in, int3 ol_grid_size, int overload
 
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sStoring Z Left Buffer\n",indent);
+    #endif
 
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);
@@ -444,15 +484,19 @@ CPUTimer_t loadZRight(float* h_out, float* d_in, int3 ol_grid_size, int overload
 
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sLoading Z Right Buffer\n",indent);
+    #endif
 
     int n = size;//ol_grid_size.x * ol_grid_size.y * ol_grid_size.z;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_out; cudaCall(cudaMalloc,&d_out,sizeof(float)*size);
     gpu_time = InvokeGPUKernelParallel(loadZRightKernel,numBlocks,blockSize,d_out,d_in,ol_grid_size,overload,n);
@@ -485,15 +529,19 @@ CPUTimer_t storeZRight(float* d_out, float* h_in, int3 ol_grid_size, int overloa
 
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sStoring Z Right Buffer\n",indent);
+    #endif
 
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float* d_in; cudaCall(cudaMalloc,&d_in,sizeof(float)*size);
     cudaCall(cudaMemcpy, d_in, h_in, sizeof(float)*size, cudaMemcpyHostToDevice);

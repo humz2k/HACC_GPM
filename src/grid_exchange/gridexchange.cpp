@@ -43,7 +43,9 @@ void do_return(float4* grad, int left_rank, int right_rank, int size, int3 local
 
     this_dim.load(left_x_sends,right_x_sends,grad,local_grid_size,total_grid_dims,overload,size,blockSize,world_rank,calls);
 
+    #ifdef VerboseResolve
     if(world_rank == 0)printf("%sSending...\n",indent);
+    #endif
 
     CPUTimer_t mpi_start = CPUTimer();
 
@@ -61,14 +63,18 @@ void do_return(float4* grad, int left_rank, int right_rank, int size, int3 local
 
     *bytes += 2*size*sizeof(float4);
 
+    #ifdef VerboseResolve
     if(world_rank == 0)printf("%s   Sent %lu bytes\n",indent,2*size*sizeof(float4));
     if(world_rank == 0)printf("%sRecieving...\n",indent);
+    #endif
 
     MPI_Recv(left_x_recvs,size*4,MPI_FLOAT,right_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
     MPI_Recv(right_x_recvs,size*4,MPI_FLOAT,left_rank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
+    #ifdef VerboseResolve
     if(world_rank == 0)printf("%s   Recieved %lu bytes\n",indent,2*size*sizeof(float4));
+    #endif
 
     CPUTimer_t mpi_end = CPUTimer();
     *mpi_time += mpi_end - mpi_start;

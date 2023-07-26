@@ -182,6 +182,8 @@ int parallel(const char* params_file){
 
     ts.advanceHalfStep();
 
+    CPUTimer_t timestepper_start = CPUTimer();
+
     for (int step = 0; step < params.lastStep; step++){
 
         if(params.world_rank == 0)printf("\n=========\nSTEP %d\n",step);
@@ -205,6 +207,13 @@ int parallel(const char* params_file){
         }
         
         //HACCGPM::parallel::TransferParticles(params,mem);
+
+        CPUTimer_t timestepper_im = CPUTimer();
+        CPUTimer_t current_timestepper_time = timestepper_im - timestepper_start;
+        double time_per_step = ((double)current_timestepper_time) / ((double)step + 1);
+        int steps_remaining = (params.lastStep - step);
+        double time_remaining = time_per_step * steps_remaining;
+        if(params.world_rank == 0)printf("   %g minutes remaining\n",time_remaining * 1.66667e-8);
 
     }
 

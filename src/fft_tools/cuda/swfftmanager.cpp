@@ -74,7 +74,9 @@ void HACCGPM::parallel::forward_fft(deviceFFT_t* d_grid, int ng, int calls){
     CPUTimer_t end = CPUTimer();
     FORWARD_FFT_CALLS++;
     FORWARD_FFT_TIME += end-start;
+    #ifdef VerboseFFT
     if(ffts->dist.world_rank == 0)printf("%s   forward_fft took %llu us\n",indent,end - start);
+    #endif
 }
 
 void HACCGPM::parallel::backward_fft(deviceFFT_t* d_grid, int ng, int calls){
@@ -87,7 +89,9 @@ void HACCGPM::parallel::backward_fft(deviceFFT_t* d_grid, int ng, int calls){
     CPUTimer_t end = CPUTimer();
     BACKWARD_FFT_CALLS++;
     BACKWARD_FFT_TIME += end-start;
+    #ifdef VerboseFFT
     if(ffts->dist.world_rank == 0)printf("%s   backward_fft took %llu us\n",indent,end - start);
+    #endif
 }
 
 void HACCGPM::parallel::printFFTStats(int world_rank){

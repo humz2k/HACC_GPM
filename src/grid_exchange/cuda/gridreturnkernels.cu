@@ -34,14 +34,19 @@ CPUTimer_t XReturn::load(float4* h_left, float4* h_right, float4* d_in, int3 loc
     getIndent(calls);
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sLoading X Return Buffers\n",indent);
+    #endif
+
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float4* d_left; cudaCall(cudaMalloc,&d_left,sizeof(float4)*size);
     float4* d_right; cudaCall(cudaMalloc,&d_right,sizeof(float4)*size);
@@ -98,14 +103,19 @@ CPUTimer_t XReturn::store(float4* h_left, float4* h_right, float4* d_out, int3 l
     getIndent(calls);
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sStoring X Return Buffers\n",indent);
+    #endif
+
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float4* d_left; cudaCall(cudaMalloc,&d_left,sizeof(float4)*size);
     float4* d_right; cudaCall(cudaMalloc,&d_right,sizeof(float4)*size);
@@ -156,14 +166,19 @@ CPUTimer_t YReturn::load(float4* h_left, float4* h_right, float4* d_in, int3 loc
     getIndent(calls);
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sLoading Y Return Buffers\n",indent);
+    #endif
+
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float4* d_left; cudaCall(cudaMalloc,&d_left,sizeof(float4)*size);
     float4* d_right; cudaCall(cudaMalloc,&d_right,sizeof(float4)*size);
@@ -236,14 +251,19 @@ CPUTimer_t YReturn::store(float4* h_left, float4* h_right, float4* d_out, int3 l
     getIndent(calls);
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sStoring Y Return Buffers\n",indent);
+    #endif
+
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float4* d_left; cudaCall(cudaMalloc,&d_left,sizeof(float4)*size);
     float4* d_right; cudaCall(cudaMalloc,&d_right,sizeof(float4)*size);
@@ -292,14 +312,19 @@ CPUTimer_t ZReturn::load(float4* h_left, float4* h_right, float4* d_in, int3 loc
     getIndent(calls);
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sLoading Z Return Buffers\n",indent);
+    #endif
+
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float4* d_left; cudaCall(cudaMalloc,&d_left,sizeof(float4)*size);
     float4* d_right; cudaCall(cudaMalloc,&d_right,sizeof(float4)*size);
@@ -372,14 +397,19 @@ CPUTimer_t ZReturn::store(float4* h_left, float4* h_right, float4* d_out, int3 l
     getIndent(calls);
     CPUTimer_t gpu_time;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%sStoring Z Return Buffers\n",indent);
+    #endif
+
     int n = size;
     int numBlocks = (n + (blockSize - 1))/blockSize;
 
+    #ifdef VerboseGEKernels
     if(world_rank == 0)printf("%s   blockSize = %d\n",indent,blockSize);
     if(world_rank == 0)printf("%s   numBlocks = %d\n",indent,numBlocks);
     if(world_rank == 0)printf("%s           n = %d\n",indent,n);
     if(world_rank == 0)printf("%s        size = %d\n",indent,size);
+    #endif
 
     float4* d_left; cudaCall(cudaMalloc,&d_left,sizeof(float4)*size);
     float4* d_right; cudaCall(cudaMalloc,&d_right,sizeof(float4)*size);

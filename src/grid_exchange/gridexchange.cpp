@@ -11,6 +11,12 @@ CPUTimer_t RESOLVE_MPI_TIME = 0;
 CPUTimer_t RESOLVE_GPU_TIME = 0;
 size_t RESOLVE_BYTES = 0;
 
+int FILL_CALLS = 0;
+CPUTimer_t FILL_TIME = 0;
+CPUTimer_t FILL_MPI_TIME = 0;
+CPUTimer_t FILL_GPU_TIME = 0;
+size_t FILL_BYTES = 0;
+
 HACCGPM::parallel::GridExchange::GridExchange(){};
 
 HACCGPM::parallel::GridExchange::GridExchange(int3 local_coords_, int3 local_grid_size_, int3 dims_, int ng_, int world_size_, int world_rank_, int overload_, int blockSize_) : local_coords(local_coords_),
@@ -28,7 +34,7 @@ HACCGPM::parallel::GridExchange::GridExchange(int3 local_coords_, int3 local_gri
 //#define VerboseResolve
 
 template<class ThisDim>
-void do_return(float4* grad, int left_rank, int right_rank, int size, int3 local_grid_size, int3 local_coords, int3 total_grid_dims, int overload, int world_rank, size_t* bytes, CPUTimer_t* mpi_time, int blockSize, int calls){
+void do_return(float4* grad, int left_rank, int right_rank, int size, int3 local_grid_size, int3 local_coords, int3 total_grid_dims, int overload, int world_rank, size_t* bytes, CPUTimer_t* mpi_time, CPUTimer_t* gpu_time, int blockSize, int calls){
 
     getIndent(calls);
 
@@ -41,7 +47,7 @@ void do_return(float4* grad, int left_rank, int right_rank, int size, int3 local
 
     ThisDim this_dim;
 
-    this_dim.load(left_x_sends,right_x_sends,grad,local_grid_size,total_grid_dims,overload,size,blockSize,world_rank,calls);
+    *gpu_time += this_dim.load(left_x_sends,right_x_sends,grad,local_grid_size,total_grid_dims,overload,size,blockSize,world_rank,calls);
 
     #ifdef VerboseResolve
     if(world_rank == 0)printf("%sSending...\n",indent);
@@ -84,7 +90,7 @@ void do_return(float4* grad, int left_rank, int right_rank, int size, int3 local
     free(left_x_sends);
     free(right_x_sends);
 
-    this_dim.store(left_x_recvs,right_x_recvs,grad,local_grid_size,total_grid_dims,overload,size,blockSize,world_rank,calls);
+    *gpu_time += this_dim.store(left_x_recvs,right_x_recvs,grad,local_grid_size,total_grid_dims,overload,size,blockSize,world_rank,calls);
 
     free(left_x_recvs);
     free(right_x_recvs);
@@ -97,7 +103,10 @@ void HACCGPM::parallel::GridExchange::fill(float4* grad, int calls){
 
     CPUTimer_t mpi_start,mpi_end;
     CPUTimer_t mpi_time = 0;
+    CPUTimer_t gpu_time = 0;
     size_t bytes = 0;
+
+    CPUTimer_t start = CPUTimer();
 
     #ifdef VerboseResolve
     if(world_rank == 0)printf("%sDoing Grid Exchange Fill (called GridExchange.fill)\n",indent);
@@ -119,7 +128,7 @@ void HACCGPM::parallel::GridExchange::fill(float4* grad, int calls){
 
     right_coords = make_int3((local_coords.x+1 + dims.x)%dims.x,local_coords.y,local_coords.z);
     right_rank = right_coords.x * dims.y * dims.z + right_coords.y * dims.z + right_coords.z;
-    do_return<XReturn>(grad,left_rank,right_rank,size,local_grid_size,local_coords,total_grid_dims,overload,world_rank,&bytes,&mpi_time,blockSize,calls+1);
+    do_return<XReturn>(grad,left_rank,right_rank,size,local_grid_size,local_coords,total_grid_dims,overload,world_rank,&bytes,&mpi_time,&gpu_time,blockSize,calls+1);
 
 
     size = total_grid_dims.x * overload * local_grid_size.z;
@@ -129,7 +138,7 @@ void HACCGPM::parallel::GridExchange::fill(float4* grad, int calls){
 
     right_coords = make_int3(local_coords.x,(local_coords.y+1 + dims.y)%dims.y,local_coords.z);
     right_rank = right_coords.x * dims.y * dims.z + right_coords.y * dims.z + right_coords.z;
-    do_return<YReturn>(grad,left_rank,right_rank,size,local_grid_size,local_coords,total_grid_dims,overload,world_rank,&bytes,&mpi_time,blockSize,calls+1);
+    do_return<YReturn>(grad,left_rank,right_rank,size,local_grid_size,local_coords,total_grid_dims,overload,world_rank,&bytes,&mpi_time,&gpu_time,blockSize,calls+1);
 
 
     size = total_grid_dims.x * total_grid_dims.y * overload;
@@ -139,8 +148,15 @@ void HACCGPM::parallel::GridExchange::fill(float4* grad, int calls){
 
     right_coords = make_int3(local_coords.x,local_coords.y,(local_coords.z+1 + dims.z)%dims.z);
     right_rank = right_coords.x * dims.y * dims.z + right_coords.y * dims.z + right_coords.z;
-    do_return<ZReturn>(grad,left_rank,right_rank,size,local_grid_size,local_coords,total_grid_dims,overload,world_rank,&bytes,&mpi_time,blockSize,calls+1);
+    do_return<ZReturn>(grad,left_rank,right_rank,size,local_grid_size,local_coords,total_grid_dims,overload,world_rank,&bytes,&mpi_time,&gpu_time,blockSize,calls+1);
 
+    CPUTimer_t end = CPUTimer();
+
+    FILL_CALLS++;
+    FILL_TIME += end-start;
+    FILL_MPI_TIME += mpi_time;
+    FILL_GPU_TIME += gpu_time;
+    FILL_BYTES += bytes;
 }
 
 void HACCGPM::parallel::GridExchange::resolve(float* grid, int calls){
@@ -541,9 +557,13 @@ void HACCGPM::parallel::printGridExchangeBytes(int world_rank){
     MPI_Barrier(MPI_COMM_WORLD);
     unsigned long long my_bytes = RESOLVE_BYTES;
     unsigned long long bytes;
+    unsigned long long fill_bytes = FILL_BYTES;
+    unsigned long long bytes_fill;
     MPI_Reduce(&my_bytes,&bytes,1,MPI_UNSIGNED_LONG_LONG,MPI_SUM,0,MPI_COMM_WORLD);
+    MPI_Reduce(&fill_bytes,&bytes_fill,1,MPI_UNSIGNED_LONG_LONG,MPI_SUM,0,MPI_COMM_WORLD);
     if (world_rank != 0)return;
     printf("   gridExchange.resolve -> calls: %10d | transferred %llu bytes\n",RESOLVE_CALLS,bytes);
+    printf("   gridExchange.fill    -> calls: %10d | transferred %llu bytes\n",FILL_CALLS,bytes_fill);
 }
 
 void HACCGPM::parallel::printGridExchangeTimes(int world_rank){
@@ -553,12 +573,25 @@ void HACCGPM::parallel::printGridExchangeTimes(int world_rank){
     HACCGPM::parallel::timing_stats(RESOLVE_GPU_TIME,&gpu_min,&gpu_max,&gpu_mean);
     HACCGPM::parallel::timing_stats(RESOLVE_MPI_TIME,&mpi_min,&mpi_max,&mpi_mean);
     HACCGPM::parallel::timing_stats(RESOLVE_TIME - (RESOLVE_GPU_TIME + RESOLVE_MPI_TIME),&cpu_min,&cpu_max,&cpu_mean);
-    if (world_rank != 0)return;
-    printf("   gridExchange.resolve  -> calls: %d\n",RESOLVE_CALLS);
-    printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
-    printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",cpu_mean,cpu_max, cpu_min);
-    printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);
-    printf("                                 mpi: %10llu us mean | %10llu us max  | %10llu us min  |\n",mpi_mean,mpi_max,mpi_min);
-    printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / RESOLVE_CALLS,total_max / RESOLVE_CALLS,total_min / RESOLVE_CALLS);
+    if (world_rank == 0){
+        printf("   gridExchange.resolve  -> calls: %d\n",RESOLVE_CALLS);
+        printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
+        printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",cpu_mean,cpu_max, cpu_min);
+        printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);
+        printf("                                 mpi: %10llu us mean | %10llu us max  | %10llu us min  |\n",mpi_mean,mpi_max,mpi_min);
+        printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / RESOLVE_CALLS,total_max / RESOLVE_CALLS,total_min / RESOLVE_CALLS);
+    }
+    HACCGPM::parallel::timing_stats(FILL_TIME,&total_min,&total_max,&total_mean);
+    HACCGPM::parallel::timing_stats(FILL_GPU_TIME,&gpu_min,&gpu_max,&gpu_mean);
+    HACCGPM::parallel::timing_stats(FILL_MPI_TIME,&mpi_min,&mpi_max,&mpi_mean);
+    HACCGPM::parallel::timing_stats(FILL_TIME - (FILL_GPU_TIME + FILL_MPI_TIME),&cpu_min,&cpu_max,&cpu_mean);
+    if (world_rank == 0){
+        printf("   gridExchange.fill     -> calls: %d\n",FILL_CALLS);
+        printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
+        printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",cpu_mean,cpu_max, cpu_min);
+        printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);
+        printf("                                 mpi: %10llu us mean | %10llu us max  | %10llu us min  |\n",mpi_mean,mpi_max,mpi_min);
+        printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / FILL_CALLS,total_max / FILL_CALLS,total_min / FILL_CALLS);
+    }
 }
 

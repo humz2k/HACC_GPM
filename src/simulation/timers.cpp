@@ -59,3 +59,22 @@ void HACCGPM::serial::printTimers(CPUTimer_t init, CPUTimer_t total){
     printf("   Total: %5.2g minutes\n",((double)(total)) * 1.66667e-8);
     printf("=========\n\n");
 }
+
+void HACCGPM::parallel::printTimers(CPUTimer_t init, CPUTimer_t total, int world_rank){
+    CPUTimer_t init_mean, init_max, init_min;
+    HACCGPM::parallel::timing_stats(init,&init_min,&init_max,&init_mean);
+
+    if (world_rank == 0)printf("\n\n=========\nMPI Stats:\n");
+    HACCGPM::parallel::printTransferBytes(world_rank);
+    HACCGPM::parallel::printGridExchangeBytes(world_rank);
+    if (world_rank == 0)printf("=========\n\n");
+
+    if (world_rank == 0)printf("\n\n=========\nTimers:\n");
+    HACCGPM::parallel::printTransferTimes(world_rank);
+    HACCGPM::parallel::printGridExchangeTimes(world_rank);
+    HACCGPM::parallel::printPATimes(world_rank);
+    HACCGPM::parallel::printFFTStats(world_rank);
+    if (world_rank == 0)printf("   Initialization: mean %llu us, min %llu us, max %llu us (%5.2g minutes)\n",init_mean,init_min,init_max,((double)(init_mean)) * 1.66667e-8);
+    if (world_rank == 0)printf("   Total: %5.2g minutes\n",((double)(total)) * 1.66667e-8);
+    if (world_rank == 0)printf("=========\n\n");
+}

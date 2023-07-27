@@ -338,11 +338,14 @@ namespace HACCGPM{
         void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int n_particles, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int world_size, int overload, int blockSize, int calls = 0);
 
         void printTransferTimes(int world_rank);
-        void printCICTimes(int world_rank);
 
         void printTransferBytes(int world_rank);
 
         void printFFTStats(int world_rank);
+
+        void printPATimes(int world_rank);
+
+        void printTimers(CPUTimer_t init, CPUTimer_t total, int world_rank);
 
         void printGridExchangeTimes(int world_rank);
         void printGridExchangeBytes(int world_rank);

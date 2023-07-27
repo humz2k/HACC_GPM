@@ -7,14 +7,17 @@
 
 CPUTimer_t CIC_TIME = 0;
 CPUTimer_t CIC_KERNEL_TIME = 0;
+CPUTimer_t CIC_MPI_TIME = 0;
 int CIC_CALLS = 0;
 
 CPUTimer_t UPDATE_POS_TIME = 0;
 CPUTimer_t UPDATE_POS_KERNEL_TIME = 0;
+CPUTimer_t UPDATE_POS_MPI_TIME = 0;
 int UPDATE_POS_CALLS = 0;
 
 CPUTimer_t UPDATE_VEL_TIME = 0;
 CPUTimer_t UPDATE_VEL_KERNEL_TIME = 0;
+CPUTimer_t UPDATE_VEL_MPI_TIME = 0;
 int UPDATE_VEL_CALLS = 0;
 
 void HACCGPM::parallel::CIC(HACCGPM::Params& params, HACCGPM::parallel::MemoryManager&mem, int calls){
@@ -49,8 +52,14 @@ void HACCGPM::parallel::CIC(deviceFFT_t* d_grid,
     CIC_KERNEL_TIME += launch_cic(d_tempgrid,d_pos,ng,overload,local_grid_size,n_particles,1.0f,world_rank,numBlocks,blockSize,calls);
 
     HACCGPM::parallel::GridExchange gexch(local_coords,local_grid_size,dims,ng,world_size,world_rank,overload,blockSize);
+    
+    CPUTimer_t mpi_start = CPUTimer();
 
     gexch.resolve(d_tempgrid,calls+1);
+
+    CPUTimer_t mpi_end = CPUTimer();
+
+    CIC_MPI_TIME += mpi_end-mpi_start;
     
     numBlocks = ((local_grid_size.x + 2*overload)*(local_grid_size.y + 2*overload)*(local_grid_size.z + 2*overload) + (blockSize - 1))/blockSize;
     //InvokeGPUKernelParallel(float2complex,numBlocks,blockSize,d_grid,d_tempgrid,local_grid_size,overload);
@@ -92,7 +101,11 @@ int HACCGPM::parallel::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Ti
     UPDATE_POS_KERNEL_TIME += launch_updatepos(d_pos,d_vel,prefactor,n_particles,local_grid_size,overload,&do_refresh,world_rank,numBlocks,blockSize,calls);
     //printf("DO_REFRESH %d\n",do_refresh);
     int refresh_now;
+    CPUTimer_t mpi_start = CPUTimer();
     MPI_Allreduce(&do_refresh,&refresh_now,1,MPI_INT,MPI_LOR,MPI_COMM_WORLD);
+    CPUTimer_t mpi_end = CPUTimer();
+    UPDATE_POS_MPI_TIME += mpi_end - mpi_start;
+
     //printf("refresh_now %d\n",refresh_now);
     //if (refresh_now){
     //    printf("ALLL!!!!\n");
@@ -130,21 +143,6 @@ void HACCGPM::parallel::UpdateVelocities(float4* d_vel, float4* d_grad, float4* 
     #endif
     UPDATE_VEL_TIME += t;
     UPDATE_VEL_CALLS += 1;
-}
-
-void HACCGPM::parallel::printCICTimes(int world_rank){
-    //MPI_Barrier(MPI_COMM_WORLD);
-    CPUTimer_t total_min,total_max,total_mean,gpu_min,gpu_max,gpu_mean;
-    HACCGPM::parallel::timing_stats(CIC_TIME,&total_min,&total_max,&total_mean);
-    HACCGPM::parallel::timing_stats(CIC_KERNEL_TIME,&gpu_min,&gpu_max,&gpu_mean);
-    //HACCGPM::parallel::timing_stats(TRANSFER_MPI_TIME,&mpi_min,&mpi_max,&mpi_mean);
-    if (world_rank != 0)return;
-    printf("   CIC                   -> calls: %d\n",CIC_CALLS);
-    printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
-    printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",(total_mean-gpu_mean),(total_max - gpu_max), (total_min - gpu_min));
-    printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);
-    //printf("                                 mpi: %10llu us mean | %10llu us max  | %10llu us min  |\n",mpi_mean,mpi_max,mpi_min);
-    printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / CIC_CALLS,total_max / CIC_CALLS,total_min / CIC_CALLS);
 }
 
 void HACCGPM::serial::CIC(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls){
@@ -241,4 +239,45 @@ void HACCGPM::serial::printCICTimes(){
     printf("   CIC                -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",CIC_CALLS,CIC_TIME,CIC_TIME - CIC_KERNEL_TIME,CIC_KERNEL_TIME,((float)CIC_TIME)/((float)(CIC_CALLS)));
     printf("   UpdatePositions    -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",UPDATE_POS_CALLS,UPDATE_POS_TIME,UPDATE_POS_TIME - UPDATE_POS_KERNEL_TIME,UPDATE_POS_KERNEL_TIME,((float)UPDATE_POS_TIME)/((float)(UPDATE_POS_CALLS)));
     printf("   UpdateVelocities   -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10llu us | mean: %10.2f us\n",UPDATE_VEL_CALLS,UPDATE_VEL_TIME,UPDATE_VEL_TIME - UPDATE_VEL_KERNEL_TIME,UPDATE_VEL_KERNEL_TIME,((float)UPDATE_VEL_TIME)/((float)(UPDATE_VEL_CALLS)));
+}
+
+void HACCGPM::parallel::printPATimes(int world_rank){
+    MPI_Barrier(MPI_COMM_WORLD);
+    CPUTimer_t total_min,total_max,total_mean,gpu_min,gpu_max,gpu_mean,mpi_min,mpi_max,mpi_mean,cpu_min,cpu_max,cpu_mean;
+    HACCGPM::parallel::timing_stats(CIC_TIME,&total_min,&total_max,&total_mean);
+    HACCGPM::parallel::timing_stats(CIC_KERNEL_TIME,&gpu_min,&gpu_max,&gpu_mean);
+    HACCGPM::parallel::timing_stats(CIC_MPI_TIME,&mpi_min,&mpi_max,&mpi_mean);
+    HACCGPM::parallel::timing_stats(CIC_TIME - (CIC_KERNEL_TIME + CIC_MPI_TIME),&cpu_min,&cpu_max,&cpu_mean);
+    if (world_rank == 0){
+        printf("   CIC                   -> calls: %d\n",CIC_CALLS);
+        printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
+        printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",cpu_mean,cpu_max, cpu_min);
+        printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);
+        printf("                                 mpi: %10llu us mean | %10llu us max  | %10llu us min  |\n",mpi_mean,mpi_max,mpi_min);
+        printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / CIC_CALLS,total_max / CIC_CALLS,total_min / CIC_CALLS);
+    }
+    HACCGPM::parallel::timing_stats(UPDATE_POS_TIME,&total_min,&total_max,&total_mean);
+    HACCGPM::parallel::timing_stats(UPDATE_POS_KERNEL_TIME,&gpu_min,&gpu_max,&gpu_mean);
+    HACCGPM::parallel::timing_stats(UPDATE_POS_MPI_TIME,&mpi_min,&mpi_max,&mpi_mean);
+    HACCGPM::parallel::timing_stats(UPDATE_POS_TIME - (UPDATE_POS_KERNEL_TIME + UPDATE_POS_MPI_TIME),&cpu_min,&cpu_max,&cpu_mean);
+    if (world_rank == 0){
+        printf("   UpdatePositions       -> calls: %d\n",UPDATE_POS_CALLS);
+        printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
+        printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",cpu_mean,cpu_max, cpu_min);
+        printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);
+        printf("                                 mpi: %10llu us mean | %10llu us max  | %10llu us min  |\n",mpi_mean,mpi_max,mpi_min);
+        printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / UPDATE_POS_CALLS,total_max / UPDATE_POS_CALLS,total_min / UPDATE_POS_CALLS);
+    }
+    HACCGPM::parallel::timing_stats(UPDATE_VEL_TIME,&total_min,&total_max,&total_mean);
+    HACCGPM::parallel::timing_stats(UPDATE_VEL_KERNEL_TIME,&gpu_min,&gpu_max,&gpu_mean);
+    HACCGPM::parallel::timing_stats(UPDATE_VEL_MPI_TIME,&mpi_min,&mpi_max,&mpi_mean);
+    HACCGPM::parallel::timing_stats(UPDATE_VEL_TIME - (UPDATE_VEL_KERNEL_TIME + UPDATE_VEL_MPI_TIME),&cpu_min,&cpu_max,&cpu_mean);
+    if (world_rank == 0){
+        printf("   UpdateVelocities      -> calls: %d\n",UPDATE_VEL_CALLS);
+        printf("                               total: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean,total_max,total_min);
+        printf("                                 cpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",cpu_mean,cpu_max, cpu_min);
+        printf("                                 gpu: %10llu us mean | %10llu us max  | %10llu us min  |\n",gpu_mean,gpu_max,gpu_min);
+        printf("                                 mpi: %10llu us mean | %10llu us max  | %10llu us min  |\n",mpi_mean,mpi_max,mpi_min);
+        printf("                                 avg: %10llu us mean | %10llu us max  | %10llu us min  |\n",total_mean / UPDATE_VEL_CALLS,total_max / UPDATE_VEL_CALLS,total_min / UPDATE_VEL_CALLS);
+    }
 }

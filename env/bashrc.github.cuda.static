@@ -4,7 +4,7 @@ wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.5.tar.bz2
 tar xf openmpi-4.1.5.tar.bz2
 cd openmpi-4.1.5
 ./configure --prefix=/usr/ --enable-static 2>&1 | tee config.out
-make all 2>&1 | tee make.out
+make -j 4 all 2>&1 | tee make.out
 make install 2>&1 | tee install.out
 export CUDA_DIR=$CUDA_PATH
 export CUDA_LIB_DIR=$CUDA_PATH/lib64

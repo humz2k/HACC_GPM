@@ -1,0 +1,28 @@
+name: static
+
+on:
+  push:
+      branches: [ main ]
+  pull_request:
+      branches: [ main ]
+
+jobs:
+  build:
+      runs-on: ubuntu-20.04
+      steps:
+      - uses: actions/checkout@v2
+      - uses: Jimver/cuda-toolkit@v0.2.11
+        id: cuda-toolkit
+        with:
+          cuda: '12.1.0'
+          method: 'local'
+      - name: install mpi
+        run: sudo apt-get install openmpi-bin openmpi-common libopenmpi-dev libgtk2.0-dev
+      - name: See NVCC
+        run: echo $CUDA_PATH
+      - name: See mpicc
+        run: mpicc --help
+#      - name: find cufft
+#        run: cd $CUDA_PATH/bin/../targets/x86_64-linux/include; ls; cd $CUDA_PATH/include; ls; cd /usr/local/cuda/include; ls
+      - name: make static
+        run: source env/bashrc.github.cuda; make

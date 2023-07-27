@@ -6,6 +6,7 @@ cd openmpi-4.1.5
 ./configure --prefix=/usr/local --enable-static 2>&1 | tee config.out
 make -j 10 all 2>&1 | tee make.out
 make install 2>&1 | tee install.out
+cd ..
 export CUDA_DIR=$CUDA_PATH
 export CUDA_LIB_DIR=$CUDA_PATH/lib64
 export CUDA_INC_DIR=$CUDA_PATH/include

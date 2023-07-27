@@ -25,4 +25,4 @@ jobs:
 #      - name: find cufft
 #        run: cd $CUDA_PATH/bin/../targets/x86_64-linux/include; ls; cd $CUDA_PATH/include; ls; cd /usr/local/cuda/include; ls
       - name: make static
-        run: source env/bashrc.github.cuda; make
+        run: source env/bashrc.github.cuda; make static

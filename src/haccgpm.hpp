@@ -59,7 +59,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 #define hostFFT_t double
 #define deviceFFT_t cufftDoubleComplex
 
-//#define USE_SINGLE_FFT
+#define USE_SINGLE_FFT
 //#define USE_HALF_PRECISION
 
 #ifdef USE_HALF_PRECISION

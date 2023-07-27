@@ -269,7 +269,7 @@ int main(int argc, char** argv){
             }
         }
         printf("\n=========\nRUNNING IN SERIAL MODE\n=========\n");
-        out = serial(argv[1]);
+        out = serial(params_file);
     } else{
         if (world_rank == 0){
             printf("\n=========\nRUNNING IN PARLLEL MODE\n=========\n");

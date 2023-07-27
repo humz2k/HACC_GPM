@@ -123,7 +123,7 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_
     #endif
 }
 
-void HACCGPM::serial::SolveGradient(float4* d_grad, cufftComplex* d_rho, hostFFT_t* d_greens, cufftComplex* d_x, cufftComplex* d_y, cufftComplex* d_z, int ng, int blockSize, int calls){
+void HACCGPM::serial::SolveGradient(float4* d_grad, floatFFT_t* d_rho, hostFFT_t* d_greens, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int ng, int blockSize, int calls){
     int numBlocks = (ng*ng*ng)/blockSize;
 
     getIndent(calls);

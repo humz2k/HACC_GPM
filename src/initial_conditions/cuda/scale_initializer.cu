@@ -17,7 +17,7 @@ void launch_scale_amplitudes(deviceFFT_t* grid, hostFFT_t* scale, int nlocal, in
     InvokeGPUKernelParallel(ScaleAmplitudes,numBlocks,blockSize,grid,scale,nlocal);
 }
 
-void launch_scale_amplitudes(cufftComplex* grid, hostFFT_t* scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
+void launch_scale_amplitudes(floatFFT_t* grid, hostFFT_t* scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     InvokeGPUKernelParallel(ScaleAmplitudes,numBlocks,blockSize,grid,scale,nlocal);
 }
@@ -26,7 +26,7 @@ void launch_scale_amplitudes(deviceFFT_t* grid, hostFFT_t* scale, int nlocal, in
     launch_scale_amplitudes(grid,scale,nlocal,0,numBlocks,blockSize,calls);
 }
 
-void launch_scale_amplitudes(cufftComplex* grid, hostFFT_t* scale, int nlocal, int numBlocks, int blockSize, int calls){
+void launch_scale_amplitudes(floatFFT_t* grid, hostFFT_t* scale, int nlocal, int numBlocks, int blockSize, int calls){
     launch_scale_amplitudes(grid,scale,nlocal,0,numBlocks,blockSize,calls);
 }
 
@@ -50,7 +50,7 @@ void launch_scale_fft(deviceFFT_t* data, double scale, int nlocal, int world_ran
     InvokeGPUKernelParallel(ScaleFFT,numBlocks,blockSize,data,scale,nlocal);
 }
 
-void launch_scale_fft(cufftComplex* data, double scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
+void launch_scale_fft(floatFFT_t* data, double scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     InvokeGPUKernelParallel(ScaleFFT,numBlocks,blockSize,data,scale,nlocal);
 }
@@ -59,6 +59,6 @@ void launch_scale_fft(deviceFFT_t* data, double scale, int nlocal, int numBlocks
     launch_scale_fft(data,scale,nlocal,0,numBlocks,blockSize,calls);
 }
 
-void launch_scale_fft(cufftComplex* data, double scale, int nlocal, int numBlocks, int blockSize, int calls){
+void launch_scale_fft(floatFFT_t* data, double scale, int nlocal, int numBlocks, int blockSize, int calls){
     launch_scale_fft(data,scale,nlocal,0,numBlocks,blockSize,calls);
 }

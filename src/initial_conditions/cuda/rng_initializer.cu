@@ -38,7 +38,7 @@ void launch_generate_rng(deviceFFT_t* d_grid1, int ng, int seed, int numBlocks, 
     cudaCall(cudaFree,rngState);
 }
 
-void launch_generate_rng(cufftComplex* d_grid1, int ng, int seed, int numBlocks, int blockSize, int calls){
+void launch_generate_rng(floatFFT_t* d_grid1, int ng, int seed, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*ng*ng*ng);
     InvokeGPUKernel(initRNG,numBlocks,blockSize,rngState,seed);

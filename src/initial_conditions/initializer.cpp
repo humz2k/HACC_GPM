@@ -71,7 +71,7 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
     printf("%s   Calling GenerateFourierAmplitudes...\n",indent);
     #endif
 
-    GenerateFourierAmplitudes(cosmo, params, mem.d_grid, mem.d_greens, params.z_ini, calls+1);
+    GenerateFourierAmplitudes(cosmo, params, mem.d_grid, (double*)mem.d_x, params.z_ini, calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Called GenerateFourierAmplitudes.\n",indent);

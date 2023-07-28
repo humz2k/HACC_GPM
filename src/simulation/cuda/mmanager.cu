@@ -89,32 +89,54 @@ HACCGPM::parallel::MemoryManager::~MemoryManager(){
 HACCGPM::serial::MemoryManager::MemoryManager(HACCGPM::Params params){
     printf("MemoryManager:\n   Allocating d_vel,d_pos,d_greens,d_grid,d_x,d_y,d_z,d_tempgrid,d_grad...\n");
     
+    size_t total_memory = 0;
+
     cudaCall(cudaMalloc,&d_vel,sizeof(float4)*params.ng*params.ng*params.ng);
     printf("   Allocated d_vel: %lu bytes.\n",sizeof(float4)*params.ng*params.ng*params.ng);
+
+    total_memory += sizeof(float4)*params.ng*params.ng*params.ng;
 
     cudaCall(cudaMalloc,&d_pos,sizeof(float4)*params.ng*params.ng*params.ng);
     printf("   Allocated d_pos: %lu bytes.\n",sizeof(float4)*params.ng*params.ng*params.ng);
 
-    cudaCall(cudaMalloc,&d_greens,sizeof(hostFFT_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_greens: %lu bytes.\n",sizeof(hostFFT_t)*params.ng*params.ng*params.ng);
+    total_memory += sizeof(float4)*params.ng*params.ng*params.ng;
 
-    cudaCall(cudaMalloc,&d_grid,sizeof(deviceFFT_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_grid: %lu bytes.\n",sizeof(deviceFFT_t)*params.ng*params.ng*params.ng);
+    cudaCall(cudaMalloc,&d_greens,sizeof(greens_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_greens: %lu bytes.\n",sizeof(greens_t)*params.ng*params.ng*params.ng);
 
-    cudaCall(cudaMalloc,&d_x,sizeof(deviceFFT_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_x: %lu bytes.\n",sizeof(deviceFFT_t)*params.ng*params.ng*params.ng);
+    total_memory += sizeof(greens_t)*params.ng*params.ng*params.ng;
 
-    cudaCall(cudaMalloc,&d_y,sizeof(deviceFFT_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_y: %lu bytes.\n",sizeof(deviceFFT_t)*params.ng*params.ng*params.ng);
+    cudaCall(cudaMalloc,&d_grid,sizeof(grid_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_grid: %lu bytes.\n",sizeof(grid_t)*params.ng*params.ng*params.ng);
 
-    cudaCall(cudaMalloc,&d_z,sizeof(deviceFFT_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_z: %lu bytes.\n",sizeof(deviceFFT_t)*params.ng*params.ng*params.ng);
+    total_memory += sizeof(grid_t)*params.ng*params.ng*params.ng;
+
+    cudaCall(cudaMalloc,&d_x,sizeof(grid_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_x: %lu bytes.\n",sizeof(grid_t)*params.ng*params.ng*params.ng);
+
+    total_memory += sizeof(grid_t)*params.ng*params.ng*params.ng;
+
+    cudaCall(cudaMalloc,&d_y,sizeof(grid_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_y: %lu bytes.\n",sizeof(grid_t)*params.ng*params.ng*params.ng);
+
+    total_memory += sizeof(grid_t)*params.ng*params.ng*params.ng;
+
+    cudaCall(cudaMalloc,&d_z,sizeof(grid_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_z: %lu bytes.\n",sizeof(grid_t)*params.ng*params.ng*params.ng);
+
+    total_memory += sizeof(grid_t)*params.ng*params.ng*params.ng;
 
     cudaCall(cudaMalloc,&d_tempgrid,sizeof(float)*params.ng*params.ng*params.ng);
     printf("   Allocated d_tempgrid: %lu bytes.\n",sizeof(float)*params.ng*params.ng*params.ng);
 
+    total_memory += sizeof(float)*params.ng*params.ng*params.ng;
+
     cudaCall(cudaMalloc,&d_grad,sizeof(float4)*params.ng*params.ng*params.ng);
     printf("   Allocated d_grad: %lu bytes.\n",sizeof(float4)*params.ng*params.ng*params.ng);
+
+    total_memory += sizeof(float4)*params.ng*params.ng*params.ng;
+
+    printf("Total: %g GB\n",((double)total_memory) * 1e-9);
 }
 
 HACCGPM::serial::MemoryManager::~MemoryManager(){

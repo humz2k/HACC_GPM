@@ -31,7 +31,8 @@ __forceinline__ __device__ double calcGreens(int3 idx3d, int ng){
 
 }
 
-__global__ void getGreensKernel(hostFFT_t* __restrict d_greens, int ng)
+template<class T>
+__global__ void getGreensKernel(T* __restrict d_greens, int ng)
 {
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -41,7 +42,8 @@ __global__ void getGreensKernel(hostFFT_t* __restrict d_greens, int ng)
 
 }
 
-__global__ void getGreensParallelKernel(hostFFT_t* __restrict d_greens, int ng, int3 local_grid_size, int3 local_coords)
+template<class T>
+__global__ void getGreensParallelKernel(T* __restrict d_greens, int ng, int3 local_grid_size, int3 local_coords)
 {
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -64,6 +66,22 @@ CPUTimer_t launch_getgreens(hostFFT_t* __restrict d_greens, int ng, int numBlock
 }
 
 CPUTimer_t launch_getgreens(hostFFT_t* __restrict d_greens, int ng, int nlocal, int3 local_grid_size_vec, int3 grid_coords_vec, int world_rank, int numBlocks, int blockSize,  int calls){
+
+    getIndent(calls);
+
+    return InvokeGPUKernelParallel(getGreensParallelKernel,numBlocks,blockSize,d_greens,ng,local_grid_size_vec,grid_coords_vec);
+
+}
+
+CPUTimer_t launch_getgreens(float* __restrict d_greens, int ng, int numBlocks, int blockSize, int calls){
+
+    getIndent(calls);
+
+    return InvokeGPUKernel(getGreensKernel,numBlocks,blockSize,d_greens,ng);
+
+}
+
+CPUTimer_t launch_getgreens(float* __restrict d_greens, int ng, int nlocal, int3 local_grid_size_vec, int3 grid_coords_vec, int world_rank, int numBlocks, int blockSize,  int calls){
 
     getIndent(calls);
 

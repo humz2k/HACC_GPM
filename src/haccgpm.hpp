@@ -60,7 +60,20 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 #define deviceFFT_t cufftDoubleComplex
 
 //#define USE_SINGLE_FFT
+//#define USE_SINGLE_GREENS
 //#define USE_HALF_PRECISION
+
+#ifdef USE_SINGLE_GREENS
+#define greens_t float
+#else
+#define greens_t hostFFT_t
+#endif
+
+#ifdef USE_SINGLE_FFT
+#define grid_t floatFFT_t
+#else
+#define grid_t deviceFFT_t
+#endif
 
 #ifdef USE_HALF_PRECISION
 #include <cuda_fp16.h>
@@ -69,7 +82,7 @@ class half4{
     half x;
     half y;
     half z;
-    half w;
+    unsigned short w;
 };
 
 #endif
@@ -364,25 +377,25 @@ namespace HACCGPM{
 
                 float4* d_vel;
                 float4* d_grad;
-                hostFFT_t* d_greens;
+                greens_t* d_greens;
 
-                #ifdef USE_SINGLE_FFT
+                //#ifdef USE_SINGLE_FFT
 
-                floatFFT_t* d_grid;
+                grid_t* d_grid;
                 float* d_tempgrid;
-                floatFFT_t* d_x;
-                floatFFT_t* d_y;
-                floatFFT_t* d_z;
+                grid_t* d_x;
+                grid_t* d_y;
+                grid_t* d_z;
 
-                #else
+                //#else
 
-                deviceFFT_t* d_grid;
-                float* d_tempgrid;
-                deviceFFT_t* d_x;
-                deviceFFT_t* d_y;
-                deviceFFT_t* d_z;
+                //deviceFFT_t* d_grid;
+                //float* d_tempgrid;
+                //deviceFFT_t* d_x;
+                //deviceFFT_t* d_y;
+                //deviceFFT_t* d_z;
 
-                #endif
+                //#endif
 
                 MemoryManager(HACCGPM::Params params);
 
@@ -432,6 +445,10 @@ namespace HACCGPM{
         void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int blockSize, int calls = 0);
 
         void SolveGradient(float4* d_grad, floatFFT_t* d_rho, hostFFT_t* d_greens, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int ng, int blockSize, int calls = 0);
+
+        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, float* d_greens, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int blockSize, int calls = 0);
+
+        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, float* d_greens, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int ng, int blockSize, int calls = 0);
 
         void InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 

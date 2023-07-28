@@ -29,6 +29,7 @@ parallel_runs
 viz_run
 haccgpm
 haccgpmnopython
+BIG_RUN
 
 out.ipk
 

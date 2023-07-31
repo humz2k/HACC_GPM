@@ -1,6 +1,7 @@
 #!/home/hqureshi/miniconda3/bin/python
 
 from math import floor
+import sys
 
 class MemoryCalculator:
     def __init__(self,use_single_fft,use_single_greens,use_float3,use_one_grid,use_temp_grid,use_greens_cache):
@@ -59,7 +60,7 @@ class MemoryCalculator:
         d_binCounts = self.int_size * pk_bins
         d_binVals = self.double_size * pk_bins
 
-        total = d_binVals + d_binCounts + d_grad + d_temp_grid + d_x + d_y + d_z + d_grid + d_greens + d_pos + d_vel
+        total = d_binVals + d_binCounts + d_grad + d_temp_grid + d_x + d_y + d_z + 2*d_grid + d_greens + d_pos + d_vel
         individual = {
             "d_pos": d_pos * 1e-9,
             "d_vel": d_vel * 1e-9,
@@ -130,6 +131,14 @@ calc = MemoryCalculator(use_single_fft=True,
                         use_temp_grid=False,
                         use_greens_cache=False)
 
-print(calc(size=32))
-
-
+if __name__ == "__main__":
+    for i in sys.argv:
+        if ("=" in i):
+            assert(i.count("=") == 1)
+            left,right = i.split("=")
+            left = left.strip()
+            right = right.strip()
+            if (left == "ng"):
+                print("ng = " + right + ": " + str(calc(ng=float(right))[0]) + " GB")
+            if (left == "size"):
+                print("ng = " + str(calc(size=float(right))))

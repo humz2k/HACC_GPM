@@ -87,17 +87,13 @@ class PlanManager{
             #endif
             if (single_precision){
                 if (cufftPlan3d(&plans[used], ng, ng, ng, CUFFT_C2C) != CUFFT_SUCCESS){
-                    #ifdef VerboseFFT
                     printf("CUFFT error: Plan creation failed\n");
-                    #endif
                     exit(1);
                 };
 
             } else{
                 if (cufftPlan3d(&plans[used], ng, ng, ng, CUFFT_Z2Z) != CUFFT_SUCCESS){
-                    #ifdef VerboseFFT
                     printf("CUFFT error: Plan creation failed\n");
-                    #endif
                     exit(1);
                 };
             }
@@ -160,6 +156,8 @@ void HACCGPM::serial::forward_fft(deviceFFT_t* data, deviceFFT_t* out, int ng, i
     CPUTimer_t t = end-start;
     #ifdef VerboseFFT
     printf("%s   forward_fft (out of place) took %llu us (%llu us planning)\n",indent,t,plan_time);
+    #else
+    printf("forward_fft (out of place, double): %llu us (%llu us planning)\n",t,plan_time);
     #endif
     FFT_FORWARD_CALLS_OP++;
     FFT_FORWARD_TIME_OP += t;
@@ -210,6 +208,8 @@ void HACCGPM::serial::forward_fft(deviceFFT_t* data, int ng, int calls){
     CPUTimer_t t = end-start;
     #ifdef VerboseFFT
     printf("%s   forward_fft (in place) took %llu us (%llu us planning)\n",indent,t,plan_time);
+    #else
+    printf("forward_fft (in place, double): %llu us (%llu us planning)\n",t,plan_time);
     #endif
     FFT_FORWARD_CALLS_IP++;
     FFT_FORWARD_TIME_IP += t;
@@ -260,6 +260,8 @@ void HACCGPM::serial::forward_fft(floatFFT_t* data, int ng, int calls){
     CPUTimer_t t = end-start;
     #ifdef VerboseFFT
     printf("%s   forward_fft (in place) took %llu us (%llu us planning)\n",indent,t,plan_time);
+    #else
+    printf("forward_fft (in place, float): %llu us (%llu us planning)\n",t,plan_time);
     #endif
     SINGLE_FFT_FORWARD_CALLS_IP++;
     SINGLE_FFT_FORWARD_TIME_IP += t;
@@ -309,6 +311,8 @@ void HACCGPM::serial::backward_fft(deviceFFT_t* data, deviceFFT_t* out, int ng, 
     CPUTimer_t t = end-start;
     #ifdef VerboseFFT
     printf("%s   inverse_fft (out of place) took %llu us (%llu us planning)\n",indent,t,plan_time);
+    #else
+    printf("inverse_fft (out of place, double) took %llu us (%llu us planning)\n",t,plan_time);
     #endif
     FFT_BACKWARD_CALLS_OP++;
     FFT_BACKWARD_TIME_OP += t;
@@ -357,6 +361,8 @@ void HACCGPM::serial::backward_fft(deviceFFT_t* data, int ng, int calls){
     CPUTimer_t t = end-start;
     #ifdef VerboseFFT
     printf("%s   inverse_fft (in place) took %llu us (%llu us planning)\n",indent,t,plan_time);
+    #else
+    printf("inverse_fft (in place, double): %llu us (%llu us planning)\n",t,plan_time);
     #endif
     FFT_BACKWARD_CALLS_IP++;
     FFT_BACKWARD_TIME_IP += t;
@@ -405,6 +411,8 @@ void HACCGPM::serial::backward_fft(floatFFT_t* data, int ng, int calls){
     CPUTimer_t t = end-start;
     #ifdef VerboseFFT
     printf("%s   inverse_fft (in place) took %llu us (%llu us planning)\n",indent,t,plan_time);
+    #else
+    printf("inverse_fft (in place, float): %llu us (%llu us planning)\n",t,plan_time);
     #endif
     SINGLE_FFT_BACKWARD_CALLS_IP++;
     SINGLE_FFT_BACKWARD_TIME_IP += t;

@@ -1,8 +1,9 @@
 #include "../pm_kernels.hpp"
 
-__global__ void CICKernel(float* __restrict grid, const float4* __restrict my_pos, int ng, float mass){
+template<class T>
+__global__ void CICKernel(float* __restrict grid, const T* __restrict my_pos, int ng, float mass){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
-    float4 my_particle = __ldg(&my_pos[idx]);
+    T my_particle = __ldg(&my_pos[idx]);
     int i = my_particle.x;
     int j = my_particle.y;
     int k = my_particle.z;
@@ -35,6 +36,47 @@ __global__ void CICKernel(float* __restrict grid, const float4* __restrict my_po
                 float mul = dx*dy*dz*mass; //* (1.0f/(ng*ng*ng));
 
                 atomicAdd(&grid[indx],mul);
+            }
+        }
+    }
+}
+
+template<class T1, class T>
+__global__ void CICKernel(T1* __restrict grid, const T* __restrict my_pos, int ng, float mass){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    T my_particle = __ldg(&my_pos[idx]);
+    int i = my_particle.x;
+    int j = my_particle.y;
+    int k = my_particle.z;
+
+    float diffx = (my_particle.x - (float)i);
+    float diffy = (my_particle.y - (float)j);
+    float diffz = (my_particle.z - (float)k);
+
+    for (int x = 0; x < 2; x++){
+        for (int y = 0; y < 2; y++){
+            for (int z = 0; z < 2; z++){
+                int nx = (i + x)%ng;
+                int ny = (j + y)%ng;
+                int nz = (k + z)%ng;
+                int indx = (nx)*ng*ng + (ny)*ng + nz;
+
+                float dx = diffx;
+                if (x == 0){
+                    dx = 1 - dx;
+                }
+                float dy = diffy;
+                if (y == 0){
+                    dy = 1 - dy;
+                }
+                float dz = diffz;
+                if (z == 0){
+                    dz = 1 - dz;
+                }
+
+                float mul = dx*dy*dz*mass; //* (1.0f/(ng*ng*ng));
+
+                atomicAdd(&grid[indx].x,mul);
             }
         }
     }
@@ -96,6 +138,36 @@ __global__ void CICKernelParallel(float* __restrict d_grid, const float4* __rest
 CPUTimer_t launch_cic(float* d_grid, float4* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     cudaCall(cudaMemset,d_grid,0,sizeof(float)*ng*ng*ng);
+    return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
+}
+
+CPUTimer_t launch_cic(float* d_grid, float3* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    cudaCall(cudaMemset,d_grid,0,sizeof(float)*ng*ng*ng);
+    return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
+}
+
+CPUTimer_t launch_cic(floatFFT_t* d_grid, float4* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    cudaCall(cudaMemset,d_grid,0,sizeof(floatFFT_t)*ng*ng*ng);
+    return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
+}
+
+CPUTimer_t launch_cic(floatFFT_t* d_grid, float3* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    cudaCall(cudaMemset,d_grid,0,sizeof(floatFFT_t)*ng*ng*ng);
+    return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
+}
+
+CPUTimer_t launch_cic(deviceFFT_t* d_grid, float4* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    cudaCall(cudaMemset,d_grid,0,sizeof(deviceFFT_t)*ng*ng*ng);
+    return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
+}
+
+CPUTimer_t launch_cic(deviceFFT_t* d_grid, float3* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    cudaCall(cudaMemset,d_grid,0,sizeof(deviceFFT_t)*ng*ng*ng);
     return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
 }
 

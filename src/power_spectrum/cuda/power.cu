@@ -198,7 +198,9 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
     printf("%s   Allocating d_temp_pos, kBins, binCounts, binVals, d_binCounts, d_binVals\n",indent);
     #endif
 
-    float4* d_temp_pos; cudaCall(cudaMalloc,&d_temp_pos,sizeof(float4)*params.ng*params.ng*params.ng);
+    //particle_t* d_temp_pos; cudaCall(cudaMalloc,&d_temp_pos,sizeof(particle_t)*params.ng*params.ng*params.ng);
+
+    particle_t* d_temp_pos = (particle_t*)mem.d_grad;
     //hostFFT_t* d_powerSpectrum; cudaCall(cudaMalloc,&d_powerSpectrum,sizeof(hostFFT_t)*ng*ng*ng);
 
     double* kBins = (double*)malloc(sizeof(double)*nbins);
@@ -244,7 +246,11 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
 
         CPUTimer_t start_extras = CPUTimer();
 
+        #ifdef USE_TEMP_GRID
         HACCGPM::serial::CIC(mem.d_grid,mem.d_tempgrid,d_temp_pos,params.ng,params.blockSize,calls+1);
+        #else
+        HACCGPM::serial::CIC(mem.d_grid,d_temp_pos,params.ng,params.blockSize,calls+1);
+        #endif
 
         HACCGPM::serial::forward_fft(mem.d_grid,params.ng,calls + 1);
 
@@ -267,7 +273,7 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
     free(kBins);
     free(binCounts);
     free(binVals);
-    cudaCall(cudaFree,d_temp_pos);
+    //cudaCall(cudaFree,d_temp_pos);
     cudaCall(cudaFree,d_binCounts);
     cudaCall(cudaFree,d_binVals);
 

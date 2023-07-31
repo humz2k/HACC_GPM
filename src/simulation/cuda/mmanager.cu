@@ -87,19 +87,31 @@ HACCGPM::parallel::MemoryManager::~MemoryManager(){
 }
 
 HACCGPM::serial::MemoryManager::MemoryManager(HACCGPM::Params params){
+    #ifdef USE_TEMP_GRID
+    #ifdef USE_ONE_GRID
+    printf("MemoryManager:\n   Allocating d_vel,d_pos,d_greens,d_grid,d_tempgrid,d_grad...\n");
+    #else
     printf("MemoryManager:\n   Allocating d_vel,d_pos,d_greens,d_grid,d_x,d_y,d_z,d_tempgrid,d_grad...\n");
+    #endif
+    #else
+    #ifdef USE_ONE_GRID
+    printf("MemoryManager:\n   Allocating d_vel,d_pos,d_greens,d_grid,d_grad...\n");
+    #else
+    printf("MemoryManager:\n   Allocating d_vel,d_pos,d_greens,d_grid,d_x,d_y,d_z,d_grad...\n");
+    #endif
+    #endif
     
     size_t total_memory = 0;
 
-    cudaCall(cudaMalloc,&d_vel,sizeof(float4)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_vel: %lu bytes.\n",sizeof(float4)*params.ng*params.ng*params.ng);
+    cudaCall(cudaMalloc,&d_vel,sizeof(particle_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_vel: %lu bytes.\n",sizeof(particle_t)*params.ng*params.ng*params.ng);
 
-    total_memory += sizeof(float4)*params.ng*params.ng*params.ng;
+    total_memory += sizeof(particle_t)*params.ng*params.ng*params.ng;
 
-    cudaCall(cudaMalloc,&d_pos,sizeof(float4)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_pos: %lu bytes.\n",sizeof(float4)*params.ng*params.ng*params.ng);
+    cudaCall(cudaMalloc,&d_pos,sizeof(particle_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_pos: %lu bytes.\n",sizeof(particle_t)*params.ng*params.ng*params.ng);
 
-    total_memory += sizeof(float4)*params.ng*params.ng*params.ng;
+    total_memory += sizeof(particle_t)*params.ng*params.ng*params.ng;
 
     cudaCall(cudaMalloc,&d_greens,sizeof(greens_t)*params.ng*params.ng*params.ng);
     printf("   Allocated d_greens: %lu bytes.\n",sizeof(greens_t)*params.ng*params.ng*params.ng);
@@ -111,6 +123,7 @@ HACCGPM::serial::MemoryManager::MemoryManager(HACCGPM::Params params){
 
     total_memory += sizeof(grid_t)*params.ng*params.ng*params.ng;
 
+    #ifndef USE_ONE_GRID
     cudaCall(cudaMalloc,&d_x,sizeof(grid_t)*params.ng*params.ng*params.ng);
     printf("   Allocated d_x: %lu bytes.\n",sizeof(grid_t)*params.ng*params.ng*params.ng);
 
@@ -125,11 +138,14 @@ HACCGPM::serial::MemoryManager::MemoryManager(HACCGPM::Params params){
     printf("   Allocated d_z: %lu bytes.\n",sizeof(grid_t)*params.ng*params.ng*params.ng);
 
     total_memory += sizeof(grid_t)*params.ng*params.ng*params.ng;
+    #endif
 
+    #ifdef USE_TEMP_GRID
     cudaCall(cudaMalloc,&d_tempgrid,sizeof(float)*params.ng*params.ng*params.ng);
     printf("   Allocated d_tempgrid: %lu bytes.\n",sizeof(float)*params.ng*params.ng*params.ng);
 
     total_memory += sizeof(float)*params.ng*params.ng*params.ng;
+    #endif
 
     cudaCall(cudaMalloc,&d_grad,sizeof(float4)*params.ng*params.ng*params.ng);
     printf("   Allocated d_grad: %lu bytes.\n",sizeof(float4)*params.ng*params.ng*params.ng);
@@ -140,17 +156,45 @@ HACCGPM::serial::MemoryManager::MemoryManager(HACCGPM::Params params){
 }
 
 HACCGPM::serial::MemoryManager::~MemoryManager(){
+    #ifdef USE_TEMP_GRID
+    #ifdef USE_ONE_GRID
+    printf("MemoryManager:\n   Freeing d_vel,d_pos,d_greens,d_grid,d_tempgrid,d_grad...\n");
+    #else
     printf("MemoryManager:\n   Freeing d_vel,d_pos,d_greens,d_grid,d_x,d_y,d_z,d_tempgrid,d_grad...\n");
+    #endif
+    #else
+    #ifdef USE_ONE_GRID
+    printf("MemoryManager:\n   Freeing d_vel,d_pos,d_greens,d_grid,d_grad...\n");
+    #else
+    printf("MemoryManager:\n   Freeing d_vel,d_pos,d_greens,d_grid,d_x,d_y,d_z,d_grad...\n");
+    #endif
+    #endif
     
     cudaCall(cudaFree,d_pos);
     cudaCall(cudaFree,d_vel);
     cudaCall(cudaFree,d_greens);
     cudaCall(cudaFree,d_grid);
+    #ifdef USE_TEMP_GRID
     cudaCall(cudaFree,d_tempgrid);
+    #endif
     cudaCall(cudaFree,d_grad);
+    #ifndef USE_ONE_GRID
     cudaCall(cudaFree,d_x);
     cudaCall(cudaFree,d_y);
     cudaCall(cudaFree,d_z);
+    #endif
 
-    printf("      Freed d_vel,d_pos,d_greens,d_grid,d_x,d_y,d_z,temp_grid,d_grad.\n");
+    #ifdef USE_TEMP_GRID
+    #ifdef USE_ONE_GRID
+    printf("      Freed d_vel,d_pos,d_greens,d_grid,d_temp_grid,d_grad.\n");
+    #else
+    printf("      Freed d_vel,d_pos,d_greens,d_grid,d_x,d_y,d_z,d_temp_grid,d_grad.\n");
+    #endif
+    #else
+    #ifdef USE_ONE_GRID
+    printf("      Freed d_vel,d_pos,d_greens,d_grid,d_grad.\n");
+    #else
+    printf("      Freed d_vel,d_pos,d_greens,d_grid,d_x,d_y,d_z,d_grad.\n");
+    #endif
+    #endif
 }

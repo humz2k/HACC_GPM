@@ -15,6 +15,20 @@ __global__ void combine(float4* __restrict out, const T* __restrict d_x, const T
     out[idx] = this_out;
 }
 
+template<class T>
+__global__ void copyGridToFloat4(float4* __restrict out, const T* __restrict d_grid){
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    T cell = __ldg(&d_grid[idx]);
+
+    float4 this_out;
+    this_out.x = 0;
+    this_out.y = 0;
+    this_out.z = cell.x;
+    this_out.w = cell.y;
+
+    out[idx] = this_out;
+}
+
 __global__ void combine_parallel(float4* __restrict out, const deviceFFT_t* __restrict d_x, const deviceFFT_t* __restrict d_y, const deviceFFT_t* __restrict d_z, int3 local_grid_size, int3 local_coords, int overload, int nlocal, int ng){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
     if (idx >= nlocal)return;
@@ -41,6 +55,16 @@ __global__ void combine_parallel(float4* __restrict out, const deviceFFT_t* __re
     int rhoIdx = rhoIdx3d.x * overload_dims.y * overload_dims.z + rhoIdx3d.y * overload_dims.z + rhoIdx3d.z;
 
     out[rhoIdx] = this_out;
+}
+
+CPUTimer_t launch_grid2float4(float4* d_grad, deviceFFT_t* d_grid, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernel(copyGridToFloat4,numBlocks,blockSize,d_grad,d_grid);
+}
+
+CPUTimer_t launch_grid2float4(float4* d_grad, floatFFT_t* d_grid, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernel(copyGridToFloat4,numBlocks,blockSize,d_grad,d_grid);
 }
 
 CPUTimer_t launch_combine(float4* d_grad, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int numBlocks, int blockSize, int calls){

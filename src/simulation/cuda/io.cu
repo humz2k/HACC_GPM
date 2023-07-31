@@ -42,6 +42,39 @@ void HACCGPM::serial::writeOutput(char* fname, float4* d_pos, float4* d_vel, int
 
 }
 
+void HACCGPM::serial::writeOutput(char* fname, float3* d_pos, float3* d_vel, int ng, int calls){
+
+    getIndent(calls);
+
+    printf("%swriteOutput was called\n",indent);
+
+    CPUTimer_t start = CPUTimer();
+
+    int n_particles = ng*ng*ng;
+    float* h_pos = (float*)malloc(sizeof(float)*3*n_particles);
+    float* h_vel = (float*)malloc(sizeof(float)*3*n_particles);
+
+    cudaCall(cudaMemcpy, h_pos, d_pos, sizeof(float)*ng*ng*ng*3, cudaMemcpyDeviceToHost);
+    cudaCall(cudaMemcpy, h_vel, d_vel, sizeof(float)*ng*ng*ng*3, cudaMemcpyDeviceToHost);
+
+    FILE *fp;
+    fp = fopen(fname, "w+");
+    fwrite(h_pos,sizeof(float),3*n_particles,fp);
+    fwrite(h_vel,sizeof(float),3*n_particles,fp);
+    fclose(fp);
+    free(h_pos);
+    free(h_vel);
+
+    CPUTimer_t end = CPUTimer();
+    CPUTimer_t t = end-start;
+
+    printf("%s   writeOutput took %llu us\n",indent,t);
+
+    OUTPUT_CALLS++;
+    OUTPUT_TIME += t;
+
+}
+
 void HACCGPM::serial::printOutputTimes(){
     printf("   writeOutput        -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10d us | mean: %10.2f us\n",OUTPUT_CALLS,OUTPUT_TIME,OUTPUT_TIME,0,((float)OUTPUT_TIME)/((float)(OUTPUT_CALLS)));
 }

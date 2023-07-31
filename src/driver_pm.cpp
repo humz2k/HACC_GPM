@@ -140,8 +140,10 @@ int parallel(const char* params_file){
     HACCGPM::parallel::init_swfft(params);
 
     if (params.world_rank == 0){
-        printf("GLOBAL_GRID_SIZE: [%d %d %d]\n",params.grid_dims[0],params.grid_dims[1],params.grid_dims[2]);
-        printf("LOCAL_GRID_SIZE: [%d %d %d]\n",params.local_grid_size[0],params.local_grid_size[1],params.local_grid_size[2]);
+        printf("MPI Parameters:\n");
+        printf("   world_size      = %d\n",params.world_size);
+        printf("   grid_dims       = [%d %d %d]\n",params.grid_dims[0],params.grid_dims[1],params.grid_dims[2]);
+        printf("   local_grid_size = [%d %d %d]\n",params.local_grid_size[0],params.local_grid_size[1],params.local_grid_size[2]);
     }
 
     HACCGPM::parallel::MemoryManager mem(params);

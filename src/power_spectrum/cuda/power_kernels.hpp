@@ -12,11 +12,15 @@ __global__ void PkCICFilter(floatFFT_t* __restrict grid, int ng);
 
 __global__ void foldParticles(float4* __restrict d_pos, double ng);
 
+__global__ void foldParticles(float3* __restrict d_pos, double ng);
+
 __global__ void foldParticles(float4* __restrict d_pos, double ng, int3 local_grid_size, int3 local_coords);
 
 __global__ void ScaleParticles(float4* __restrict d_pos, double oldNg, double newNg);
 
 __global__ void cpy(float4* __restrict dest, const float4* __restrict source);
+
+__global__ void cpy(float3* __restrict dest, const float3* __restrict source);
 
 __global__ void cpy(float4* __restrict dest, const float4* __restrict source, int n);
 

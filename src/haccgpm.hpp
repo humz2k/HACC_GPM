@@ -40,6 +40,10 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
+inline __device__ float3 __ldg(const float3* i){
+    return *i;
+}
+
 #define cudaCall(func,...) if (func(__VA_ARGS__) != cudaSuccess)printf("Error >> %s\n", cudaGetErrorString(cudaGetLastError()));cudaDeviceSynchronize()
 
 //#define VerboseCuda
@@ -51,17 +55,26 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 #else
 
-#define InvokeGPUKernel(func,numBlocks,blockSize,...) ({CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start; t;})
-#define InvokeGPUKernelParallel(func,numBlocks,blockSize,...) ({CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start; t;})
+#define InvokeGPUKernel(func,numBlocks,blockSize,...) ({CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start; printf("%s: %llu us\n",TOSTRING(func),t); t;})
+#define InvokeGPUKernelParallel(func,numBlocks,blockSize,...) ({CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start; printf("%s: %llu us\n",TOSTRING(func),t); t;})
 
 #endif
 
 #define hostFFT_t double
 #define deviceFFT_t cufftDoubleComplex
 
-//#define USE_SINGLE_FFT
-//#define USE_SINGLE_GREENS
+#define USE_SINGLE_FFT
+#define USE_SINGLE_GREENS
+#define USE_FLOAT3
+#define USE_ONE_GRID
+//#define USE_TEMP_GRID
 //#define USE_HALF_PRECISION
+
+#ifdef USE_FLOAT3
+#define particle_t float3
+#else
+#define particle_t float4
+#endif
 
 #ifdef USE_SINGLE_GREENS
 #define greens_t float
@@ -372,30 +385,24 @@ namespace HACCGPM{
                 #ifdef USE_HALF_PRECISION
                 half4* d_pos;
                 #else
-                float4* d_pos;
+                particle_t* d_pos;
                 #endif
 
-                float4* d_vel;
+                particle_t* d_vel;
                 float4* d_grad;
                 greens_t* d_greens;
 
-                //#ifdef USE_SINGLE_FFT
-
                 grid_t* d_grid;
+                
+                #ifdef USE_TEMP_GRID
                 float* d_tempgrid;
+                #endif
+
+                #ifndef USE_ONE_GRID
                 grid_t* d_x;
                 grid_t* d_y;
                 grid_t* d_z;
-
-                //#else
-
-                //deviceFFT_t* d_grid;
-                //float* d_tempgrid;
-                //deviceFFT_t* d_x;
-                //deviceFFT_t* d_y;
-                //deviceFFT_t* d_z;
-
-                //#endif
+                #endif
 
                 MemoryManager(HACCGPM::Params params);
 
@@ -414,13 +421,29 @@ namespace HACCGPM{
 
         void UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int blockSize, int calls = 0);
 
+        void UpdatePositions(float3* d_pos, float3* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int blockSize, int calls = 0);
+
         void UpdateVelocities(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper ts, int calls = 0);
 
         void UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls = 0);
 
+        void UpdateVelocities(float3* d_vel, float4* d_grad, float3* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls = 0);
+
+        void CIC(deviceFFT_t* d_grid, float4* d_pos, int ng, int blockSize, int calls = 0);
+
+        void CIC(deviceFFT_t* d_grid, float3* d_pos, int ng, int blockSize, int calls = 0);
+
+        void CIC(floatFFT_t* d_grid, float4* d_pos, int ng, int blockSize, int calls = 0);
+
+        void CIC(floatFFT_t* d_grid, float3* d_pos, int ng, int blockSize, int calls = 0);
+
         void CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls = 0);
 
         void CIC(floatFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls = 0);
+
+        void CIC(deviceFFT_t* d_grid, float* d_temp, float3* d_pos, int ng, int blockSize, int calls = 0);
+
+        void CIC(floatFFT_t* d_grid, float* d_temp, float3* d_pos, int ng, int blockSize, int calls = 0);
 
         void CIC(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 
@@ -431,6 +454,8 @@ namespace HACCGPM{
         void writeOutput(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, char* fname, int calls = 0);
 
         void writeOutput(char* fname, float4* d_pos, float4* d_vel, int ng, int calls = 0);
+
+        void writeOutput(char* fname, float3* d_pos, float3* d_vel, int ng, int calls = 0);
 
         //void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, int ng, double rl, int nbins, const char* fname, int nfolds, int blockSize, int calls = 0);
 
@@ -449,6 +474,14 @@ namespace HACCGPM{
         void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, float* d_greens, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int blockSize, int calls = 0);
 
         void SolveGradient(float4* d_grad, floatFFT_t* d_rho, float* d_greens, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int ng, int blockSize, int calls = 0);
+
+        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls);
+
+        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, float* d_greens, int ng, int blockSize, int calls);
+
+        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls);
+
+        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, float* d_greens, int ng, int blockSize, int calls);
 
         void InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 

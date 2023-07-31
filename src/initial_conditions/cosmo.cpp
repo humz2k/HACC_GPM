@@ -4,6 +4,8 @@
 #include <mpi.h>
 #include "haccgpm.hpp"
 
+//#define VerboseCosmo
+
 HACCGPM::CosmoClass::CosmoClass(HACCGPM::Params& params){
 
     Omega_m = params.m_omega_matter;
@@ -22,10 +24,15 @@ HACCGPM::CosmoClass::CosmoClass(HACCGPM::Params& params){
 }
 
 void HACCGPM::CosmoClass::read_ipk(double** out, int* nbins, double* k_delta, double* k_max, double* k_min, int calls){
-    getIndent(calls);
+    
 
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD,&world_rank);
+    #ifdef VerboseCosmo
+    getIndent(calls);
+    #else
+    char indent[] = "";
+    #endif
 
     if(world_rank == 0)printf("%sReading ipk\n",indent);
     if(world_rank == 0)printf("%s   fname: %s\n",indent,ipk);

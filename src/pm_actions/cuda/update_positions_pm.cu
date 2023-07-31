@@ -1,9 +1,10 @@
 #include "../pm_kernels.hpp"
 
-__global__ void UpdatePosKernel(float4* __restrict d_pos, const float4* __restrict d_vel, float prefactor, float ng){
+template<class T>
+__global__ void UpdatePosKernel(T* __restrict d_pos, const T* __restrict d_vel, float prefactor, float ng){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
-    float4 my_pos = __ldg(&d_pos[idx]);
-    float4 my_vel = __ldg(&d_vel[idx]);
+    T my_pos = __ldg(&d_pos[idx]);
+    T my_vel = __ldg(&d_vel[idx]);
     my_pos.x += my_vel.x * prefactor;
     my_pos.y += my_vel.y * prefactor;
     my_pos.z += my_vel.z * prefactor;
@@ -39,6 +40,11 @@ __global__ void UpdatePosKernelParallel(float4* __restrict d_pos, const float4* 
 }
 
 CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int ng, int numBlocks, int blockSize, int calls){
+    getIndent(calls);
+    return InvokeGPUKernel(UpdatePosKernel,numBlocks,blockSize,d_pos,d_vel,prefactor,(float)ng);
+}
+
+CPUTimer_t launch_updatepos(float3* d_pos, float3* d_vel, float prefactor, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     return InvokeGPUKernel(UpdatePosKernel,numBlocks,blockSize,d_pos,d_vel,prefactor,(float)ng);
 }

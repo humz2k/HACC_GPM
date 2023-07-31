@@ -42,8 +42,12 @@ log5.txt
 log6.txt
 log7.txt
 log8.txt
+log9.txt
+log10.txt
+log11.txt
 
 sizeplot.ipynb
+read_log.ipynb
 
 docs/html
 docs/latex

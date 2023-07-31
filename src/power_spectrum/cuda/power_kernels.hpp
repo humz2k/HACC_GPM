@@ -29,3 +29,9 @@ __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restric
 __global__ void BinPower(const floatFFT_t* __restrict d_grid, double* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng);
 
 __global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims);
+
+__global__ void BinPower(const deviceFFT_t* __restrict d_grid, float* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng);
+
+__global__ void BinPower(const floatFFT_t* __restrict d_grid, float* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng);
+
+__global__ void BinPower(const deviceFFT_t* __restrict d_grid, float* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims);

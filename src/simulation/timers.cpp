@@ -56,7 +56,7 @@ void HACCGPM::serial::printTimers(CPUTimer_t init, CPUTimer_t total){
     HACCGPM::serial::printPowerTimes();
     HACCGPM::serial::printOutputTimes();
     printf("   Initialization: %llu us (%5.2g minutes)\n",init,((double)(init)) * 1.66667e-8);
-    printf("   Total: %5.2g minutes\n",((double)(total)) * 1.66667e-8);
+    printf("   Total: %5.2g minutes, %llu us\n",((double)(total)) * 1.66667e-8,total);
     printf("=========\n\n");
 }
 

@@ -65,10 +65,10 @@ inline __device__ float3 __ldg(const float3* i){
 
 #define USE_SINGLE_FFT
 #define USE_SINGLE_GREENS
-#define USE_FLOAT3
-#define USE_ONE_GRID
-//#define USE_TEMP_GRID
-//#define USE_GREENS_CACHE
+//#define USE_FLOAT3
+//#define USE_ONE_GRID
+#define USE_TEMP_GRID
+#define USE_GREENS_CACHE
 
 //#define USE_HALF_PRECISION
 
@@ -411,7 +411,7 @@ namespace HACCGPM{
                 #endif
 
                 int* d_binCounts;
-                double* d_binVals;
+                float* d_binVals;
 
                 MemoryManager(HACCGPM::Params params);
 

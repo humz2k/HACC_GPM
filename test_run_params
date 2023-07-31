@@ -36,7 +36,7 @@ ANALYSIS_PY /home/hqureshi/HACC_GPM/example_analysis/basic
 
 OL 1
 
-NG 768
-RL 384
+NG 256
+RL 128
 SEED 21082001
 BLOCK_SIZE 64

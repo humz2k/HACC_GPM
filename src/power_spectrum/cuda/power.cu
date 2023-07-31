@@ -10,7 +10,8 @@ CPUTimer_t POWER_TIME = 0;
 int POWER_CALLS = 0;
 CPUTimer_t POWER_KERNEL_TIME = 0;
 
-void writePkOutput(const char* fname, double* binVals, int* binCounts, double* kBins, int nbins, int current_fold){
+template<class T>
+void writePkOutput(const char* fname, T* binVals, int* binCounts, double* kBins, int nbins, int current_fold){
     char fname2[400];
     sprintf(fname2, "%s.fold.%d", fname, current_fold);
     FILE *fp;
@@ -207,7 +208,7 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
 
     double* kBins = (double*)malloc(sizeof(double)*nbins);
     int* binCounts = (int*)malloc(sizeof(int)*(nbins));
-    double* binVals = (double*)malloc(sizeof(double)*nbins);
+    float* binVals = (float*)malloc(sizeof(float)*nbins);
 
     //int* d_binCounts; cudaCall(cudaMalloc,&d_binCounts,sizeof(int)*nbins);
     //double* d_binVals; cudaCall(cudaMalloc,&d_binVals,sizeof(double)*nbins);
@@ -236,7 +237,7 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
     for (int current_fold = 0; current_fold < params.pkFolds + 1; current_fold++){
 
         cudaCall(cudaMemset,mem.d_binCounts,0,sizeof(int)*nbins);
-        cudaCall(cudaMemset,mem.d_binVals,0,sizeof(double)*nbins);
+        cudaCall(cudaMemset,mem.d_binVals,0,sizeof(float)*nbins);
 
         new_rl = (params.rl/(pow(2,current_fold)));
 
@@ -266,7 +267,7 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
 
         POWER_KERNEL_TIME += InvokeGPUKernel(BinPower,numBlocks,params.blockSize,mem.d_grid,mem.d_binVals,mem.d_binCounts,minK,binDelta,new_rl,params.ng);
 
-        cudaCall(cudaMemcpy, binVals, mem.d_binVals, sizeof(double)*nbins, cudaMemcpyDeviceToHost);
+        cudaCall(cudaMemcpy, binVals, mem.d_binVals, sizeof(float)*nbins, cudaMemcpyDeviceToHost);
         cudaCall(cudaMemcpy, binCounts, mem.d_binCounts, sizeof(int)*nbins, cudaMemcpyDeviceToHost);
  
         writePkOutput(fname,binVals,binCounts,kBins,nbins,current_fold);

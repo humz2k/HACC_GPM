@@ -3,6 +3,24 @@
 from math import floor
 import sys
 
+def find_fft_size(t):
+    dist = t
+    best = 0
+    string = ""
+    for i in range(20):
+        for j in range(20):
+            for k in range(20):
+                for l in range(20):
+                    ng = (2**i) * (3**j) * (5**k) * (7**l)
+                    if (ng <= t):
+                        if (t - ng) < dist:
+                            dist = t-ng
+                            best = ng
+                            string = "(2**" + str(i) + ") * (3**" + str(j) + ") * (5**" + str(k) + ") * (7**" + str(l) + ")"
+                    else:
+                        break
+    return best,string
+
 class MemoryCalculator:
     def __init__(self,use_single_fft,use_single_greens,use_float3,use_one_grid,use_temp_grid,use_greens_cache):
         self.use_single_fft = use_single_fft
@@ -74,9 +92,10 @@ class MemoryCalculator:
             "d_binCounts": d_binCounts * 1e-9,
             "d_binVals": d_binVals * 1e-9
         }
-        return total * 1e-9, individual #GB
+        return total * 1e-9 + 5, individual #GB
     
     def backward(self,size,pk_bins=221): #size is GB
+        size -= 5
         size *= 1e+9
 
         size -= self.int_size * pk_bins
@@ -102,7 +121,7 @@ class MemoryCalculator:
         mul += particle_t
         mul += greens_t
 
-        mul += grid_t
+        mul += 2*grid_t
 
         if not self.use_one_grid:
             mul += 3 * grid_t
@@ -115,8 +134,9 @@ class MemoryCalculator:
         n_cells = size / mul
 
         ng = floor(n_cells ** (1/3))
+        ng = find_fft_size(ng)
 
-        return (floor(ng))
+        return ng
     
     def __call__(self,ng=None,size=None):
         if (type(ng) != type(None)):
@@ -141,4 +161,5 @@ if __name__ == "__main__":
             if (left == "ng"):
                 print("ng = " + right + ": " + str(calc(ng=float(right))[0]) + " GB")
             if (left == "size"):
-                print("ng = " + str(calc(size=float(right))))
+                ng,string = calc(size=float(right))
+                print(right + " GB: ng = " + str(ng) + " (" + string + ")")

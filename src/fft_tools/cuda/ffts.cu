@@ -36,6 +36,27 @@ int SINGLE_FFT_FORWARD_CALLS_OP = 0;
 int SINGLE_FFT_BACKWARD_CALLS_IP = 0;
 int SINGLE_FFT_BACKWARD_CALLS_OP = 0;
 
+void printCufftError(cufftResult error){
+    if (error == CUFFT_INVALID_PLAN){
+        printf("CUFFT_INVALID_PLAN\n");
+    }
+    if (error == CUFFT_ALLOC_FAILED){
+        printf("CUFFT_ALLOC_FAILED\n");
+    }
+    if (error == CUFFT_INVALID_VALUE){
+        printf("CUFFT_INVALID_VALUE\n");
+    }
+    if (error == CUFFT_INTERNAL_ERROR){
+        printf("CUFFT_INTERNAL_ERROR\n");
+    }
+    if (error == CUFFT_SETUP_FAILED){
+        printf("CUFFT_SETUP_FAILED\n");
+    }
+    if (error == CUFFT_INVALID_SIZE){
+        printf("CUFFT_INVALID_SIZE\n");
+    }
+}
+
 class PlanManager{
     public:
         cufftHandle plans[FFTCacheSize];
@@ -86,14 +107,18 @@ class PlanManager{
             printf("%s   No cached plan %d found, creating one\n",indent,ng);
             #endif
             if (single_precision){
-                if (cufftPlan3d(&plans[used], ng, ng, ng, CUFFT_C2C) != CUFFT_SUCCESS){
-                    printf("CUFFT error: Plan creation failed\n");
+                cufftResult result = cufftPlan3d(&plans[used], ng, ng, ng, CUFFT_C2C);
+                if (result != CUFFT_SUCCESS){
+                    printf("CUFFT error: Plan creation failed with ");
+                    printCufftError(result);
                     exit(1);
                 };
 
             } else{
-                if (cufftPlan3d(&plans[used], ng, ng, ng, CUFFT_Z2Z) != CUFFT_SUCCESS){
-                    printf("CUFFT error: Plan creation failed\n");
+                cufftResult result = cufftPlan3d(&plans[used], ng, ng, ng, CUFFT_Z2Z);
+                if (result != CUFFT_SUCCESS){
+                    printf("CUFFT error: Plan creation failed with ");
+                    printCufftError(result);
                     exit(1);
                 };
             }

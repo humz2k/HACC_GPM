@@ -21,6 +21,26 @@ int serial(const char* params_file){
 
     cudaFree(0);
 
+    printf("Flags:\n");
+    #ifdef USE_SINGLE_FFT
+    printf("   USE_SINGLE_FFT\n");
+    #endif
+    #ifdef USE_SINGLE_GREENS
+    printf("   USE_SINGLE_GREENS\n");
+    #endif
+    #ifdef USE_FLOAT3
+    printf("   USE_FLOAT3\n");
+    #endif
+    #ifdef USE_ONE_GRID
+    printf("   USE_ONE_GRID\n");
+    #endif
+    #ifdef USE_TEMP_GRID
+    printf("   USE_TEMP_GRID\n");
+    #endif
+    #ifdef USE_GREENS_CACHE
+    printf("   USE_GREENS_CACHE\n");
+    #endif
+
     CPUTimer_t start = CPUTimer();
 
     HACCGPM::Params params = HACCGPM::read_params(params_file);
@@ -63,7 +83,7 @@ int serial(const char* params_file){
 
     char stepstr[400];
     sprintf(stepstr, "%s.pk.ini", params.prefix);
-    HACCGPM::serial::GetPowerSpectrum(params,mem,221,stepstr);
+    HACCGPM::serial::GetPowerSpectrum(params,mem,stepstr);
 
     if (params.dump_init){
         sprintf(stepstr, "%s.particles.ini", params.prefix);
@@ -93,7 +113,7 @@ int serial(const char* params_file){
 
         if (params.pks[step]){
             sprintf(stepstr, "%s.pk.%d", params.prefix,step);
-            HACCGPM::serial::GetPowerSpectrum(params,mem,221,stepstr);
+            HACCGPM::serial::GetPowerSpectrum(params,mem,stepstr);
         }
 
         if (params.dumps[step]){
@@ -109,7 +129,7 @@ int serial(const char* params_file){
     }
 
     sprintf(stepstr, "%s.pk.fin", params.prefix);
-    HACCGPM::serial::GetPowerSpectrum(params,mem,221,stepstr);
+    HACCGPM::serial::GetPowerSpectrum(params,mem,stepstr);
 
     if(params.dump_final){
         sprintf(stepstr, "%s.particles.fin", params.prefix);

@@ -8,6 +8,10 @@ __global__ void set_invalid(float4* __restrict d_pos, int mem_frac){
     d_pos[idx] = make_float4(0,0,0,-10);
 }
 
+float b2mb(size_t bytes){
+    return ((float)bytes) * 1e-6;
+}
+
 HACCGPM::parallel::MemoryManager::MemoryManager(HACCGPM::Params params){
     world_rank = params.world_rank;
     if (params.world_rank == 0)printf("MemoryManager:\n   Allocating d_vel,d_pos,d_greens,d_grid,d_x,d_y,d_z,d_grad,d_tempgrid...\n");
@@ -104,53 +108,63 @@ HACCGPM::serial::MemoryManager::MemoryManager(HACCGPM::Params params){
     size_t total_memory = 0;
 
     cudaCall(cudaMalloc,&d_vel,sizeof(particle_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_vel: %lu bytes.\n",sizeof(particle_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_vel: %g MB.\n",b2mb(sizeof(particle_t)*params.ng*params.ng*params.ng));
 
     total_memory += sizeof(particle_t)*params.ng*params.ng*params.ng;
 
     cudaCall(cudaMalloc,&d_pos,sizeof(particle_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_pos: %lu bytes.\n",sizeof(particle_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_pos: %g MB.\n",b2mb(sizeof(particle_t)*params.ng*params.ng*params.ng));
 
     total_memory += sizeof(particle_t)*params.ng*params.ng*params.ng;
 
+    #ifdef USE_GREENS_CACHE
     cudaCall(cudaMalloc,&d_greens,sizeof(greens_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_greens: %lu bytes.\n",sizeof(greens_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_greens: %g MB.\n",b2mb(sizeof(greens_t)*params.ng*params.ng*params.ng));
 
     total_memory += sizeof(greens_t)*params.ng*params.ng*params.ng;
+    #endif
 
     cudaCall(cudaMalloc,&d_grid,sizeof(grid_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_grid: %lu bytes.\n",sizeof(grid_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_grid: %g MB.\n",b2mb(sizeof(grid_t)*params.ng*params.ng*params.ng));
 
     total_memory += sizeof(grid_t)*params.ng*params.ng*params.ng;
 
     #ifndef USE_ONE_GRID
     cudaCall(cudaMalloc,&d_x,sizeof(grid_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_x: %lu bytes.\n",sizeof(grid_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_x: %g MB.\n",b2mb(sizeof(grid_t)*params.ng*params.ng*params.ng));
 
     total_memory += sizeof(grid_t)*params.ng*params.ng*params.ng;
 
     cudaCall(cudaMalloc,&d_y,sizeof(grid_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_y: %lu bytes.\n",sizeof(grid_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_y: %g MB.\n",b2mb(sizeof(grid_t)*params.ng*params.ng*params.ng));
 
     total_memory += sizeof(grid_t)*params.ng*params.ng*params.ng;
 
     cudaCall(cudaMalloc,&d_z,sizeof(grid_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_z: %lu bytes.\n",sizeof(grid_t)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_z: %g MB.\n",b2mb(sizeof(grid_t)*params.ng*params.ng*params.ng));
 
     total_memory += sizeof(grid_t)*params.ng*params.ng*params.ng;
     #endif
 
     #ifdef USE_TEMP_GRID
     cudaCall(cudaMalloc,&d_tempgrid,sizeof(float)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_tempgrid: %lu bytes.\n",sizeof(float)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_tempgrid: %g MB.\n",b2mb(sizeof(float)*params.ng*params.ng*params.ng));
 
     total_memory += sizeof(float)*params.ng*params.ng*params.ng;
     #endif
 
     cudaCall(cudaMalloc,&d_grad,sizeof(float4)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_grad: %lu bytes.\n",sizeof(float4)*params.ng*params.ng*params.ng);
+    printf("   Allocated d_grad: %g MB.\n",b2mb(sizeof(float4)*params.ng*params.ng*params.ng));
 
     total_memory += sizeof(float4)*params.ng*params.ng*params.ng;
+
+    cudaCall(cudaMalloc,&d_binCounts,sizeof(int)*params.pk_bins);
+    printf("   Allocated d_binCounts: %g MB.\n",b2mb(sizeof(int)*params.pk_bins));
+    total_memory += sizeof(int)*params.pk_bins;
+
+    cudaCall(cudaMalloc,&d_binVals,sizeof(double)*params.pk_bins);
+    printf("   Allocated d_binVals: %g MB.\n",b2mb(sizeof(double)*params.pk_bins));
+    total_memory += sizeof(double)*params.pk_bins;
 
     printf("Total: %g GB\n",((double)total_memory) * 1e-9);
 }
@@ -172,7 +186,11 @@ HACCGPM::serial::MemoryManager::~MemoryManager(){
     
     cudaCall(cudaFree,d_pos);
     cudaCall(cudaFree,d_vel);
+
+    #ifdef USE_GREENS_CACHE
     cudaCall(cudaFree,d_greens);
+    #endif
+
     cudaCall(cudaFree,d_grid);
     #ifdef USE_TEMP_GRID
     cudaCall(cudaFree,d_tempgrid);
@@ -183,6 +201,9 @@ HACCGPM::serial::MemoryManager::~MemoryManager(){
     cudaCall(cudaFree,d_y);
     cudaCall(cudaFree,d_z);
     #endif
+
+    cudaCall(cudaFree,d_binCounts);
+    cudaCall(cudaFree,d_binVals);
 
     #ifdef USE_TEMP_GRID
     #ifdef USE_ONE_GRID

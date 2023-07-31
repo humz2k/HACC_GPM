@@ -82,10 +82,18 @@ void HACCGPM::serial::Solve(deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int
 }
 
 void HACCGPM::serial::SolveGradient(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls){
-    #ifdef USE_ONE_GRID
-    HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,params.ng,params.blockSize,calls);
+    #ifdef USE_GREENS_CACHE
+        #ifdef USE_ONE_GRID
+        HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,params.ng,params.blockSize,calls);
+        #else
+        HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,mem.d_x,mem.d_y,mem.d_z,params.ng,params.blockSize,calls);
+        #endif
     #else
-    HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_greens,mem.d_x,mem.d_y,mem.d_z,params.ng,params.blockSize,calls);
+        #ifdef USE_ONE_GRID
+        HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,params.ng,params.blockSize,calls);
+        #else
+        HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_x,mem.d_y,mem.d_z,params.ng,params.blockSize,calls);
+        #endif
     #endif
 }
 
@@ -125,6 +133,78 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_
     #ifdef VerboseSolver
     printf("%s      Called combine.\n",indent);
     #endif
+}
+
+void HACCGPM::serial::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, int ng, int blockSize, int calls){
+    int numBlocks = (ng*ng*ng)/blockSize;
+
+    getIndent(calls);
+
+    #ifdef VerboseSolver
+    printf("%sSolveGradient was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    printf("%s   Doing forward fft...\n",indent);
+    #endif
+    HACCGPM::serial::forward_fft(d_rho,ng,calls+1);
+    #ifdef VerboseSolver
+    printf("%s      Done forward fft.\n",indent);
+    printf("%s   Calling kspace_solve_gradient...\n",indent);
+    #endif
+
+    launch_grid2float4(d_grad,d_rho,numBlocks,blockSize,calls);
+
+    launch_kspace_solve_gradient(d_rho,d_grad,0,ng,numBlocks,blockSize,calls);
+
+    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
+
+    launch_get_real_grid(d_rho,d_grad,0,numBlocks,blockSize,calls);
+
+    launch_kspace_solve_gradient(d_rho,d_grad,1,ng,numBlocks,blockSize,calls);
+
+    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
+
+    launch_get_real_grid(d_rho,d_grad,1,numBlocks,blockSize,calls);
+
+    launch_kspace_solve_gradient(d_rho,d_grad,2,ng,numBlocks,blockSize,calls);
+
+    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
+
+    launch_get_real_grid(d_rho,d_grad,2,numBlocks,blockSize,calls);
+}
+
+void HACCGPM::serial::SolveGradient(float4* d_grad, floatFFT_t* d_rho, int ng, int blockSize, int calls){
+    int numBlocks = (ng*ng*ng)/blockSize;
+
+    getIndent(calls);
+
+    #ifdef VerboseSolver
+    printf("%sSolveGradient was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    printf("%s   Doing forward fft...\n",indent);
+    #endif
+    HACCGPM::serial::forward_fft(d_rho,ng,calls+1);
+    #ifdef VerboseSolver
+    printf("%s      Done forward fft.\n",indent);
+    printf("%s   Calling kspace_solve_gradient...\n",indent);
+    #endif
+
+    launch_grid2float4(d_grad,d_rho,numBlocks,blockSize,calls);
+
+    launch_kspace_solve_gradient(d_rho,d_grad,0,ng,numBlocks,blockSize,calls);
+
+    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
+
+    launch_get_real_grid(d_rho,d_grad,0,numBlocks,blockSize,calls);
+
+    launch_kspace_solve_gradient(d_rho,d_grad,1,ng,numBlocks,blockSize,calls);
+
+    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
+
+    launch_get_real_grid(d_rho,d_grad,1,numBlocks,blockSize,calls);
+
+    launch_kspace_solve_gradient(d_rho,d_grad,2,ng,numBlocks,blockSize,calls);
+
+    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
+
+    launch_get_real_grid(d_rho,d_grad,2,numBlocks,blockSize,calls);
 }
 
 void HACCGPM::serial::SolveGradient(float4* d_grad, floatFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls){
@@ -347,6 +427,44 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, float* d
     #endif
 }
 
+void HACCGPM::serial::SolveGradient(float4* d_grad, deviceFFT_t* d_rho, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int blockSize, int calls){
+    int numBlocks = (ng*ng*ng)/blockSize;
+
+    getIndent(calls);
+
+    #ifdef VerboseSolver
+    printf("%sSolveGradient was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    printf("%s   Doing forward fft...\n",indent);
+    #endif
+    HACCGPM::serial::forward_fft(d_rho,ng,calls+1);
+    #ifdef VerboseSolver
+    printf("%s      Done forward fft.\n",indent);
+    printf("%s   Calling kspace_solve_gradient...\n",indent);
+    #endif
+
+    launch_kspace_solve_gradient(d_x,d_y,d_z,d_rho,ng,numBlocks,blockSize,calls);
+
+    #ifdef VerboseSolver
+    printf("%s      Called kspace_solve_gradient.\n",indent);
+    printf("%s   Doing backward ffts...\n",indent);
+    #endif
+
+    HACCGPM::serial::backward_fft(d_x,ng,calls+1);
+    HACCGPM::serial::backward_fft(d_y,ng,calls+1);
+    HACCGPM::serial::backward_fft(d_z,ng,calls+1);
+
+    #ifdef VerboseSolver
+    printf("%s      Done backward ffts.\n",indent);
+    printf("%s   Calling combine...\n",indent);
+    #endif
+
+    launch_combine(d_grad,d_x,d_y,d_z,numBlocks,blockSize,calls);
+
+    #ifdef VerboseSolver
+    printf("%s      Called combine.\n",indent);
+    #endif
+}
+
 void HACCGPM::serial::SolveGradient(float4* d_grad, floatFFT_t* d_rho, float* d_greens, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int ng, int blockSize, int calls){
     int numBlocks = (ng*ng*ng)/blockSize;
 
@@ -363,6 +481,44 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, floatFFT_t* d_rho, float* d_
     #endif
 
     launch_kspace_solve_gradient(d_x,d_y,d_z,d_rho,d_greens,ng,numBlocks,blockSize,calls);
+
+    #ifdef VerboseSolver
+    printf("%s      Called kspace_solve_gradient.\n",indent);
+    printf("%s   Doing backward ffts...\n",indent);
+    #endif
+
+    HACCGPM::serial::backward_fft(d_x,ng,calls+1);
+    HACCGPM::serial::backward_fft(d_y,ng,calls+1);
+    HACCGPM::serial::backward_fft(d_z,ng,calls+1);
+
+    #ifdef VerboseSolver
+    printf("%s      Done backward ffts.\n",indent);
+    printf("%s   Calling combine...\n",indent);
+    #endif
+
+    launch_combine(d_grad,d_x,d_y,d_z,numBlocks,blockSize,calls);
+
+    #ifdef VerboseSolver
+    printf("%s      Called combine.\n",indent);
+    #endif
+}
+
+void HACCGPM::serial::SolveGradient(float4* d_grad, floatFFT_t* d_rho, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int ng, int blockSize, int calls){
+    int numBlocks = (ng*ng*ng)/blockSize;
+
+    getIndent(calls);
+
+    #ifdef VerboseSolver
+    printf("%sSolveGradient was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    printf("%s   Doing forward fft...\n",indent);
+    #endif
+    HACCGPM::serial::forward_fft(d_rho,ng,calls+1);
+    #ifdef VerboseSolver
+    printf("%s      Done forward fft.\n",indent);
+    printf("%s   Calling kspace_solve_gradient...\n",indent);
+    #endif
+
+    launch_kspace_solve_gradient(d_x,d_y,d_z,d_rho,ng,numBlocks,blockSize,calls);
 
     #ifdef VerboseSolver
     printf("%s      Called kspace_solve_gradient.\n",indent);

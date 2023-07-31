@@ -58,3 +58,12 @@ CPUTimer_t launch_kspace_solve_gradient(deviceFFT_t* d_grid, float4* d_grad, flo
 CPUTimer_t launch_kspace_solve_gradient(floatFFT_t* d_grid, float4* d_grad, hostFFT_t* d_greens, int dim, int ng, int numBlocks, int blockSize, int calls);
 
 CPUTimer_t launch_kspace_solve_gradient(floatFFT_t* d_grid, float4* d_grad, float* d_greens, int dim, int ng, int numBlocks, int blockSize, int calls);
+
+
+CPUTimer_t launch_kspace_solve_gradient(deviceFFT_t* d_grid, float4* d_grad, int dim, int ng, int numBlocks, int blockSize, int calls);
+
+CPUTimer_t launch_kspace_solve_gradient(floatFFT_t* d_grid, float4* d_grad, int dim, int ng, int numBlocks, int blockSize, int calls);
+
+CPUTimer_t launch_kspace_solve_gradient(deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, deviceFFT_t* d_rho, int ng, int numBlocks, int blockSize, int calls);
+
+CPUTimer_t launch_kspace_solve_gradient(floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, floatFFT_t* d_rho, int ng, int numBlocks, int blockSize, int calls);

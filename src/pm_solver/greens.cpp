@@ -7,6 +7,7 @@
 
 void HACCGPM::serial::InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls){
 
+    #ifdef USE_GREENS_CACHE
     int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
 
     getIndent(calls);
@@ -20,6 +21,7 @@ void HACCGPM::serial::InitGreens(HACCGPM::Params& params, HACCGPM::serial::Memor
 
     #ifdef VerboseGreens
     printf("%s      Called getGreens...\n",indent);
+    #endif
     #endif
 
 }

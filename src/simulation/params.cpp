@@ -21,6 +21,7 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
     out.dump_init = false;
     out.dump_final = false;
     out.ol = 1;
+    out.pk_bins = 221;
 
     for (int i = 0; i < MAX_STEPS; i++){
         out.pks[i] = false;

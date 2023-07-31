@@ -68,6 +68,8 @@ inline __device__ float3 __ldg(const float3* i){
 #define USE_FLOAT3
 #define USE_ONE_GRID
 //#define USE_TEMP_GRID
+//#define USE_GREENS_CACHE
+
 //#define USE_HALF_PRECISION
 
 #ifdef USE_FLOAT3
@@ -166,6 +168,7 @@ namespace HACCGPM{
         int3 local_grid_size_vec;
         int3 grid_dims_vec;
         int3 grid_coords_vec;
+        int pk_bins;
     };
 
     Params read_params(const char* fname);
@@ -390,10 +393,13 @@ namespace HACCGPM{
 
                 particle_t* d_vel;
                 float4* d_grad;
+
+                #ifdef USE_GREENS_CACHE
                 greens_t* d_greens;
+                #endif
 
                 grid_t* d_grid;
-                
+
                 #ifdef USE_TEMP_GRID
                 float* d_tempgrid;
                 #endif
@@ -403,6 +409,9 @@ namespace HACCGPM{
                 grid_t* d_y;
                 grid_t* d_z;
                 #endif
+
+                int* d_binCounts;
+                double* d_binVals;
 
                 MemoryManager(HACCGPM::Params params);
 
@@ -459,7 +468,7 @@ namespace HACCGPM{
 
         //void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, int ng, double rl, int nbins, const char* fname, int nfolds, int blockSize, int calls = 0);
 
-        void GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int nbins, const char* fname, int calls = 0);
+        void GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, const char* fname, int calls = 0);
 
         void GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls = 0);
 
@@ -482,6 +491,14 @@ namespace HACCGPM{
         void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls);
 
         void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, float* d_greens, int ng, int blockSize, int calls);
+
+        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int blockSize, int calls = 0);
+
+        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int ng, int blockSize, int calls = 0);
+
+        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, int ng, int blockSize, int calls);
+
+        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, int ng, int blockSize, int calls);
 
         void InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 

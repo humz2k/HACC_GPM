@@ -166,6 +166,15 @@ HACCGPM::serial::MemoryManager::MemoryManager(HACCGPM::Params params){
     printf("   Allocated d_binVals: %g MB.\n",b2mb(sizeof(double)*params.pk_bins));
     total_memory += sizeof(double)*params.pk_bins;
 
+    size_t workSize;
+    #ifdef USE_SINGLE_FFT
+    cufftEstimate3d(params.ng,params.ng,params.ng,CUFFT_C2C,&workSize);
+    #else
+    cufftEstimate3d(params.ng,params.ng,params.ng,CUFFT_Z2Z,&workSize);
+    #endif
+    printf("   cuFFT workSize: %g MB.\n",b2mb(workSize));
+    total_memory += workSize;
+
     printf("Total: %g GB\n",((double)total_memory) * 1e-9);
 }
 

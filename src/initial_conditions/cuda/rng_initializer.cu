@@ -30,20 +30,36 @@ __global__ void GenerateRealRandom(curandState* state, T* __restrict grid, int n
     grid[idx] = out;
 }
 
+template<class T>
+__global__ void GenerateRealRandom(T* __restrict grid, int nlocal, int seed){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if (idx >= nlocal)return;
+    curandState state;
+    curand_init(seed,idx,0,&state);
+    hostFFT_t amp = curand_normal_double(&state);
+    T out;
+    out.x = amp;
+    out.y = 0;
+    grid[idx] = out;
+}
+
 void launch_generate_rng(deviceFFT_t* d_grid1, int ng, int seed, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*ng*ng*ng);
-    InvokeGPUKernel(initRNG,numBlocks,blockSize,rngState,seed);
-    InvokeGPUKernel(GenerateRealRandom,numBlocks,blockSize,rngState,d_grid1,ng*ng*ng);
-    cudaCall(cudaFree,rngState);
+    //curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*ng*ng*ng);
+    //InvokeGPUKernel(initRNG,numBlocks,blockSize,rngState,seed);
+    //InvokeGPUKernel(GenerateRealRandom,numBlocks,blockSize,rngState,d_grid1,ng*ng*ng);
+    InvokeGPUKernel(GenerateRealRandom,numBlocks,blockSize,d_grid1,ng*ng*ng,seed);
+    //cudaCall(cudaFree,rngState);
 }
 
 void launch_generate_rng(floatFFT_t* d_grid1, int ng, int seed, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*ng*ng*ng);
-    InvokeGPUKernel(initRNG,numBlocks,blockSize,rngState,seed);
-    InvokeGPUKernel(GenerateRealRandom,numBlocks,blockSize,rngState,d_grid1,ng*ng*ng);
-    cudaCall(cudaFree,rngState);
+    //printf("SIZE CURAND: %llu\n",sizeof(curandState));
+    //curandState* rngState; cudaCall(cudaMalloc,&rngState,sizeof(curandState)*ng*ng*ng);
+    //InvokeGPUKernel(initRNG,numBlocks,blockSize,rngState,seed);
+    //InvokeGPUKernel(GenerateRealRandom,numBlocks,blockSize,rngState,d_grid1,ng*ng*ng);
+    InvokeGPUKernel(GenerateRealRandom,numBlocks,blockSize,d_grid1,ng*ng*ng,seed);
+    //cudaCall(cudaFree,rngState);
 }
 
 void launch_generate_rng(deviceFFT_t* d_grid1, int ng, int seed, int nlocal, int3 local_grid_size, int3 local_coords, int world_rank, int numBlocks, int blockSize, int calls){

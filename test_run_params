@@ -12,7 +12,7 @@ Z_DEC 129.0
 N_EFF_MASSLESS 3.04
 N_EFF_MASSIVE 0.0
 
-OUTPUT_BASE_NAME BIG_RUN/test
+OUTPUT_BASE_NAME runs/test
 
 IPK /home/hqureshi/HACC_GPM/test_run_ipk.ipk
 
@@ -36,7 +36,7 @@ ANALYSIS_PY /home/hqureshi/HACC_GPM/example_analysis/basic
 
 OL 1
 
-NG 256
-RL 128
+NG 768
+RL 384
 SEED 21082001
 BLOCK_SIZE 64

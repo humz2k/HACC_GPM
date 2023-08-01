@@ -56,7 +56,7 @@ inline __device__ float3 __ldg(const float3* i){
 #else
 
 #define InvokeGPUKernel(func,numBlocks,blockSize,...) ({CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start; printf("%s: %llu us\n",TOSTRING(func),t); t;})
-#define InvokeGPUKernelParallel(func,numBlocks,blockSize,...) ({CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start; printf("%s: %llu us\n",TOSTRING(func),t); t;})
+#define InvokeGPUKernelParallel(func,numBlocks,blockSize,...) ({CPUTimer_t start = CPUTimer();func<<<numBlocks,blockSize>>>(__VA_ARGS__);gpuErrchk( cudaPeekAtLastError() );gpuErrchk( cudaDeviceSynchronize() );CPUTimer_t end = CPUTimer();CPUTimer_t t = end-start; t;})
 
 #endif
 

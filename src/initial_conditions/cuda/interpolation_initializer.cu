@@ -32,6 +32,8 @@ __forceinline__ __device__ double do_pk_interpolation(int3 idx3d, double* in, do
 __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, double k_delta, double k_min, double rl, int ng){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
+    if(idx >= ng*ng*ng)return;
+
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
 
     out[idx] = do_pk_interpolation(idx3d,in,k_delta,k_min,rl,ng);

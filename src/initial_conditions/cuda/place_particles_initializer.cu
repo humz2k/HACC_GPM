@@ -5,6 +5,8 @@ __global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_ve
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
+    if(idx >= ng*ng*ng)return;
+
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
 
     float4 my_particle = make_float4(idx3d.x,idx3d.y,idx3d.z,idx);
@@ -33,6 +35,8 @@ template<class T>
 __global__ void placeParticles(float3* __restrict d_pos, float3* __restrict d_vel, T* __restrict outSx, T* __restrict outSy, T* __restrict outSz, double delta, double dotDelta, double rl, double a, double deltaT, double fscal, int ng){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if(idx >= ng*ng*ng)return;
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
 
@@ -63,6 +67,8 @@ __global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_ve
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
+    if(idx >= ng*ng*ng)return;
+
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
 
     float4 my_particle = make_float4(idx3d.x,idx3d.y,idx3d.z,idx);
@@ -87,6 +93,8 @@ template<class T>
 __global__ void placeParticles(float3* __restrict d_pos, float3* __restrict d_vel, T* __restrict outS, double delta, double dotDelta, double rl, double a, double deltaT, double fscal, int ng){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if(idx >= ng*ng*ng)return;
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
 

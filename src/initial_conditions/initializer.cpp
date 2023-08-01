@@ -97,50 +97,27 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
         printf("%s   Calling copyGrid...\n",indent);
         #endif
 
-        launch_copy_grid(mem.d_grid,(float2*)mem.d_pos,numBlocks,params.blockSize,calls);
+        launch_copy_grid(mem.d_grid,(float2*)mem.d_pos,params.ng,numBlocks,params.blockSize,calls);
 
         double scale_by = 1.0f/((double)(params.ng*params.ng*params.ng));
         int scale_n = params.ng*params.ng*params.ng;
 
         #ifdef VerboseInitializer
         printf("%s      Called copyGrid.\n",indent);
-        printf("%s   Getting X transformed...\n",indent);
+        printf("%s   Getting transformed...\n",indent);
         #endif
 
-        launch_transform_density_field((float2*)mem.d_pos,mem.d_grid,0,delta,params.rl,params.z_ini,params.ng,numBlocks,params.blockSize,calls);
-        HACCGPM::serial::backward_fft(mem.d_grid,params.ng,calls+1);
-        launch_scale_fft(mem.d_grid,scale_by,scale_n,numBlocks,params.blockSize,calls);
-        launch_get_real_grid(mem.d_grid,mem.d_grad,0,numBlocks,params.blockSize,calls);
+        for (int i = 0; i < 3; i++){
+
+            launch_transform_density_field((float2*)mem.d_pos,mem.d_grid,i,delta,params.rl,params.z_ini,params.ng,numBlocks,params.blockSize,calls);
+            HACCGPM::serial::backward_fft(mem.d_grid,params.ng,calls+1);
+            launch_scale_fft(mem.d_grid,scale_by,scale_n,numBlocks,params.blockSize,calls);
+            launch_get_real_grid(mem.d_grid,mem.d_grad,i,params.ng,numBlocks,params.blockSize,calls);
+
+        }
 
         #ifdef VerboseInitializer
-        printf("%s      Got X transformed.\n",indent);
-        printf("%s   Getting Y transformed...\n",indent);
-        #endif
-
-        launch_transform_density_field((float2*)mem.d_pos,mem.d_grid,1,delta,params.rl,params.z_ini,params.ng,numBlocks,params.blockSize,calls);
-        HACCGPM::serial::backward_fft(mem.d_grid,params.ng,calls+1);
-        launch_scale_fft(mem.d_grid,scale_by,scale_n,numBlocks,params.blockSize,calls);
-        launch_get_real_grid(mem.d_grid,mem.d_grad,1,numBlocks,params.blockSize,calls);
-
-        #ifdef VerboseInitializer
-        printf("%s      Got Y transformed.\n",indent);
-        printf("%s   Getting Z transformed...\n",indent);
-        #endif
-
-        launch_transform_density_field((float2*)mem.d_pos,mem.d_grid,2,delta,params.rl,params.z_ini,params.ng,numBlocks,params.blockSize,calls);
-        HACCGPM::serial::backward_fft(mem.d_grid,params.ng,calls+1);
-        launch_scale_fft(mem.d_grid,scale_by,scale_n,numBlocks,params.blockSize,calls);
-        launch_get_real_grid(mem.d_grid,mem.d_grad,2,numBlocks,params.blockSize,calls);
-
-        #ifdef VerboseInitializer
-        printf("%s      Got Z transformed.\n",indent);
-        printf("%s   Calling placeParticles...\n",indent);
-        #endif
-
-        launch_place_particles(mem.d_pos,mem.d_vel,mem.d_grad,delta,dotDelta,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.ng,numBlocks,params.blockSize,calls);
-
-        #ifdef VerboseInitializer
-        printf("%s      Called placeParticles.\n",indent);
+        printf("%s      Got transformed.\n",indent);
         #endif
 
     #else
@@ -168,14 +145,25 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
 
         #ifdef VerboseInitializer
         printf("%s      Done Backward FFTs.\n",indent);
-        printf("%s   Calling placeParticles...\n",indent);
+        printf("%s   Calling combine...\n",indent);
         #endif
 
-        launch_place_particles(mem.d_pos,mem.d_vel,mem.d_x,mem.d_y,mem.d_z,delta,dotDelta,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.ng,numBlocks,params.blockSize,calls);
+        launch_combine(mem.d_grad,mem.d_x,mem.d_y,mem.d_z,numBlocks,params.blockSize,calls);
 
         #ifdef VerboseInitializer
-        printf("%s      Called placeParticles.\n",indent);
+        printf("%s      Called combine.\n",indent);
         #endif
+
+    #endif
+
+    #ifdef VerboseInitializer
+    printf("%s   Calling placeParticles...\n",indent);
+    #endif
+
+    launch_place_particles(mem.d_pos,mem.d_vel,mem.d_grad,delta,dotDelta,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.ng,numBlocks,params.blockSize,calls);
+
+    #ifdef VerboseInitializer
+    printf("%s      Called placeParticles.\n",indent);
     #endif
 }
 

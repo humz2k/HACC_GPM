@@ -42,8 +42,12 @@ CPUTimer_t launch_place_particles(T* d_pos, T* d_vel, float4* d_grad, double del
 CPUTimer_t launch_place_particles(float4* d_pos, float4* d_vel, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int nlocal, int3 local_grid_size, int world_rank, int numBlocks, int blockSize, int calls);
 
 template<class T>
-CPUTimer_t launch_copy_grid(T* d_grid, float2* new_grid, int numBlocks, int blockSize, int calls);
+CPUTimer_t launch_copy_grid(T* d_grid, float2* new_grid, int ng, int numBlocks, int blockSize, int calls);
 
 template<class T1, class T2>
-CPUTimer_t launch_get_real_grid(T1* d_grid, T2* new_grid, int dim, int numBlocks, int blockSize, int calls);
+CPUTimer_t launch_get_real_grid(T1* d_grid, T2* new_grid, int dim, int ng, int numBlocks, int blockSize, int calls);
+
+template<class T>
+CPUTimer_t launch_combine(float4* d_grad, T* d_x, T* d_y, T* d_z, int numBlocks, int blockSize, int calls);
+
 

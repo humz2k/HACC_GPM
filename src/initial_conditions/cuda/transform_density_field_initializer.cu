@@ -1,8 +1,9 @@
 #include "../ic_kernels.hpp"
 
 template<class T, class T1>
-__global__ void copyGrid(const T* __restrict oldGrid, T1* __restrict newGrid){
+__global__ void copyGrid(const T* __restrict oldGrid, T1* __restrict newGrid, int ng){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx >= ng*ng*ng)return;
     T old_cell = __ldg(&oldGrid[idx]);
     T1 new_cell;
     new_cell.x = old_cell.x;
@@ -11,8 +12,9 @@ __global__ void copyGrid(const T* __restrict oldGrid, T1* __restrict newGrid){
 }
 
 template<class T, class T1>
-__global__ void getRealGrid(const T* __restrict oldGrid, T1* __restrict newGrid, int dim){
+__global__ void getRealGrid(const T* __restrict oldGrid, T1* __restrict newGrid, int dim, int ng){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx >= ng*ng*ng)return;
     T old_cell = __ldg(&oldGrid[idx]);
     T1 new_cell = __ldg(&newGrid[idx]);
     if (dim == 0){
@@ -29,6 +31,8 @@ template<class T>
 __global__ void transformDensityField(const T* __restrict oldGrid, T* __restrict outSx, T* __restrict outSy, T* __restrict outSz, double delta, double rl, double a, int ng){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if(idx >= ng*ng*ng)return;
 
     double d = (2*M_PI)/rl;
 
@@ -69,6 +73,8 @@ template<class T>
 __global__ void transformDensityField(const float2* __restrict oldGrid, T* __restrict out, double delta, double rl, double a, int ng, int dim){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if(idx >= ng*ng*ng)return;
 
     double d = (2*M_PI)/rl;
 
@@ -170,22 +176,22 @@ CPUTimer_t launch_transform_density_field(deviceFFT_t* d_grid, deviceFFT_t* d_x,
 }
 
 template<class T>
-CPUTimer_t launch_copy_grid(T* d_grid, float2* new_grid, int numBlocks, int blockSize, int calls){
+CPUTimer_t launch_copy_grid(T* d_grid, float2* new_grid, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    return InvokeGPUKernel(copyGrid,numBlocks,blockSize,d_grid,new_grid);
+    return InvokeGPUKernel(copyGrid,numBlocks,blockSize,d_grid,new_grid,ng);
 }
 
-template CPUTimer_t launch_copy_grid<deviceFFT_t>(deviceFFT_t*,float2*,int,int,int);
-template CPUTimer_t launch_copy_grid<floatFFT_t>(floatFFT_t*,float2*,int,int,int);
+template CPUTimer_t launch_copy_grid<deviceFFT_t>(deviceFFT_t*,float2*,int,int,int,int);
+template CPUTimer_t launch_copy_grid<floatFFT_t>(floatFFT_t*,float2*,int,int,int,int);
 
 
 template<class T1, class T2>
-CPUTimer_t launch_get_real_grid(T1* d_grid, T2* new_grid, int dim, int numBlocks, int blockSize, int calls){
+CPUTimer_t launch_get_real_grid(T1* d_grid, T2* new_grid, int dim, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    return InvokeGPUKernel(getRealGrid,numBlocks,blockSize,d_grid,new_grid,dim);
+    return InvokeGPUKernel(getRealGrid,numBlocks,blockSize,d_grid,new_grid,dim,ng);
 }
 
-template CPUTimer_t launch_get_real_grid<deviceFFT_t,float4>(deviceFFT_t*,float4*,int,int,int,int);
-template CPUTimer_t launch_get_real_grid<deviceFFT_t,float3>(deviceFFT_t*,float3*,int,int,int,int);
-template CPUTimer_t launch_get_real_grid<floatFFT_t,float4>(floatFFT_t*,float4*,int,int,int,int);
-template CPUTimer_t launch_get_real_grid<floatFFT_t,float3>(floatFFT_t*,float3*,int,int,int,int);
+template CPUTimer_t launch_get_real_grid<deviceFFT_t,float4>(deviceFFT_t*,float4*,int,int,int,int,int);
+template CPUTimer_t launch_get_real_grid<deviceFFT_t,float3>(deviceFFT_t*,float3*,int,int,int,int,int);
+template CPUTimer_t launch_get_real_grid<floatFFT_t,float4>(floatFFT_t*,float4*,int,int,int,int,int);
+template CPUTimer_t launch_get_real_grid<floatFFT_t,float3>(floatFFT_t*,float3*,int,int,int,int,int);

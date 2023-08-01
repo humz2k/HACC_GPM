@@ -164,7 +164,7 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, int ng, int blockS
 
         HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
 
-        launch_get_real_grid(d_rho,d_grad,i,numBlocks,blockSize,calls);
+        launch_get_real_grid(d_rho,d_grad,i,ng,numBlocks,blockSize,calls);
     }
 
 }
@@ -195,7 +195,7 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T1* d_rho, T2* d_greens, int
 
         HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
 
-        launch_get_real_grid(d_rho,d_grad,i,numBlocks,blockSize,calls);
+        launch_get_real_grid(d_rho,d_grad,i,ng,numBlocks,blockSize,calls);
     }
 }
 

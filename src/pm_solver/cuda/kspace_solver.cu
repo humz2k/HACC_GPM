@@ -226,27 +226,29 @@ __global__ void kspace_solve_gradient_parallel(T1* __restrict d_x, T1* __restric
     d_z[idx] = out_z;
 }
 
-CPUTimer_t launch_kspace_solve(deviceFFT_t* d_rho, hostFFT_t* d_greens, int numBlocks, int blockSize, int calls){
+template<class T1, class T2>
+CPUTimer_t launch_kspace_solve(T1* d_rho, T2* d_greens, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     return InvokeGPUKernel(kspace_solve,numBlocks,blockSize,d_rho,d_greens);
 }
 
-CPUTimer_t launch_kspace_solve(deviceFFT_t* d_rho, float* d_greens, int numBlocks, int blockSize, int calls){
+template CPUTimer_t launch_kspace_solve<deviceFFT_t,hostFFT_t>(deviceFFT_t*,hostFFT_t*,int,int,int);
+template CPUTimer_t launch_kspace_solve<deviceFFT_t,float>(deviceFFT_t*,float*,int,int,int);
+template CPUTimer_t launch_kspace_solve<floatFFT_t,hostFFT_t>(floatFFT_t*,hostFFT_t*,int,int,int);
+template CPUTimer_t launch_kspace_solve<floatFFT_t,float>(floatFFT_t*,float*,int,int,int);
+
+template<class T1, class T2>
+CPUTimer_t launch_kspace_solve_gradient(T1* d_grid, float4* d_grad, T2* d_greens, int dim, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    return InvokeGPUKernel(kspace_solve,numBlocks,blockSize,d_rho,d_greens);
+    return InvokeGPUKernel(kspace_solve_gradient,numBlocks,blockSize,d_grid,d_grad,d_greens,ng,dim);
 }
 
-CPUTimer_t launch_kspace_solve(floatFFT_t* d_rho, float* d_greens, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    return InvokeGPUKernel(kspace_solve,numBlocks,blockSize,d_rho,d_greens);
-}
+template CPUTimer_t launch_kspace_solve_gradient<deviceFFT_t,hostFFT_t>(deviceFFT_t*,float4*,hostFFT_t*,int,int,int,int,int);
+template CPUTimer_t launch_kspace_solve_gradient<deviceFFT_t,float>(deviceFFT_t*,float4*,float*,int,int,int,int,int);
+template CPUTimer_t launch_kspace_solve_gradient<floatFFT_t,hostFFT_t>(floatFFT_t*,float4*,hostFFT_t*,int,int,int,int,int);
+template CPUTimer_t launch_kspace_solve_gradient<floatFFT_t,float>(floatFFT_t*,float4*,float*,int,int,int,int,int);
 
-CPUTimer_t launch_kspace_solve(floatFFT_t* d_rho, hostFFT_t* d_greens, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    return InvokeGPUKernel(kspace_solve,numBlocks,blockSize,d_rho,d_greens);
-}
-
-CPUTimer_t launch_kspace_solve_gradient(deviceFFT_t* d_grid, float4* d_grad, hostFFT_t* d_greens, int dim, int ng, int numBlocks, int blockSize, int calls){
+/*CPUTimer_t launch_kspace_solve_gradient(deviceFFT_t* d_grid, float4* d_grad, hostFFT_t* d_greens, int dim, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     return InvokeGPUKernel(kspace_solve_gradient,numBlocks,blockSize,d_grid,d_grad,d_greens,ng,dim);
 }
@@ -264,7 +266,7 @@ CPUTimer_t launch_kspace_solve_gradient(floatFFT_t* d_grid, float4* d_grad, host
 CPUTimer_t launch_kspace_solve_gradient(floatFFT_t* d_grid, float4* d_grad, float* d_greens, int dim, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     return InvokeGPUKernel(kspace_solve_gradient,numBlocks,blockSize,d_grid,d_grad,d_greens,ng,dim);
-}
+}*/
 
 CPUTimer_t launch_kspace_solve_gradient(deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);

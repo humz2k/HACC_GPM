@@ -203,9 +203,9 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
         CPUTimer_t start_extras = CPUTimer();
 
         #ifdef USE_TEMP_GRID
-        HACCGPM::serial::CIC(mem.d_grid,mem.d_tempgrid,d_temp_pos,params.ng,params.blockSize,calls+1);
+        HACCGPM::serial::CIC(mem.d_grid,mem.d_tempgrid,d_temp_pos,params.ng,params.np,params.blockSize,calls+1);
         #else
-        HACCGPM::serial::CIC(mem.d_grid,d_temp_pos,params.ng,params.blockSize,calls+1);
+	      HACCGPM::serial::CIC(mem.d_grid,d_temp_pos,params.ng,params.np,params.blockSize,calls+1);
         #endif
 
         HACCGPM::serial::forward_fft(mem.d_grid,params.ng,calls + 1);

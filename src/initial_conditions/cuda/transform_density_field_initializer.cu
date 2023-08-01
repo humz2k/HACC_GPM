@@ -181,22 +181,13 @@ void launch_copy_grid(floatFFT_t* d_grid, float2* new_grid, int numBlocks, int b
     InvokeGPUKernel(copyGrid,numBlocks,blockSize,d_grid,new_grid);
 }
 
-void launch_get_real_grid(deviceFFT_t* d_grid, float4* new_grid, int dim, int numBlocks, int blockSize, int calls){
+template<class T1, class T2>
+CPUTimer_t launch_get_real_grid(T1* d_grid, T2* new_grid, int dim, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    InvokeGPUKernel(getRealGrid,numBlocks,blockSize,d_grid,new_grid,dim);
+    return InvokeGPUKernel(getRealGrid,numBlocks,blockSize,d_grid,new_grid,dim);
 }
 
-void launch_get_real_grid(floatFFT_t* d_grid, float4* new_grid, int dim, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernel(getRealGrid,numBlocks,blockSize,d_grid,new_grid,dim);
-}
-
-void launch_get_real_grid(deviceFFT_t* d_grid, float3* new_grid, int dim, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernel(getRealGrid,numBlocks,blockSize,d_grid,new_grid,dim);
-}
-
-void launch_get_real_grid(floatFFT_t* d_grid, float3* new_grid, int dim, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernel(getRealGrid,numBlocks,blockSize,d_grid,new_grid,dim);
-}
+template CPUTimer_t launch_get_real_grid<deviceFFT_t,float4>(deviceFFT_t*,float4*,int,int,int,int);
+template CPUTimer_t launch_get_real_grid<deviceFFT_t,float3>(deviceFFT_t*,float3*,int,int,int,int);
+template CPUTimer_t launch_get_real_grid<floatFFT_t,float4>(floatFFT_t*,float4*,int,int,int,int);
+template CPUTimer_t launch_get_real_grid<floatFFT_t,float3>(floatFFT_t*,float3*,int,int,int,int);

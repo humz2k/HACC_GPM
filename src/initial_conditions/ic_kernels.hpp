@@ -54,13 +54,14 @@ void launch_copy_grid(floatFFT_t* d_grid, float2* new_grid, int numBlocks, int b
 
 void launch_copy_grid(deviceFFT_t* d_grid, float2* new_grid, int numBlocks, int blockSize, int calls);
 
-void launch_get_real_grid(deviceFFT_t* d_grid, float4* new_grid, int dim, int numBlocks, int blockSize, int calls);
+template<class T1, class T2>
+CPUTimer_t launch_get_real_grid(T1* d_grid, T2* new_grid, int dim, int numBlocks, int blockSize, int calls);
 
-void launch_get_real_grid(floatFFT_t* d_grid, float4* new_grid, int dim, int numBlocks, int blockSize, int calls);
+//void launch_get_real_grid(floatFFT_t* d_grid, float4* new_grid, int dim, int numBlocks, int blockSize, int calls);
 
-void launch_get_real_grid(deviceFFT_t* d_grid, float3* new_grid, int dim, int numBlocks, int blockSize, int calls);
+//void launch_get_real_grid(deviceFFT_t* d_grid, float3* new_grid, int dim, int numBlocks, int blockSize, int calls);
 
-void launch_get_real_grid(floatFFT_t* d_grid, float3* new_grid, int dim, int numBlocks, int blockSize, int calls);
+//void launch_get_real_grid(floatFFT_t* d_grid, float3* new_grid, int dim, int numBlocks, int blockSize, int calls);
 
 
 void launch_place_particles(float4* d_pos, float4* d_vel, float4* d_grad, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls);

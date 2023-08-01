@@ -56,24 +56,8 @@ __global__ void getGreensParallelKernel(T* __restrict d_greens, int ng, int3 loc
 
 }
 
-
-CPUTimer_t launch_getgreens(hostFFT_t* __restrict d_greens, int ng, int numBlocks, int blockSize, int calls){
-
-    getIndent(calls);
-
-    return InvokeGPUKernel(getGreensKernel,numBlocks,blockSize,d_greens,ng);
-
-}
-
-CPUTimer_t launch_getgreens(hostFFT_t* __restrict d_greens, int ng, int nlocal, int3 local_grid_size_vec, int3 grid_coords_vec, int world_rank, int numBlocks, int blockSize,  int calls){
-
-    getIndent(calls);
-
-    return InvokeGPUKernelParallel(getGreensParallelKernel,numBlocks,blockSize,d_greens,ng,local_grid_size_vec,grid_coords_vec);
-
-}
-
-CPUTimer_t launch_getgreens(float* __restrict d_greens, int ng, int numBlocks, int blockSize, int calls){
+template<class T>
+CPUTimer_t launch_getgreens(T* d_greens, int ng, int numBlocks, int blockSize, int calls){
 
     getIndent(calls);
 
@@ -81,10 +65,17 @@ CPUTimer_t launch_getgreens(float* __restrict d_greens, int ng, int numBlocks, i
 
 }
 
-CPUTimer_t launch_getgreens(float* __restrict d_greens, int ng, int nlocal, int3 local_grid_size_vec, int3 grid_coords_vec, int world_rank, int numBlocks, int blockSize,  int calls){
+template CPUTimer_t launch_getgreens<double>(double*,int,int,int,int);
+template CPUTimer_t launch_getgreens<float>(float*,int,int,int,int);
+
+template<class T>
+CPUTimer_t launch_getgreens(T* d_greens, int ng, int nlocal, int3 local_grid_size_vec, int3 grid_coords_vec, int world_rank, int numBlocks, int blockSize,  int calls){
 
     getIndent(calls);
 
     return InvokeGPUKernelParallel(getGreensParallelKernel,numBlocks,blockSize,d_greens,ng,local_grid_size_vec,grid_coords_vec);
 
 }
+
+template CPUTimer_t launch_getgreens<double>(double*,int,int,int3,int3,int,int,int,int);
+template CPUTimer_t launch_getgreens<float>(float*,int,int,int3,int3,int,int,int,int);

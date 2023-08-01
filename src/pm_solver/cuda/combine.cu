@@ -57,25 +57,24 @@ __global__ void combine_parallel(float4* __restrict out, const deviceFFT_t* __re
     out[rhoIdx] = this_out;
 }
 
-CPUTimer_t launch_grid2float4(float4* d_grad, deviceFFT_t* d_grid, int numBlocks, int blockSize, int calls){
+template<class T>
+CPUTimer_t launch_grid2float4(float4* d_grad, T* d_grid, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     return InvokeGPUKernel(copyGridToFloat4,numBlocks,blockSize,d_grad,d_grid);
 }
 
-CPUTimer_t launch_grid2float4(float4* d_grad, floatFFT_t* d_grid, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    return InvokeGPUKernel(copyGridToFloat4,numBlocks,blockSize,d_grad,d_grid);
-}
+template CPUTimer_t launch_grid2float4<deviceFFT_t>(float4*,deviceFFT_t*,int,int,int);
+template CPUTimer_t launch_grid2float4<floatFFT_t>(float4*,floatFFT_t*,int,int,int);
 
-CPUTimer_t launch_combine(float4* d_grad, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int numBlocks, int blockSize, int calls){
+template<class T>
+CPUTimer_t launch_combine(float4* d_grad, T* d_x, T* d_y, T* d_z, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     return InvokeGPUKernel(combine,numBlocks,blockSize,d_grad,d_x,d_y,d_z);
 }
 
-CPUTimer_t launch_combine(float4* d_grad, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    return InvokeGPUKernel(combine,numBlocks,blockSize,d_grad,d_x,d_y,d_z);
-}
+template CPUTimer_t launch_combine<deviceFFT_t>(float4*,deviceFFT_t*,deviceFFT_t*,deviceFFT_t*,int,int,int);
+template CPUTimer_t launch_combine<floatFFT_t>(float4*,floatFFT_t*,floatFFT_t*,floatFFT_t*,int,int,int);
+
 
 CPUTimer_t launch_combine(float4* d_grad, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int3 local_grid_size, int3 local_coords, int overload, int nlocal, int ng, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);

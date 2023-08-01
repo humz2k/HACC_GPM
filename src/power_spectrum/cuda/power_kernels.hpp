@@ -5,9 +5,8 @@ __global__ void scalePower(T* __restrict data, double ng, double rl, int nlocal)
 
 __global__ void PkCICFilter(deviceFFT_t* __restrict grid, int ng, int nlocal, int3 local_grid_size, int3 local_coords);
 
-__global__ void PkCICFilter(deviceFFT_t* __restrict grid, int ng);
-
-__global__ void PkCICFilter(floatFFT_t* __restrict grid, int ng);
+template<class T>
+__global__ void PkCICFilter(T* __restrict grid, int ng);
 
 template<class T>
 __global__ void foldParticles(T* __restrict d_pos, double ng);

@@ -99,7 +99,7 @@ void HACCGPM::serial::SolveGradient(HACCGPM::Params& params, HACCGPM::serial::Me
 
 template<class T1, class T2>
 void HACCGPM::serial::SolveGradient(float4* d_grad, T1* d_rho, T2* d_greens, T1* d_x, T1* d_y, T1* d_z, int ng, int blockSize, int calls){
-    int numBlocks = (ng*ng*ng)/blockSize;
+    int numBlocks = (ng*ng*ng + (blockSize - 1))/blockSize;
 
     getIndent(calls);
 
@@ -129,7 +129,7 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T1* d_rho, T2* d_greens, T1*
     printf("%s   Calling combine...\n",indent);
     #endif
 
-    launch_combine(d_grad,d_x,d_y,d_z,numBlocks,blockSize,calls);
+    launch_combine(d_grad,d_x,d_y,d_z,ng,numBlocks,blockSize,calls);
 
     #ifdef VerboseSolver
     printf("%s      Called combine.\n",indent);
@@ -143,7 +143,7 @@ template void HACCGPM::serial::SolveGradient<floatFFT_t,float>(float4*,floatFFT_
 
 template<class T>
 void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, int ng, int blockSize, int calls){
-    int numBlocks = (ng*ng*ng)/blockSize;
+    int numBlocks = (ng*ng*ng + (blockSize - 1))/blockSize;
 
     getIndent(calls);
 
@@ -157,7 +157,7 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, int ng, int blockS
     printf("%s   Calling kspace_solve_gradient...\n",indent);
     #endif
 
-    launch_grid2float4(d_grad,d_rho,numBlocks,blockSize,calls);
+    launch_grid2float4(d_grad,d_rho,ng,numBlocks,blockSize,calls);
 
     for (int i = 0; i < 3; i++){
         launch_kspace_solve_gradient(d_rho,d_grad,i,ng,numBlocks,blockSize,calls);
@@ -174,7 +174,7 @@ template void HACCGPM::serial::SolveGradient<floatFFT_t>(float4*,floatFFT_t*,int
 
 template<class T1, class T2>
 void HACCGPM::serial::SolveGradient(float4* d_grad, T1* d_rho, T2* d_greens, int ng, int blockSize, int calls){
-    int numBlocks = (ng*ng*ng)/blockSize;
+    int numBlocks = (ng*ng*ng + (blockSize - 1))/blockSize;
 
     getIndent(calls);
 
@@ -188,7 +188,7 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T1* d_rho, T2* d_greens, int
     printf("%s   Calling kspace_solve_gradient...\n",indent);
     #endif
 
-    launch_grid2float4(d_grad,d_rho,numBlocks,blockSize,calls);
+    launch_grid2float4(d_grad,d_rho,ng,numBlocks,blockSize,calls);
 
     for (int i = 0; i < 3; i++){
         launch_kspace_solve_gradient(d_rho,d_grad,d_greens,i,ng,numBlocks,blockSize,calls);
@@ -206,7 +206,7 @@ template void HACCGPM::serial::SolveGradient<floatFFT_t,float>(float4*,floatFFT_
 
 template<class T>
 void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, T* d_x, T* d_y, T* d_z, int ng, int blockSize, int calls){
-    int numBlocks = (ng*ng*ng)/blockSize;
+    int numBlocks = (ng*ng*ng + (blockSize - 1))/blockSize;
 
     getIndent(calls);
 
@@ -236,7 +236,7 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, T* d_x, T* d_y, T*
     printf("%s   Calling combine...\n",indent);
     #endif
 
-    launch_combine(d_grad,d_x,d_y,d_z,numBlocks,blockSize,calls);
+    launch_combine(d_grad,d_x,d_y,d_z,ng,numBlocks,blockSize,calls);
 
     #ifdef VerboseSolver
     printf("%s      Called combine.\n",indent);

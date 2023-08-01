@@ -48,6 +48,6 @@ template<class T1, class T2>
 CPUTimer_t launch_get_real_grid(T1* d_grid, T2* new_grid, int dim, int ng, int numBlocks, int blockSize, int calls);
 
 template<class T>
-CPUTimer_t launch_combine(float4* d_grad, T* d_x, T* d_y, T* d_z, int numBlocks, int blockSize, int calls);
+CPUTimer_t launch_combine(float4* d_grad, T* d_x, T* d_y, T* d_z, int ng, int numBlocks, int blockSize, int calls);
 
 

@@ -153,7 +153,7 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
 
     CPUTimer_t start = CPUTimer();
 
-    int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
+    int numBlocks = (params.ng*params.ng*params.ng + (params.blockSize - 1))/params.blockSize;
     getIndent(calls);
     #ifdef VerbosePower
     printf("%sGetPowerSpectrum was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,params.blockSize,indent,numBlocks);

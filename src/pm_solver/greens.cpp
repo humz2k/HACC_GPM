@@ -8,7 +8,7 @@
 void HACCGPM::serial::InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls){
 
     #ifdef USE_GREENS_CACHE
-    int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
+    int numBlocks = (params.ng*params.ng*params.ng + (params.blockSize - 1))/params.blockSize;
 
     getIndent(calls);
 

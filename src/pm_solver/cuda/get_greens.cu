@@ -36,6 +36,8 @@ __global__ void getGreensKernel(T* __restrict d_greens, int ng)
 {
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
+    if (idx >= (ng*ng*ng))return;
+
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
 
     d_greens[idx] = calcGreens(idx3d,ng);

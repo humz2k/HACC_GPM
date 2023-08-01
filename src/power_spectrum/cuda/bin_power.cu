@@ -21,6 +21,8 @@ __global__ void BinPower(const T1* __restrict d_grid, T2* __restrict d_binVals, 
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
+    if(idx >= (ng*ng*ng))return;
+
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
 
     T1 this_val = __ldg(&d_grid[idx]);

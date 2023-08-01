@@ -9,7 +9,7 @@
 
 template<class T>
 void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, T* d_grid1, hostFFT_t* d_pkScale, double z, int calls){
-    int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
+    int numBlocks = (params.ng*params.ng*params.ng + (params.blockSize - 1))/params.blockSize;
 
     getIndent(calls);
 
@@ -63,7 +63,7 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
 }
 
 void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls){
-    int numBlocks = (params.ng*params.ng*params.ng)/params.blockSize;
+    int numBlocks = (params.ng*params.ng*params.ng + (params.blockSize - 1))/params.blockSize;
     getIndent(calls);
 
     #ifdef VerboseInitializer
@@ -146,7 +146,7 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
         printf("%s   Calling combine...\n",indent);
         #endif
 
-        launch_combine(mem.d_grad,mem.d_x,mem.d_y,mem.d_z,numBlocks,params.blockSize,calls);
+        launch_combine(mem.d_grad,mem.d_x,mem.d_y,mem.d_z,params.ng,numBlocks,params.blockSize,calls);
 
         #ifdef VerboseInitializer
         printf("%s      Called combine.\n",indent);

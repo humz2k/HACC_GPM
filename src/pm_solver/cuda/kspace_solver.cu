@@ -46,6 +46,8 @@ template<class T, class T1>
 __global__ void kspace_solve_gradient(T* __restrict d_grid, const float4* __restrict d_grad, const T1* __restrict d_greens, int ng, int dim){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
+    if (idx >= (ng*ng*ng))return;
+
     double d = ((2*M_PI)/(((double)(ng))));
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
@@ -81,6 +83,8 @@ template<class T>
 __global__ void kspace_solve_gradient(T* __restrict d_grid, const float4* __restrict d_grad, int ng, int dim){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
+    if (idx >= (ng*ng*ng))return;
+
     double d = ((2*M_PI)/(((double)(ng))));
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
@@ -115,6 +119,8 @@ __global__ void kspace_solve_gradient(T* __restrict d_grid, const float4* __rest
 template<class T, class T1>
 __global__ void kspace_solve_gradient(T* __restrict d_x, T* __restrict d_y, T* __restrict d_z, const T* __restrict d_rho, const T1* __restrict d_greens, int ng){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (idx >= (ng*ng*ng))return;
 
     double d = ((2*M_PI)/(((double)(ng))));
 
@@ -152,6 +158,8 @@ __global__ void kspace_solve_gradient(T* __restrict d_x, T* __restrict d_y, T* _
 template<class T>
 __global__ void kspace_solve_gradient(T* __restrict d_x, T* __restrict d_y, T* __restrict d_z, const T* __restrict d_rho, int ng){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (idx >= (ng*ng*ng))return;
 
     double d = ((2*M_PI)/(((double)(ng))));
 

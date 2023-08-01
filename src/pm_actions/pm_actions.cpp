@@ -189,7 +189,7 @@ void HACCGPM::parallel::printPATimes(int world_rank){
 template<class T1, class T2>
 void HACCGPM::serial::CIC(T1* d_grid, float* d_temp, T2* d_pos, int ng, int np, int blockSize, int calls){
     CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
+    int numBlocks = (ng*ng*ng + (blockSize - 1))/blockSize;
     getIndent(calls);
     #ifdef VerboseUpdate
     printf("%sCIC (complex,float) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
@@ -218,7 +218,7 @@ template void HACCGPM::serial::CIC<floatFFT_t,float3>(floatFFT_t*,float*,float3*
 template<class T1, class T2>
 void HACCGPM::serial::CIC(T1* d_grid, T2* d_pos, int ng, int np, int blockSize, int calls){
     CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
+    int numBlocks = (ng*ng*ng + (blockSize - 1))/blockSize;
     getIndent(calls);
     #ifdef VerboseUpdate
     printf("%sCIC (complex) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
@@ -255,7 +255,7 @@ void HACCGPM::serial::CIC(HACCGPM::Params& params, HACCGPM::serial::MemoryManage
 template<class T>
 void HACCGPM::serial::UpdateVelocities(T* d_vel, float4* d_grad, T* d_pos, HACCGPM::Timestepper ts, int ng, int np, int blockSize, int calls){
     CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
+    int numBlocks = (np*np*np + (blockSize - 1))/blockSize;
     getIndent(calls);
     #ifdef VerboseUpdate
     printf("%sUpdate Velocities was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
@@ -282,7 +282,7 @@ void HACCGPM::serial::UpdateVelocities(HACCGPM::Params& params, HACCGPM::serial:
 template<class T>
 void HACCGPM::serial::UpdatePositions(T* d_pos, T* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int np, int blockSize, int calls){
     CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
+    int numBlocks = (np*np*np + (blockSize - 1))/blockSize;
     float prefactor = ((ts.deltaT)/(ts.aa * ts.aa * ts.adot)) * frac;
     getIndent(calls);
     #ifdef VerboseUpdate

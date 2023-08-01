@@ -464,29 +464,17 @@ namespace HACCGPM{
 
         void SolveGradient(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 
-        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int blockSize, int calls = 0);
+        template<class T1, class T2>
+        void SolveGradient(float4* d_grad, T1* d_rho, T2* d_greens, T1* d_x, T1* d_y, T1* d_z, int ng, int blockSize, int calls = 0);
 
-        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, hostFFT_t* d_greens, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int ng, int blockSize, int calls = 0);
+        template<class T1, class T2>
+        void SolveGradient(float4* d_grad, T1* d_rho, T2* d_greens, int ng, int blockSize, int calls = 0);
 
-        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, float* d_greens, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int blockSize, int calls = 0);
+        template<class T>
+        void SolveGradient(float4* d_grad, T* d_rho, T* d_x, T* d_y, T* d_z, int ng, int blockSize, int calls = 0);
 
-        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, float* d_greens, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int ng, int blockSize, int calls = 0);
-
-        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls);
-
-        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, float* d_greens, int ng, int blockSize, int calls);
-
-        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, hostFFT_t* d_greens, int ng, int blockSize, int calls);
-
-        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, float* d_greens, int ng, int blockSize, int calls);
-
-        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, int ng, int blockSize, int calls = 0);
-
-        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, int ng, int blockSize, int calls = 0);
-
-        void SolveGradient(float4* d_grad, deviceFFT_t* d_rho, int ng, int blockSize, int calls);
-
-        void SolveGradient(float4* d_grad, floatFFT_t* d_rho, int ng, int blockSize, int calls);
+        template<class T>
+        void SolveGradient(float4* d_grad, T* d_rho, int ng, int blockSize, int calls = 0);
 
         void InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 

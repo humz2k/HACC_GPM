@@ -428,31 +428,19 @@ namespace HACCGPM{
 
         void UpdatePositions(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper ts, float frac, int calls = 0);
 
-        void UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int blockSize, int calls = 0);
-
-        void UpdatePositions(float3* d_pos, float3* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int blockSize, int calls = 0);
+        template<class T>
+        void UpdatePositions(T* d_pos, T* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int blockSize, int calls = 0);
 
         void UpdateVelocities(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper ts, int calls = 0);
 
-        void UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls = 0);
+        template<class T>
+        void UpdateVelocities(T* d_vel, float4* d_grad, T* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls = 0);
 
-        void UpdateVelocities(float3* d_vel, float4* d_grad, float3* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls = 0);
+        template<class T1, class T2>
+        void CIC(T1* d_grid, T2* d_pos, int ng, int blockSize, int calls = 0);
 
-        void CIC(deviceFFT_t* d_grid, float4* d_pos, int ng, int blockSize, int calls = 0);
-
-        void CIC(deviceFFT_t* d_grid, float3* d_pos, int ng, int blockSize, int calls = 0);
-
-        void CIC(floatFFT_t* d_grid, float4* d_pos, int ng, int blockSize, int calls = 0);
-
-        void CIC(floatFFT_t* d_grid, float3* d_pos, int ng, int blockSize, int calls = 0);
-
-        void CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls = 0);
-
-        void CIC(floatFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls = 0);
-
-        void CIC(deviceFFT_t* d_grid, float* d_temp, float3* d_pos, int ng, int blockSize, int calls = 0);
-
-        void CIC(floatFFT_t* d_grid, float* d_temp, float3* d_pos, int ng, int blockSize, int calls = 0);
+        template<class T1, class T2>
+        void CIC(T1* d_grid, float* d_temp, T2* d_pos, int ng, int blockSize, int calls = 0);
 
         void CIC(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 

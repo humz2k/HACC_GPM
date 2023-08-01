@@ -186,6 +186,63 @@ void HACCGPM::parallel::printPATimes(int world_rank){
     }
 }
 
+template<class T1, class T2>
+void HACCGPM::serial::CIC(T1* d_grid, float* d_temp, T2* d_pos, int ng, int blockSize, int calls){
+    CPUTimer_t start = CPUTimer();
+    int numBlocks = (ng*ng*ng)/blockSize;
+    getIndent(calls);
+    #ifdef VerboseUpdate
+    printf("%sCIC (complex,float) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    #endif
+    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
+    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
+    CIC_KERNEL_TIME += launch_cic(d_temp,d_pos,ng,1.0f,numBlocks,blockSize,calls);
+    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
+    CIC_KERNEL_TIME += launch_f2c(d_grid,d_temp,ng,numBlocks,blockSize,calls);
+    CPUTimer_t end = CPUTimer();
+    CPUTimer_t t = end-start;
+    #ifdef VerboseUpdate
+    printf("%s   CIC (complex,float) took %llu us\n",indent,t);
+    #else
+    printf("CIC (complex,float): %llu us\n",t);
+    #endif
+    CIC_TIME += t;
+    CIC_CALLS += 1;
+}
+
+template void HACCGPM::serial::CIC<deviceFFT_t,float4>(deviceFFT_t*,float*,float4*,int,int,int);
+template void HACCGPM::serial::CIC<deviceFFT_t,float3>(deviceFFT_t*,float*,float3*,int,int,int);
+template void HACCGPM::serial::CIC<floatFFT_t,float4>(floatFFT_t*,float*,float4*,int,int,int);
+template void HACCGPM::serial::CIC<floatFFT_t,float3>(floatFFT_t*,float*,float3*,int,int,int);
+
+template<class T1, class T2>
+void HACCGPM::serial::CIC(T1* d_grid, T2* d_pos, int ng, int blockSize, int calls){
+    CPUTimer_t start = CPUTimer();
+    int numBlocks = (ng*ng*ng)/blockSize;
+    getIndent(calls);
+    #ifdef VerboseUpdate
+    printf("%sCIC (complex) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    #endif
+    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
+    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
+    CIC_KERNEL_TIME += launch_cic(d_grid,d_pos,ng,1.0f,numBlocks,blockSize,calls);
+    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
+    CPUTimer_t end = CPUTimer();
+    CPUTimer_t t = end-start;
+    #ifdef VerboseUpdate
+    printf("%s   CIC (complex) took %llu us\n",indent,t);
+    #else
+    printf("CIC (complex): %llu us\n",t);
+    #endif
+    CIC_TIME += t;
+    CIC_CALLS += 1;
+}
+
+template void HACCGPM::serial::CIC<deviceFFT_t,float4>(deviceFFT_t*,float4*,int,int,int);
+template void HACCGPM::serial::CIC<deviceFFT_t,float3>(deviceFFT_t*,float3*,int,int,int);
+template void HACCGPM::serial::CIC<floatFFT_t,float4>(floatFFT_t*,float4*,int,int,int);
+template void HACCGPM::serial::CIC<floatFFT_t,float3>(floatFFT_t*,float3*,int,int,int);
+
 void HACCGPM::serial::CIC(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls){
     #ifdef USE_TEMP_GRID
     HACCGPM::serial::CIC(mem.d_grid,mem.d_tempgrid,mem.d_pos,params.ng,params.blockSize,calls);
@@ -195,272 +252,60 @@ void HACCGPM::serial::CIC(HACCGPM::Params& params, HACCGPM::serial::MemoryManage
 
 }
 
-void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls){
+template<class T>
+void HACCGPM::serial::UpdateVelocities(T* d_vel, float4* d_grad, T* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls){
     CPUTimer_t start = CPUTimer();
     int numBlocks = (ng*ng*ng)/blockSize;
     getIndent(calls);
     #ifdef VerboseUpdate
-    printf("%sCIC (complex,float) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    printf("%sUpdate Velocities was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
-    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
-    CIC_KERNEL_TIME += launch_cic(d_temp,d_pos,ng,1.0f,numBlocks,blockSize,calls);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
-    CIC_KERNEL_TIME += launch_f2c(d_grid,d_temp,ng,numBlocks,blockSize,calls);
+    UPDATE_VEL_KERNEL_TIME += launch_icic(d_vel,d_grad,d_pos,ts.deltaT,ts.fscal,ng,numBlocks,blockSize,calls);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
     #ifdef VerboseUpdate
-    printf("%s   CIC (complex,float) took %llu us\n",indent,t);
+    printf("%s   UpdateVelocities took %llu us\n",indent,t);
     #else
-    printf("CIC (complex,float): %llu us\n",t);
+    printf("UpdateVelocities: %llu us\n",t);
     #endif
-    CIC_TIME += t;
-    CIC_CALLS += 1;
+    UPDATE_VEL_TIME += t;
+    UPDATE_VEL_CALLS += 1;
 }
 
-void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float4* d_pos, int ng, int blockSize, int calls){
-    CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
-    getIndent(calls);
-    #ifdef VerboseUpdate
-    printf("%sCIC (complex) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
-    #endif
-    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
-    CIC_KERNEL_TIME += launch_cic(d_grid,d_pos,ng,1.0f,numBlocks,blockSize,calls);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
-    CPUTimer_t end = CPUTimer();
-    CPUTimer_t t = end-start;
-    #ifdef VerboseUpdate
-    printf("%s   CIC (complex) took %llu us\n",indent,t);
-    #else
-    printf("CIC (complex): %llu us\n",t);
-    #endif
-    CIC_TIME += t;
-    CIC_CALLS += 1;
-}
-
-void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float3* d_pos, int ng, int blockSize, int calls){
-    CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
-    getIndent(calls);
-    #ifdef VerboseUpdate
-    printf("%sCIC (complex) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
-    #endif
-    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
-    CIC_KERNEL_TIME += launch_cic(d_grid,d_pos,ng,1.0f,numBlocks,blockSize,calls);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
-    CPUTimer_t end = CPUTimer();
-    CPUTimer_t t = end-start;
-    #ifdef VerboseUpdate
-    printf("%s   CIC (complex) took %llu us\n",indent,t);
-    #else
-    printf("CIC (complex): %llu us\n",t);
-    #endif
-    CIC_TIME += t;
-    CIC_CALLS += 1;
-}
-
-void HACCGPM::serial::CIC(floatFFT_t* d_grid, float4* d_pos, int ng, int blockSize, int calls){
-    CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
-    getIndent(calls);
-    #ifdef VerboseUpdate
-    printf("%sCIC (complex) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
-    #endif
-    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
-    CIC_KERNEL_TIME += launch_cic(d_grid,d_pos,ng,1.0f,numBlocks,blockSize,calls);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
-    CPUTimer_t end = CPUTimer();
-    CPUTimer_t t = end-start;
-    #ifdef VerboseUpdate
-    printf("%s   CIC (complex) took %llu us\n",indent,t);
-    #else
-    printf("CIC (complex): %llu us\n",t);
-    #endif
-    CIC_TIME += t;
-    CIC_CALLS += 1;
-}
-
-void HACCGPM::serial::CIC(floatFFT_t* d_grid, float3* d_pos, int ng, int blockSize, int calls){
-    CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
-    getIndent(calls);
-    #ifdef VerboseUpdate
-    printf("%sCIC (complex) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
-    #endif
-    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
-    CIC_KERNEL_TIME += launch_cic(d_grid,d_pos,ng,1.0f,numBlocks,blockSize,calls);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
-    CPUTimer_t end = CPUTimer();
-    CPUTimer_t t = end-start;
-    #ifdef VerboseUpdate
-    printf("%s   CIC (complex) took %llu us\n",indent,t);
-    #else
-    printf("CIC (complex): %llu us\n",t);
-    #endif
-    CIC_TIME += t;
-    CIC_CALLS += 1;
-}
-
-void HACCGPM::serial::CIC(floatFFT_t* d_grid, float* d_temp, float4* d_pos, int ng, int blockSize, int calls){
-    CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
-    getIndent(calls);
-    #ifdef VerboseUpdate
-    printf("%sCIC (fcomplex,float) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
-    #endif
-    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
-    CIC_KERNEL_TIME += launch_cic(d_temp,d_pos,ng,1.0f,numBlocks,blockSize,calls);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
-    CIC_KERNEL_TIME += launch_f2c(d_grid,d_temp,ng,numBlocks,blockSize,calls);
-    CPUTimer_t end = CPUTimer();
-    CPUTimer_t t = end-start;
-    #ifdef VerboseUpdate
-    printf("%s   CIC (fcomplex,float) took %llu us\n",indent,t);
-    #else
-    printf("CIC (fcomplex,float): %llu us\n",t);
-    #endif
-    CIC_TIME += t;
-    CIC_CALLS += 1;
-}
-
-void HACCGPM::serial::CIC(deviceFFT_t* d_grid, float* d_temp, float3* d_pos, int ng, int blockSize, int calls){
-    CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
-    getIndent(calls);
-    #ifdef VerboseUpdate
-    printf("%sCIC (complex,float) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
-    #endif
-    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
-    CIC_KERNEL_TIME += launch_cic(d_temp,d_pos,ng,1.0f,numBlocks,blockSize,calls);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
-    CIC_KERNEL_TIME += launch_f2c(d_grid,d_temp,ng,numBlocks,blockSize,calls);
-    CPUTimer_t end = CPUTimer();
-    CPUTimer_t t = end-start;
-    #ifdef VerboseUpdate
-    printf("%s   CIC (complex,float) took %llu us\n",indent,t);
-    #else
-    printf("CIC (complex,float): %llu us\n",t);
-    #endif
-    CIC_TIME += t;
-    CIC_CALLS += 1;
-}
-
-void HACCGPM::serial::CIC(floatFFT_t* d_grid, float* d_temp, float3* d_pos, int ng, int blockSize, int calls){
-    CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
-    getIndent(calls);
-    #ifdef VerboseUpdate
-    printf("%sCIC (fcomplex,float) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
-    #endif
-    //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
-    CIC_KERNEL_TIME += launch_cic(d_temp,d_pos,ng,1.0f,numBlocks,blockSize,calls);
-    //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
-    CIC_KERNEL_TIME += launch_f2c(d_grid,d_temp,ng,numBlocks,blockSize,calls);
-    CPUTimer_t end = CPUTimer();
-    CPUTimer_t t = end-start;
-    #ifdef VerboseUpdate
-    printf("%s   CIC (fcomplex,float) took %llu us\n",indent,t);
-    #else
-    printf("CIC (fcomplex,float): %llu us\n",t);
-    #endif
-    CIC_TIME += t;
-    CIC_CALLS += 1;
-}
+template void HACCGPM::serial::UpdateVelocities<float4>(float4*,float4*,float4*,HACCGPM::Timestepper,int,int,int);
+template void HACCGPM::serial::UpdateVelocities<float3>(float3*,float4*,float3*,HACCGPM::Timestepper,int,int,int);
 
 void HACCGPM::serial::UpdateVelocities(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper ts, int calls){
     HACCGPM::serial::UpdateVelocities(mem.d_vel,mem.d_grad,mem.d_pos,ts,params.ng,params.blockSize,calls);
 }
 
-void HACCGPM::serial::UpdateVelocities(float4* d_vel, float4* d_grad, float4* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls){
+template<class T>
+void HACCGPM::serial::UpdatePositions(T* d_pos, T* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int blockSize, int calls){
     CPUTimer_t start = CPUTimer();
     int numBlocks = (ng*ng*ng)/blockSize;
+    float prefactor = ((ts.deltaT)/(ts.aa * ts.aa * ts.adot)) * frac;
     getIndent(calls);
     #ifdef VerboseUpdate
-    printf("%sUpdate Velocities was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
+    printf("%sUpdate Positions was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   frac %g\n%s   prefactor %g\n",indent,indent,blockSize,indent,numBlocks,indent,frac,indent,prefactor);
     #endif
-    UPDATE_VEL_KERNEL_TIME += launch_icic(d_vel,d_grad,d_pos,ts.deltaT,ts.fscal,ng,numBlocks,blockSize,calls);
+    //UPDATE_POS_KERNEL_TIME += InvokeGPUKernel(UpdatePosKernel,numBlocks,blockSize,d_pos,d_vel,prefactor,(float)ng);
+    UPDATE_POS_KERNEL_TIME += launch_updatepos(d_pos,d_vel,prefactor,ng,numBlocks,blockSize,calls);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;
     #ifdef VerboseUpdate
-    printf("%s   UpdateVelocities took %llu us\n",indent,t);
+    printf("%s   UpdatePositions took %llu us\n",indent,t);
     #else
-    printf("UpdateVelocities: %llu us\n",t);
+    printf("UpdatePositions: %llu us\n",t);
     #endif
-    UPDATE_VEL_TIME += t;
-    UPDATE_VEL_CALLS += 1;
+    UPDATE_POS_TIME += t;
+    UPDATE_POS_CALLS += 1;
 }
 
-void HACCGPM::serial::UpdateVelocities(float3* d_vel, float4* d_grad, float3* d_pos, HACCGPM::Timestepper ts, int ng, int blockSize, int calls){
-    CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
-    getIndent(calls);
-    #ifdef VerboseUpdate
-    printf("%sUpdate Velocities was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
-    #endif
-    UPDATE_VEL_KERNEL_TIME += launch_icic(d_vel,d_grad,d_pos,ts.deltaT,ts.fscal,ng,numBlocks,blockSize,calls);
-    CPUTimer_t end = CPUTimer();
-    CPUTimer_t t = end-start;
-    #ifdef VerboseUpdate
-    printf("%s   UpdateVelocities took %llu us\n",indent,t);
-    #else
-    printf("UpdateVelocities: %llu us\n",t);
-    #endif
-    UPDATE_VEL_TIME += t;
-    UPDATE_VEL_CALLS += 1;
-}
+template void HACCGPM::serial::UpdatePositions<float4>(float4*,float4*,HACCGPM::Timestepper,float,int,int,int);
+template void HACCGPM::serial::UpdatePositions<float3>(float3*,float3*,HACCGPM::Timestepper,float,int,int,int);
 
 void HACCGPM::serial::UpdatePositions(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, HACCGPM::Timestepper ts, float frac, int calls){
     HACCGPM::serial::UpdatePositions(mem.d_pos,mem.d_vel,ts,frac,params.ng,params.blockSize,calls);
-}
-
-void HACCGPM::serial::UpdatePositions(float4* d_pos, float4* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int blockSize, int calls){
-    CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
-    float prefactor = ((ts.deltaT)/(ts.aa * ts.aa * ts.adot)) * frac;
-    getIndent(calls);
-    #ifdef VerboseUpdate
-    printf("%sUpdate Positions was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   frac %g\n%s   prefactor %g\n",indent,indent,blockSize,indent,numBlocks,indent,frac,indent,prefactor);
-    #endif
-    //UPDATE_POS_KERNEL_TIME += InvokeGPUKernel(UpdatePosKernel,numBlocks,blockSize,d_pos,d_vel,prefactor,(float)ng);
-    UPDATE_POS_KERNEL_TIME += launch_updatepos(d_pos,d_vel,prefactor,ng,numBlocks,blockSize,calls);
-    CPUTimer_t end = CPUTimer();
-    CPUTimer_t t = end-start;
-    #ifdef VerboseUpdate
-    printf("%s   UpdatePositions took %llu us\n",indent,t);
-    #else
-    printf("UpdatePositions: %llu us\n",t);
-    #endif
-    UPDATE_POS_TIME += t;
-    UPDATE_POS_CALLS += 1;
-}
-
-void HACCGPM::serial::UpdatePositions(float3* d_pos, float3* d_vel, HACCGPM::Timestepper ts, float frac, int ng, int blockSize, int calls){
-    CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng)/blockSize;
-    float prefactor = ((ts.deltaT)/(ts.aa * ts.aa * ts.adot)) * frac;
-    getIndent(calls);
-    #ifdef VerboseUpdate
-    printf("%sUpdate Positions was called with\n%s   blockSize %d\n%s   numBlocks %d\n%s   frac %g\n%s   prefactor %g\n",indent,indent,blockSize,indent,numBlocks,indent,frac,indent,prefactor);
-    #endif
-    //UPDATE_POS_KERNEL_TIME += InvokeGPUKernel(UpdatePosKernel,numBlocks,blockSize,d_pos,d_vel,prefactor,(float)ng);
-    UPDATE_POS_KERNEL_TIME += launch_updatepos(d_pos,d_vel,prefactor,ng,numBlocks,blockSize,calls);
-    CPUTimer_t end = CPUTimer();
-    CPUTimer_t t = end-start;
-    #ifdef VerboseUpdate
-    printf("%s   UpdatePositions took %llu us\n",indent,t);
-    #else
-    printf("UpdatePositions: %llu us\n",t);
-    #endif
-    UPDATE_POS_TIME += t;
-    UPDATE_POS_CALLS += 1;
 }
 
 void HACCGPM::serial::printCICTimes(){

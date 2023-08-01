@@ -123,16 +123,14 @@ __global__ void ICICKernel(T* __restrict d_vel, const float4* __restrict d_grad,
     d_vel[idx] = my_vel;
 
 }
-
-CPUTimer_t launch_icic(float4* d_vel, float4* d_grad, float4* d_pos, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
+template<class T>
+CPUTimer_t launch_icic(T* d_vel, float4* d_grad, T* d_pos, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     return InvokeGPUKernel(ICICKernel,numBlocks,blockSize,d_vel,d_grad,d_pos,deltaT,fscal,ng);
 }
 
-CPUTimer_t launch_icic(float3* d_vel, float4* d_grad, float3* d_pos, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    return InvokeGPUKernel(ICICKernel,numBlocks,blockSize,d_vel,d_grad,d_pos,deltaT,fscal,ng);
-}
+template CPUTimer_t launch_icic<float4>(float4*,float4*,float4*,double,double,int,int,int,int);
+template CPUTimer_t launch_icic<float3>(float3*,float4*,float3*,double,double,int,int,int,int);
 
 CPUTimer_t launch_icic(float4* d_vel, float4* d_grad, float4* d_pos, double deltaT, double fscal, int overload, int3 local_grid_size, int ng, int n_particles, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);

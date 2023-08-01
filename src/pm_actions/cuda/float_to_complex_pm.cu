@@ -20,15 +20,6 @@ CPUTimer_t launch_f2c(T* d_out, float* d_in, int ng, int numBlocks, int blockSiz
 template CPUTimer_t launch_f2c<deviceFFT_t>(deviceFFT_t*,float*,int,int,int,int);
 template CPUTimer_t launch_f2c<floatFFT_t>(floatFFT_t*,float*,int,int,int,int);
 
-/*CPUTimer_t launch_f2c(deviceFFT_t* d_out, float* d_in, int ng, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    return InvokeGPUKernel(float2complex,numBlocks,blockSize,d_out,d_in,ng*ng*ng);
-}
-
-CPUTimer_t launch_f2c(floatFFT_t* d_out, float* d_in, int ng, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    return InvokeGPUKernel(float2complex,numBlocks,blockSize,d_out,d_in,ng*ng*ng);
-}*/
 
 __global__ void float2complex(deviceFFT_t* __restrict d_out, const float* __restrict d_in, int3 local_grid_size, int overload){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;

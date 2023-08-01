@@ -39,15 +39,14 @@ __global__ void UpdatePosKernelParallel(float4* __restrict d_pos, const float4* 
     }
 }
 
-CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int ng, int numBlocks, int blockSize, int calls){
+template<class T>
+CPUTimer_t launch_updatepos(T* d_pos, T* d_vel, float prefactor, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
     return InvokeGPUKernel(UpdatePosKernel,numBlocks,blockSize,d_pos,d_vel,prefactor,(float)ng);
 }
 
-CPUTimer_t launch_updatepos(float3* d_pos, float3* d_vel, float prefactor, int ng, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    return InvokeGPUKernel(UpdatePosKernel,numBlocks,blockSize,d_pos,d_vel,prefactor,(float)ng);
-}
+template CPUTimer_t launch_updatepos<float4>(float4*,float4*,float,int,int,int,int);
+template CPUTimer_t launch_updatepos<float3>(float3*,float3*,float,int,int,int,int);
 
 CPUTimer_t launch_updatepos(float4* d_pos, float4* d_vel, float prefactor, int n_particles, int3 local_grid_size, int overload, int* h_do_refresh, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "haccgpm.hpp"
+#include <cassert>
 
 HACCGPM::Params HACCGPM::read_params(const char* fname){
     FILE *fp;
@@ -22,6 +23,7 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
     out.dump_final = false;
     out.ol = 1;
     out.pk_bins = 221;
+    out.np = 0;
 
     for (int i = 0; i < MAX_STEPS; i++){
         out.pks[i] = false;
@@ -84,6 +86,9 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
                 } else if (strcmp(parameter,"NG") == 0){
                     int val = atoi(value);
                     out.ng = val;
+                } else if (strcmp(parameter,"NP") == 0){
+                    int val = atoi(value);
+                    out.np = val;
                 } else if (strcmp(parameter,"RL") == 0){
                     float val = atof(value);
                     out.rl = val;
@@ -153,6 +158,9 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
             }
         }
     }
+
+    assert(out.np != 0);
+    assert((out.ng % out.np) == 0);
 
     if (out.lastStep == -1){
         out.lastStep = out.nsteps;

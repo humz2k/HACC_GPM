@@ -117,6 +117,7 @@ namespace HACCGPM{
     struct Params{
         char fname[300];
         int ng;
+        int np;
         double rl;
         int blockSize;
         int seed;

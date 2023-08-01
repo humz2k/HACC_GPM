@@ -135,41 +135,19 @@ __global__ void CICKernelParallel(float* __restrict d_grid, const float4* __rest
     }
 }
 
-CPUTimer_t launch_cic(float* d_grid, float4* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
+template<class T1, class T2>
+CPUTimer_t launch_cic(T1* d_grid, T2* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    cudaCall(cudaMemset,d_grid,0,sizeof(float)*ng*ng*ng);
+    cudaCall(cudaMemset,d_grid,0,sizeof(T1)*ng*ng*ng);
     return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
 }
 
-CPUTimer_t launch_cic(float* d_grid, float3* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    cudaCall(cudaMemset,d_grid,0,sizeof(float)*ng*ng*ng);
-    return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
-}
-
-CPUTimer_t launch_cic(floatFFT_t* d_grid, float4* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    cudaCall(cudaMemset,d_grid,0,sizeof(floatFFT_t)*ng*ng*ng);
-    return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
-}
-
-CPUTimer_t launch_cic(floatFFT_t* d_grid, float3* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    cudaCall(cudaMemset,d_grid,0,sizeof(floatFFT_t)*ng*ng*ng);
-    return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
-}
-
-CPUTimer_t launch_cic(deviceFFT_t* d_grid, float4* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    cudaCall(cudaMemset,d_grid,0,sizeof(deviceFFT_t)*ng*ng*ng);
-    return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
-}
-
-CPUTimer_t launch_cic(deviceFFT_t* d_grid, float3* d_pos, int ng, float mass, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    cudaCall(cudaMemset,d_grid,0,sizeof(deviceFFT_t)*ng*ng*ng);
-    return InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_grid,d_pos,ng,1.0f);
-}
+template CPUTimer_t launch_cic<float,float4>(float*,float4*,int,float,int,int,int);
+template CPUTimer_t launch_cic<float,float3>(float*,float3*,int,float,int,int,int);
+template CPUTimer_t launch_cic<floatFFT_t,float3>(floatFFT_t*,float3*,int,float,int,int,int);
+template CPUTimer_t launch_cic<floatFFT_t,float4>(floatFFT_t*,float4*,int,float,int,int,int);
+template CPUTimer_t launch_cic<deviceFFT_t,float4>(deviceFFT_t*,float4*,int,float,int,int,int);
+template CPUTimer_t launch_cic<deviceFFT_t,float3>(deviceFFT_t*,float3*,int,float,int,int,int);
 
 CPUTimer_t launch_cic(float* d_grid, float4* d_pos, int ng, int overload, int3 local_grid_size, int n_particles, float mass, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);

@@ -81,8 +81,6 @@ void HACCGPM::parallel::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::paral
     if(params.world_rank == 0)printf("%s      Filled kBins: minK = %g, maxK = %g, binDelta = %g, nbins = %d\n",indent,minK,maxK,binDelta,nbins);
     #endif
 
-    //HACCGPM::parallel::TransferParticles(params,mem,calls+1);
-
     new_rl = params.rl;
 
     for (int current_fold = 0; current_fold < params.pkFolds + 1; current_fold++){
@@ -136,43 +134,6 @@ void HACCGPM::parallel::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::paral
 
         if (params.world_rank == 0)writePkOutput(fname,binVals,binCounts,kBins,nbins,current_fold);
     }
-
-    /*d = (2*M_PI)/(new_rl);
-
-    #ifdef VerbosePower
-    if(params.world_rank == 0)printf("%s   Calling CIC\n",indent);
-    #endif
-
-    HACCGPM::parallel::CIC(mem.d_grid,mem.d_tempgrid,mem.d_pos,params.ng,params.n_particles,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec,params.blockSize,params.world_rank, params.world_size,params.overload,calls+1);
-
-    #ifdef VerbosePower
-    if(params.world_rank == 0)printf("%s      Called CIC\n",indent);
-    if(params.world_rank == 0)printf("%s   Calculating PK\n",indent);
-    #endif
-
-    HACCGPM::parallel::forward_fft(mem.d_grid,params.ng,calls+1);
-
-    InvokeGPUKernelParallel(scalePower,numBlocks,params.blockSize,mem.d_grid,(double)params.ng,params.rl,params.nlocal);
-    InvokeGPUKernelParallel(PkCICFilter,numBlocks,params.blockSize,mem.d_grid,params.ng,params.nlocal,params.local_grid_size_vec,params.grid_coords_vec);
-    cudaCall(cudaMemset,d_binCounts,0,sizeof(int)*nbins);
-    cudaCall(cudaMemset,d_binVals,0,sizeof(double)*nbins);
-    InvokeGPUKernelParallel(BinPower,numBlocks,params.blockSize,mem.d_grid,d_binVals,d_binCounts,minK,binDelta,new_rl,params.ng,params.nlocal,params.world_rank,params.local_grid_size_vec,params.grid_coords_vec,params.grid_dims_vec);
-
-    #ifdef VerbosePower
-    if(params.world_rank == 0)printf("%s      Calculated PK\n",indent);
-    if(params.world_rank == 0)printf("%s   Sending values\n",indent);
-    #endif
-
-    cudaCall(cudaMemcpy, binVals, d_binVals, sizeof(double)*nbins, cudaMemcpyDeviceToHost);
-    cudaCall(cudaMemcpy, binCounts, d_binCounts, sizeof(int)*nbins, cudaMemcpyDeviceToHost);
-
-    HACCGPM::parallel::sendPower(binCounts,binVals,nbins,params.world_rank,params.world_size,calls+1);
-
-    #ifdef VerbosePower
-    if(params.world_rank == 0)printf("%s      Sent values\n",indent);
-    #endif
-
-    if (params.world_rank == 0)writePkOutput(fname,binVals,binCounts,kBins,nbins,0);*/
     
     free(kBins);
     free(binCounts);
@@ -201,19 +162,11 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
 
     int nbins = params.pk_bins;
 
-    //particle_t* d_temp_pos; cudaCall(cudaMalloc,&d_temp_pos,sizeof(particle_t)*params.ng*params.ng*params.ng);
-
     particle_t* d_temp_pos = (particle_t*)mem.d_grad;
-    //hostFFT_t* d_powerSpectrum; cudaCall(cudaMalloc,&d_powerSpectrum,sizeof(hostFFT_t)*ng*ng*ng);
 
     double* kBins = (double*)malloc(sizeof(double)*nbins);
     int* binCounts = (int*)malloc(sizeof(int)*(nbins));
     float* binVals = (float*)malloc(sizeof(float)*nbins);
-
-    //int* d_binCounts; cudaCall(cudaMalloc,&d_binCounts,sizeof(int)*nbins);
-    //double* d_binVals; cudaCall(cudaMalloc,&d_binVals,sizeof(double)*nbins);
-
-    //hostFFT_t* tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*ng*ng*ng);
 
     POWER_KERNEL_TIME += InvokeGPUKernel(cpy,numBlocks,params.blockSize,d_temp_pos,mem.d_pos,params.ng*params.ng*params.ng);
 
@@ -276,9 +229,6 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
     free(kBins);
     free(binCounts);
     free(binVals);
-    //cudaCall(cudaFree,d_temp_pos);
-    //cudaCall(cudaFree,d_binCounts);
-    //cudaCall(cudaFree,d_binVals);
 
     CPUTimer_t end = CPUTimer();
 

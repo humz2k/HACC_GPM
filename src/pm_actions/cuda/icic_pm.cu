@@ -70,8 +70,10 @@ __global__ void ICICKernelParallel(float4* __restrict d_vel, const float4* __res
 }
 
 template<class T>
-__global__ void ICICKernel(T* __restrict d_vel, const float4* __restrict d_grad, const T* __restrict my_pos, double deltaT, double fscal, int ng){
+__global__ void ICICKernel(T* __restrict d_vel, const float4* __restrict d_grad, const T* __restrict my_pos, double deltaT, double fscal, int ng, int np){
     int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if(idx >= (np*np*np))return;
+
     T my_particle = __ldg(&my_pos[idx]);
     float3 my_deltaV = make_float3(0.0,0.0,0.0);
     int i = my_particle.x;
@@ -124,13 +126,13 @@ __global__ void ICICKernel(T* __restrict d_vel, const float4* __restrict d_grad,
 
 }
 template<class T>
-CPUTimer_t launch_icic(T* d_vel, float4* d_grad, T* d_pos, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
+CPUTimer_t launch_icic(T* d_vel, float4* d_grad, T* d_pos, double deltaT, double fscal, int ng, int np, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    return InvokeGPUKernel(ICICKernel,numBlocks,blockSize,d_vel,d_grad,d_pos,deltaT,fscal,ng);
+    return InvokeGPUKernel(ICICKernel,numBlocks,blockSize,d_vel,d_grad,d_pos,deltaT,fscal,ng,np);
 }
 
-template CPUTimer_t launch_icic<float4>(float4*,float4*,float4*,double,double,int,int,int,int);
-template CPUTimer_t launch_icic<float3>(float3*,float4*,float3*,double,double,int,int,int,int);
+template CPUTimer_t launch_icic<float4>(float4*,float4*,float4*,double,double,int,int,int,int,int);
+template CPUTimer_t launch_icic<float3>(float3*,float4*,float3*,double,double,int,int,int,int,int);
 
 CPUTimer_t launch_icic(float4* d_vel, float4* d_grad, float4* d_pos, double deltaT, double fscal, int overload, int3 local_grid_size, int ng, int n_particles, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);

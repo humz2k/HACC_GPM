@@ -146,40 +146,38 @@ __global__ void transformDensityField(const deviceFFT_t* __restrict oldGrid, dev
 
 }
 
-void launch_transform_density_field(float2* d_grid, deviceFFT_t* d_out, int dim, double delta, double rl, double z_ini, int ng, int numBlocks, int blockSize, int calls){
+template<class T>
+CPUTimer_t launch_transform_density_field(float2* d_grid, T* d_out, int dim, double delta, double rl, double z_ini, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    InvokeGPUKernel(transformDensityField,numBlocks,blockSize,d_grid,d_out,delta,rl,1/(1+z_ini),ng,dim);
+    return InvokeGPUKernel(transformDensityField,numBlocks,blockSize,d_grid,d_out,delta,rl,1/(1+z_ini),ng,dim);
 }
 
-void launch_transform_density_field(float2* d_grid, floatFFT_t* d_out, int dim, double delta, double rl, double z_ini, int ng, int numBlocks, int blockSize, int calls){
+template CPUTimer_t launch_transform_density_field<deviceFFT_t>(float2*,deviceFFT_t*,int,double,double,double,int,int,int,int);
+template CPUTimer_t launch_transform_density_field<floatFFT_t>(float2*,floatFFT_t*,int,double,double,double,int,int,int,int);
+
+template<class T>
+CPUTimer_t launch_transform_density_field(T* d_grid, T* d_x, T* d_y, T* d_z, double delta, double rl, double z_ini, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    InvokeGPUKernel(transformDensityField,numBlocks,blockSize,d_grid,d_out,delta,rl,1/(1+z_ini),ng,dim);
+    return InvokeGPUKernel(transformDensityField,numBlocks,blockSize,d_grid,d_x,d_y,d_z,delta,rl,1/(1+z_ini),ng);
 }
 
-void launch_transform_density_field(deviceFFT_t* d_grid, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double rl, double z_ini, int ng, int numBlocks, int blockSize, int calls){
+template CPUTimer_t launch_transform_density_field<deviceFFT_t>(deviceFFT_t*,deviceFFT_t*,deviceFFT_t*,deviceFFT_t*,double,double,double,int,int,int,int);
+template CPUTimer_t launch_transform_density_field<floatFFT_t>(floatFFT_t*,floatFFT_t*,floatFFT_t*,floatFFT_t*,double,double,double,int,int,int,int);
+
+CPUTimer_t launch_transform_density_field(deviceFFT_t* d_grid, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double rl, double z_ini, int ng, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    InvokeGPUKernel(transformDensityField,numBlocks,blockSize,d_grid,d_x,d_y,d_z,delta,rl,1/(1+z_ini),ng);
+    return InvokeGPUKernelParallel(transformDensityField,numBlocks,blockSize,d_grid,d_x,d_y,d_z,delta,rl,1/(1+z_ini),ng,nlocal,world_rank,local_grid_size,local_coords,dims);
 }
 
-void launch_transform_density_field(floatFFT_t* d_grid, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, double delta, double rl, double z_ini, int ng, int numBlocks, int blockSize, int calls){
+template<class T>
+CPUTimer_t launch_copy_grid(T* d_grid, float2* new_grid, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    InvokeGPUKernel(transformDensityField,numBlocks,blockSize,d_grid,d_x,d_y,d_z,delta,rl,1/(1+z_ini),ng);
+    return InvokeGPUKernel(copyGrid,numBlocks,blockSize,d_grid,new_grid);
 }
 
-void launch_transform_density_field(deviceFFT_t* d_grid, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double rl, double z_ini, int ng, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernelParallel(transformDensityField,numBlocks,blockSize,d_grid,d_x,d_y,d_z,delta,rl,1/(1+z_ini),ng,nlocal,world_rank,local_grid_size,local_coords,dims);
-}
+template CPUTimer_t launch_copy_grid<deviceFFT_t>(deviceFFT_t*,float2*,int,int,int);
+template CPUTimer_t launch_copy_grid<floatFFT_t>(floatFFT_t*,float2*,int,int,int);
 
-void launch_copy_grid(deviceFFT_t* d_grid, float2* new_grid, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernel(copyGrid,numBlocks,blockSize,d_grid,new_grid);
-}
-
-void launch_copy_grid(floatFFT_t* d_grid, float2* new_grid, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernel(copyGrid,numBlocks,blockSize,d_grid,new_grid);
-}
 
 template<class T1, class T2>
 CPUTimer_t launch_get_real_grid(T1* d_grid, T2* new_grid, int dim, int numBlocks, int blockSize, int calls){

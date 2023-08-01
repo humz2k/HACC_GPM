@@ -91,6 +91,9 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
     printf("%s      Called get_delta_and_dotDelta.\n",indent);
     #endif
 
+    double scale_by = 1.0f/((double)(params.ng*params.ng*params.ng));
+    int scale_n = params.ng*params.ng*params.ng;
+
     #ifdef USE_ONE_GRID
 
         #ifdef VerboseInitializer
@@ -98,9 +101,6 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
         #endif
 
         launch_copy_grid(mem.d_grid,(float2*)mem.d_pos,params.ng,numBlocks,params.blockSize,calls);
-
-        double scale_by = 1.0f/((double)(params.ng*params.ng*params.ng));
-        int scale_n = params.ng*params.ng*params.ng;
 
         #ifdef VerboseInitializer
         printf("%s      Called copyGrid.\n",indent);
@@ -137,8 +137,6 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
         HACCGPM::serial::backward_fft(mem.d_y,params.ng,calls+1);
         HACCGPM::serial::backward_fft(mem.d_z,params.ng,calls+1);
 
-        double scale_by = 1.0f/((double)(params.ng*params.ng*params.ng));
-        int scale_n = params.ng*params.ng*params.ng;
         launch_scale_fft(mem.d_x,scale_by,scale_n,numBlocks,params.blockSize,calls);
         launch_scale_fft(mem.d_y,scale_by,scale_n,numBlocks,params.blockSize,calls);
         launch_scale_fft(mem.d_z,scale_by,scale_n,numBlocks,params.blockSize,calls);

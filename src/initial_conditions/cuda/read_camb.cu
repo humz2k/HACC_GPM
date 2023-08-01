@@ -4,7 +4,9 @@
 #include "../cambTools/ccamb.h"
 #endif
 
-void launch_get_pk(hostFFT_t* d_pkScale, double z, const char* fname, int ng, double rl, int calls){
+CPUTimer_t launch_get_pk(hostFFT_t* d_pkScale, double z, const char* fname, int ng, double rl, int calls){
+
+    CPUTimer_t start = CPUTimer();
 
     hostFFT_t* h_tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*ng*ng*ng);
 
@@ -14,9 +16,15 @@ void launch_get_pk(hostFFT_t* d_pkScale, double z, const char* fname, int ng, do
     
     free(h_tmp);
 
+    CPUTimer_t end = CPUTimer();
+
+    return end - start;
+
 }
 
-void launch_get_pk(hostFFT_t* d_pkScale, double z, const char* fname, int ng, double rl, int nlocal, int world_rank, int calls){
+CPUTimer_t launch_get_pk(hostFFT_t* d_pkScale, double z, const char* fname, int ng, double rl, int nlocal, int world_rank, int calls){
+
+    CPUTimer_t start = CPUTimer();
 
     hostFFT_t* h_tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*nlocal);
 
@@ -25,5 +33,9 @@ void launch_get_pk(hostFFT_t* d_pkScale, double z, const char* fname, int ng, do
     cudaCall(cudaMemcpy, d_pkScale, h_tmp, sizeof(hostFFT_t)*nlocal, cudaMemcpyHostToDevice);
 
     free(h_tmp);
+
+    CPUTimer_t end = CPUTimer();
+
+    return end - start;
 
 }

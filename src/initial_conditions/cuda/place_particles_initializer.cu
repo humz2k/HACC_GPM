@@ -136,25 +136,14 @@ __global__ void placeParticles(float4* __restrict d_pos, float4* __restrict d_ve
     d_vel[idx] = my_vel;
 }
 
-void launch_place_particles(float4* d_pos, float4* d_vel, float4* d_grad, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
+template<class T>
+CPUTimer_t launch_place_particles(T* d_pos, T* d_vel, float4* d_grad, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_grad,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
+    return InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_grad,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
 }
 
-void launch_place_particles(float4* d_pos, float4* d_vel, float3* d_grad, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_grad,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
-}
-
-void launch_place_particles(float3* d_pos, float3* d_vel, float4* d_grad, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_grad,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
-}
-
-void launch_place_particles(float3* d_pos, float3* d_vel, float3* d_grad, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_grad,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
-}
+template CPUTimer_t launch_place_particles<float4>(float4*,float4*,float4*,double,double,double,double,double,double,int,int,int,int);
+template CPUTimer_t launch_place_particles<float3>(float3*,float3*,float4*,double,double,double,double,double,double,int,int,int,int);
 
 template<class T1, class T2>
 CPUTimer_t launch_place_particles(T1* d_pos, T1* d_vel, T2* d_x, T2* d_y, T2* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
@@ -168,27 +157,7 @@ template CPUTimer_t launch_place_particles<float4,floatFFT_t>(float4*,float4*,fl
 template CPUTimer_t launch_place_particles<float3,floatFFT_t>(float3*,float3*,floatFFT_t*,floatFFT_t*,floatFFT_t*,double,double,double,double,double,double,int,int,int,int);
 
 
-/*void launch_place_particles(float4* d_pos, float4* d_vel, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
+CPUTimer_t launch_place_particles(float4* d_pos, float4* d_vel, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int nlocal, int3 local_grid_size, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
-}
-
-void launch_place_particles(float4* d_pos, float4* d_vel, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
-}
-
-void launch_place_particles(float3* d_pos, float3* d_vel, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
-}
-
-void launch_place_particles(float3* d_pos, float3* d_vel, floatFFT_t* d_x, floatFFT_t* d_y, floatFFT_t* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng);
-}*/
-
-void launch_place_particles(float4* d_pos, float4* d_vel, deviceFFT_t* d_x, deviceFFT_t* d_y, deviceFFT_t* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int nlocal, int3 local_grid_size, int world_rank, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernelParallel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng,local_grid_size.x,local_grid_size.y,local_grid_size.z, nlocal, world_rank);
+    return InvokeGPUKernelParallel(placeParticles,numBlocks,blockSize,d_pos,d_vel,d_x,d_y,d_z,delta,dotDelta,rl,1/(1+z_ini),deltaT,fscal,ng,local_grid_size.x,local_grid_size.y,local_grid_size.z, nlocal, world_rank);
 }

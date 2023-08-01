@@ -49,8 +49,10 @@ __global__ void interpolatePowerSpectrum(hostFFT_t* out, double* in, int nbins, 
 
 }
 
-void launch_interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int ng, double rl, int numBlocks, int blockSize, int calls){
+CPUTimer_t launch_interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int ng, double rl, int numBlocks, int blockSize, int calls){
     getIndent(calls);
+
+    CPUTimer_t start = CPUTimer();
 
     double* h_ipk;
     int ipk_bins;
@@ -73,10 +75,17 @@ void launch_interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int
 
     free(h_ipk);
     cudaCall(cudaFree,d_ipk);
+
+    CPUTimer_t end = CPUTimer();
+
+    return end - start;
 }
 
-void launch_interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int ng, double rl, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int numBlocks, int blockSize, int calls){
+CPUTimer_t launch_interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int ng, double rl, int nlocal, int3 local_grid_size, int3 local_coords, int3 dims, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);
+
+    CPUTimer_t start = CPUTimer();
+
     double* h_ipk;
     int ipk_bins;
     double ipk_delta;
@@ -98,4 +107,8 @@ void launch_interpolate_pk(HACCGPM::CosmoClass& cosmo, hostFFT_t* d_pkScale, int
 
     free(h_ipk);
     cudaCall(cudaFree,d_ipk);
+
+    CPUTimer_t end = CPUTimer();
+
+    return end - start;
 }

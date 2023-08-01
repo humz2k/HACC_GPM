@@ -12,23 +12,22 @@ __global__ void ScaleAmplitudes(T* __restrict grid, const hostFFT_t* __restrict 
     grid[idx] = current;
 }
 
-void launch_scale_amplitudes(deviceFFT_t* grid, hostFFT_t* scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
+template<class T>
+CPUTimer_t launch_scale_amplitudes(T* grid, hostFFT_t* scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    InvokeGPUKernelParallel(ScaleAmplitudes,numBlocks,blockSize,grid,scale,nlocal);
+    return InvokeGPUKernelParallel(ScaleAmplitudes,numBlocks,blockSize,grid,scale,nlocal);
 }
 
-void launch_scale_amplitudes(floatFFT_t* grid, hostFFT_t* scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernelParallel(ScaleAmplitudes,numBlocks,blockSize,grid,scale,nlocal);
+template CPUTimer_t launch_scale_amplitudes<deviceFFT_t>(deviceFFT_t*,hostFFT_t*,int,int,int,int,int);
+template CPUTimer_t launch_scale_amplitudes<floatFFT_t>(floatFFT_t*,hostFFT_t*,int,int,int,int,int);
+
+template<class T>
+CPUTimer_t launch_scale_amplitudes(T* grid, hostFFT_t* scale, int nlocal, int numBlocks, int blockSize, int calls){
+    return launch_scale_amplitudes(grid,scale,nlocal,0,numBlocks,blockSize,calls);
 }
 
-void launch_scale_amplitudes(deviceFFT_t* grid, hostFFT_t* scale, int nlocal, int numBlocks, int blockSize, int calls){
-    launch_scale_amplitudes(grid,scale,nlocal,0,numBlocks,blockSize,calls);
-}
-
-void launch_scale_amplitudes(floatFFT_t* grid, hostFFT_t* scale, int nlocal, int numBlocks, int blockSize, int calls){
-    launch_scale_amplitudes(grid,scale,nlocal,0,numBlocks,blockSize,calls);
-}
+template CPUTimer_t launch_scale_amplitudes<deviceFFT_t>(deviceFFT_t*,hostFFT_t*,int,int,int,int);
+template CPUTimer_t launch_scale_amplitudes<floatFFT_t>(floatFFT_t*,hostFFT_t*,int,int,int,int);
 
 template<class T>
 __global__ void ScaleFFT(T* __restrict data, double scale, int nlocal){
@@ -45,20 +44,19 @@ __global__ void ScaleFFT(T* __restrict data, double scale, int nlocal){
 
 }
 
-void launch_scale_fft(deviceFFT_t* data, double scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
+template<class T>
+CPUTimer_t launch_scale_fft(T* data, double scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    InvokeGPUKernelParallel(ScaleFFT,numBlocks,blockSize,data,scale,nlocal);
+    return InvokeGPUKernelParallel(ScaleFFT,numBlocks,blockSize,data,scale,nlocal);
 }
 
-void launch_scale_fft(floatFFT_t* data, double scale, int nlocal, int world_rank, int numBlocks, int blockSize, int calls){
-    getIndent(calls);
-    InvokeGPUKernelParallel(ScaleFFT,numBlocks,blockSize,data,scale,nlocal);
+template CPUTimer_t launch_scale_fft<deviceFFT_t>(deviceFFT_t*,double,int,int,int,int,int);
+template CPUTimer_t launch_scale_fft<floatFFT_t>(floatFFT_t*,double,int,int,int,int,int);
+
+template<class T>
+CPUTimer_t launch_scale_fft(T* data, double scale, int nlocal, int numBlocks, int blockSize, int calls){
+    return launch_scale_fft(data,scale,nlocal,0,numBlocks,blockSize,calls);
 }
 
-void launch_scale_fft(deviceFFT_t* data, double scale, int nlocal, int numBlocks, int blockSize, int calls){
-    launch_scale_fft(data,scale,nlocal,0,numBlocks,blockSize,calls);
-}
-
-void launch_scale_fft(floatFFT_t* data, double scale, int nlocal, int numBlocks, int blockSize, int calls){
-    launch_scale_fft(data,scale,nlocal,0,numBlocks,blockSize,calls);
-}
+template CPUTimer_t launch_scale_fft<deviceFFT_t>(deviceFFT_t*,double,int,int,int,int);
+template CPUTimer_t launch_scale_fft<floatFFT_t>(floatFFT_t*,double,int,int,int,int);

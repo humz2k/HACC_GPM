@@ -159,23 +159,14 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, int ng, int blockS
 
     launch_grid2float4(d_grad,d_rho,numBlocks,blockSize,calls);
 
-    launch_kspace_solve_gradient(d_rho,d_grad,0,ng,numBlocks,blockSize,calls);
+    for (int i = 0; i < 3; i++){
+        launch_kspace_solve_gradient(d_rho,d_grad,i,ng,numBlocks,blockSize,calls);
 
-    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
+        HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
 
-    launch_get_real_grid(d_rho,d_grad,0,numBlocks,blockSize,calls);
+        launch_get_real_grid(d_rho,d_grad,i,numBlocks,blockSize,calls);
+    }
 
-    launch_kspace_solve_gradient(d_rho,d_grad,1,ng,numBlocks,blockSize,calls);
-
-    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
-
-    launch_get_real_grid(d_rho,d_grad,1,numBlocks,blockSize,calls);
-
-    launch_kspace_solve_gradient(d_rho,d_grad,2,ng,numBlocks,blockSize,calls);
-
-    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
-
-    launch_get_real_grid(d_rho,d_grad,2,numBlocks,blockSize,calls);
 }
 
 template void HACCGPM::serial::SolveGradient<deviceFFT_t>(float4*,deviceFFT_t*,int,int,int);
@@ -198,24 +189,14 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T1* d_rho, T2* d_greens, int
     #endif
 
     launch_grid2float4(d_grad,d_rho,numBlocks,blockSize,calls);
-    
-    launch_kspace_solve_gradient(d_rho,d_grad,d_greens,0,ng,numBlocks,blockSize,calls);
 
-    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
+    for (int i = 0; i < 3; i++){
+        launch_kspace_solve_gradient(d_rho,d_grad,d_greens,i,ng,numBlocks,blockSize,calls);
 
-    launch_get_real_grid(d_rho,d_grad,0,numBlocks,blockSize,calls);
+        HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
 
-    launch_kspace_solve_gradient(d_rho,d_grad,d_greens,1,ng,numBlocks,blockSize,calls);
-
-    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
-
-    launch_get_real_grid(d_rho,d_grad,1,numBlocks,blockSize,calls);
-
-    launch_kspace_solve_gradient(d_rho,d_grad,d_greens,2,ng,numBlocks,blockSize,calls);
-
-    HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
-
-    launch_get_real_grid(d_rho,d_grad,2,numBlocks,blockSize,calls);
+        launch_get_real_grid(d_rho,d_grad,i,numBlocks,blockSize,calls);
+    }
 }
 
 template void HACCGPM::serial::SolveGradient<deviceFFT_t,hostFFT_t>(float4*,deviceFFT_t*,hostFFT_t*,int,int,int);

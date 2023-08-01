@@ -454,8 +454,6 @@ namespace HACCGPM{
 
         void writeOutput(char* fname, float3* d_pos, float3* d_vel, int ng, int calls = 0);
 
-        //void GetPowerSpectrum(float4* d_pos, deviceFFT_t* d_grid, int ng, double rl, int nbins, const char* fname, int nfolds, int blockSize, int calls = 0);
-
         void GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, const char* fname, int calls = 0);
 
         void GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls = 0);

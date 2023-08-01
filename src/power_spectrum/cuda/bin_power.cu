@@ -16,76 +16,39 @@ __forceinline__ __device__ void calc_power_bins(T1* __restrict d_binVals, int* _
     atomicAdd(&d_binCounts[indx],1);
 }
 
-__global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng){
+template<class T1, class T2>
+__global__ void BinPower(const T1* __restrict d_grid, T2* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
 
-    deviceFFT_t this_val = __ldg(&d_grid[idx]);
+    T1 this_val = __ldg(&d_grid[idx]);
 
     calc_power_bins(d_binVals,d_binCounts,this_val.x,idx,idx3d,minK,binDelta,rl,ng);
 
 }
 
-__global__ void BinPower(const floatFFT_t* __restrict d_grid, double* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng){
+template __global__ void BinPower<deviceFFT_t,double>(const deviceFFT_t* __restrict,double* __restrict,int* __restrict, double, double, double, int);
+template __global__ void BinPower<deviceFFT_t,float>(const deviceFFT_t* __restrict,float* __restrict,int* __restrict, double, double, double, int);
+template __global__ void BinPower<floatFFT_t,double>(const floatFFT_t* __restrict,double* __restrict,int* __restrict, double, double, double, int);
+template __global__ void BinPower<floatFFT_t,float>(const floatFFT_t* __restrict,float* __restrict,int* __restrict, double, double, double, int);
 
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-
-    floatFFT_t this_val = __ldg(&d_grid[idx]);
-
-    calc_power_bins(d_binVals,d_binCounts,this_val.x,idx,idx3d,minK,binDelta,rl,ng);
-
-}
-
-__global__ void BinPower(const deviceFFT_t* __restrict d_grid, double* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims){
+template<class T1, class T2>
+__global__ void BinPower(const T1* __restrict d_grid, T2* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims){
 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
     if (idx >= nlocal)return;
 
     int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
 
-    deviceFFT_t this_val = __ldg(&d_grid[idx]);
+    T1 this_val = __ldg(&d_grid[idx]);
 
     calc_power_bins(d_binVals,d_binCounts,this_val.x,idx,idx3d,minK,binDelta,rl,ng);
 
 }
 
-__global__ void BinPower(const deviceFFT_t* __restrict d_grid, float* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng){
-
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-
-    deviceFFT_t this_val = __ldg(&d_grid[idx]);
-
-    calc_power_bins(d_binVals,d_binCounts,this_val.x,idx,idx3d,minK,binDelta,rl,ng);
-
-}
-
-__global__ void BinPower(const floatFFT_t* __restrict d_grid, float* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng){
-
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-
-    int3 idx3d = HACCGPM::serial::get_index(idx,ng);
-
-    floatFFT_t this_val = __ldg(&d_grid[idx]);
-
-    calc_power_bins(d_binVals,d_binCounts,this_val.x,idx,idx3d,minK,binDelta,rl,ng);
-
-}
-
-__global__ void BinPower(const deviceFFT_t* __restrict d_grid, float* __restrict d_binVals, int* __restrict d_binCounts, double minK, double binDelta, double rl, int ng, int nlocal, int world_rank, int3 local_grid_size, int3 local_coords, int3 dims){
-
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    if (idx >= nlocal)return;
-
-    int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
-
-    deviceFFT_t this_val = __ldg(&d_grid[idx]);
-
-    calc_power_bins(d_binVals,d_binCounts,this_val.x,idx,idx3d,minK,binDelta,rl,ng);
-
-}
+template __global__ void BinPower<deviceFFT_t,double>(const deviceFFT_t* __restrict,double* __restrict,int* __restrict, double, double, double, int,int,int,int3,int3,int3);
+template __global__ void BinPower<deviceFFT_t,float>(const deviceFFT_t* __restrict,float* __restrict,int* __restrict, double, double, double, int,int,int,int3,int3,int3);
+template __global__ void BinPower<floatFFT_t,double>(const floatFFT_t* __restrict,double* __restrict,int* __restrict, double, double, double, int,int,int,int3,int3,int3);
+template __global__ void BinPower<floatFFT_t,float>(const floatFFT_t* __restrict,float* __restrict,int* __restrict, double, double, double, int,int,int,int3,int3,int3);

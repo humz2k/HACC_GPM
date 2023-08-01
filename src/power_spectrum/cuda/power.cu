@@ -215,7 +215,7 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
 
     //hostFFT_t* tmp = (hostFFT_t*)malloc(sizeof(hostFFT_t)*ng*ng*ng);
 
-    POWER_KERNEL_TIME += InvokeGPUKernel(cpy,numBlocks,params.blockSize,d_temp_pos,mem.d_pos);
+    POWER_KERNEL_TIME += InvokeGPUKernel(cpy,numBlocks,params.blockSize,d_temp_pos,mem.d_pos,params.ng*params.ng*params.ng);
 
     double new_rl = (params.rl/(pow(2,params.pkFolds)));
 

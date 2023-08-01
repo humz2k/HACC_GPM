@@ -450,9 +450,8 @@ namespace HACCGPM{
 
         void writeOutput(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, char* fname, int calls = 0);
 
-        void writeOutput(char* fname, float4* d_pos, float4* d_vel, int ng, int calls = 0);
-
-        void writeOutput(char* fname, float3* d_pos, float3* d_vel, int ng, int calls = 0);
+        template<class T>
+        void writeOutput(char* fname, T* d_pos, T* d_vel, int ng, int calls = 0);
 
         void GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, const char* fname, int calls = 0);
 

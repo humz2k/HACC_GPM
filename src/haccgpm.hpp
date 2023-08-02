@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <cstring>
+#include "vector_operators.hpp"
 
 #ifndef NOPYTHON
 #include "pycosmotools.hpp"
@@ -107,10 +108,10 @@ class half4{
 #define HostMalloc(ptr,sz) cudaCall(cudaMallocHost,ptr,sz)
 #define HostFree(ptr) cudaCall(cudaFreeHost,ptr)
 
-__forceinline__ __host__ __device__ float3 operator*(int3 a, float s)
-{
-    return make_float3(a.x * s, a.y * s, a.z * s);
-}
+//__forceinline__ __host__ __device__ float3 operator*(int3 a, float s)
+//{
+//    return make_float3(a.x * s, a.y * s, a.z * s);
+//}
 
 namespace HACCGPM{
 

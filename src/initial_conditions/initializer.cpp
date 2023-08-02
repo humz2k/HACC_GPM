@@ -157,7 +157,7 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
     #ifdef VerboseInitializer
     printf("%s   Calling placeParticles...\n",indent);
     #endif
-
+    numBlocks = (params.np*params.np*params.np + (params.blockSize - 1))/params.blockSize;
     launch_place_particles(mem.d_pos,mem.d_vel,mem.d_grad,delta,dotDelta,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.ng,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseInitializer

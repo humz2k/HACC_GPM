@@ -33,8 +33,8 @@ CPUTimer_t launch_transform_density_field(deviceFFT_t* d_grid, deviceFFT_t* d_x,
 template<class T>
 CPUTimer_t launch_transform_density_field(float2* d_grid, T* d_out, int dim, double delta, double rl, double z_ini, int ng, int numBlocks, int blockSize, int calls);
 
-template<class T1, class T2>
-CPUTimer_t launch_place_particles(T1* d_pos, T1* d_vel, T2* d_x, T2* d_y, T2* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls);
+//template<class T1, class T2>
+//CPUTimer_t launch_place_particles(T1* d_pos, T1* d_vel, T2* d_x, T2* d_y, T2* d_z, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls);
 
 template<class T>
 CPUTimer_t launch_place_particles(T* d_pos, T* d_vel, float4* d_grad, double delta, double dotDelta, double rl, double z_ini, double deltaT, double fscal, int ng, int numBlocks, int blockSize, int calls);

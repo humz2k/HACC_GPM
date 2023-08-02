@@ -34,6 +34,7 @@ void save_params(HACCGPM::Params params){
     fprintf(fp,"RL %g\n",params.rl);
     fprintf(fp,"SEED %d\n",params.seed);
     fprintf(fp,"BLOCK_SIZE %d\n",params.blockSize);
+    fprintf(fp,"PK_FOLDS %d\n",params.pkFolds);
     fclose(fp);
 }
 
@@ -65,6 +66,7 @@ void print_params(HACCGPM::Params params){
     printf("   RL %g\n",params.rl);
     printf("   SEED %d\n",params.seed);
     printf("   BLOCK_SIZE %d\n",params.blockSize);
+    printf("   PK_FOLDS %d\n",params.pkFolds);
 }
 
 HACCGPM::Params HACCGPM::read_params(const char* fname){

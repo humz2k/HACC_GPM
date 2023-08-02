@@ -3,6 +3,40 @@
 #include "haccgpm.hpp"
 #include <cassert>
 
+void save_params(HACCGPM::Params params){
+    char fname2[400];
+    sprintf(fname2, "%s.params", params.prefix);
+    FILE *fp;
+    fp = fopen(fname2, "w+");
+    fprintf(fp,"OMEGA_CDM %g\n",params.m_omega_cdm);
+    fprintf(fp,"DEUT %g\n",params.m_deut);
+    fprintf(fp,"OMEGA_NU %g\n",params.m_omega_nu);
+    fprintf(fp,"HUBBLE %g\n",params.m_hubble);
+    fprintf(fp,"SS8 %g\n",params.m_ss8);
+    fprintf(fp,"NS %g\n",params.m_ns);
+    fprintf(fp,"W_DE %g\n",params.m_w_de);
+    fprintf(fp,"WA_DE %g\n",params.m_wa_de);
+    fprintf(fp,"T_CMB %g\n",params.m_Tcmb);
+    fprintf(fp,"N_EFF_MASSLESS %g\n",params.m_neff_massless);
+    fprintf(fp,"N_EFF_MASSIVE %g\n",params.m_neff_massive);
+    fprintf(fp,"OMEGA_BARYON %g\n",params.m_omega_baryon);
+    fprintf(fp,"OMEGA_CB %g\n",params.m_omega_cb);
+    fprintf(fp,"OMEGA_MATTER %g\n",params.m_omega_matter);
+    fprintf(fp,"OMEGA_RADIATION %g\n",params.m_omega_radiation);
+    fprintf(fp,"M_F_NU_MASSLESS %g\n",params.m_f_nu_massless);
+    fprintf(fp,"M_F_NU_MASSIVE %g\n",params.m_f_nu_massive);
+    fprintf(fp,"OUTPUT_BASE_NAME %s\n",params.prefix);
+    fprintf(fp,"Z_IN %g\n",params.z_ini);
+    fprintf(fp,"Z_FIN %g\n",params.z_fin);
+    fprintf(fp,"N_STEPS %d\n",params.nsteps);
+    fprintf(fp,"NG %d\n",params.ng);
+    fprintf(fp,"NP %d\n",params.np);
+    fprintf(fp,"RL %g\n",params.rl);
+    fprintf(fp,"SEED %d\n",params.seed);
+    fprintf(fp,"BLOCK_SIZE %d\n",params.blockSize);
+    fclose(fp);
+}
+
 void print_params(HACCGPM::Params params){
     printf("Params:\n");
     printf("   OMEGA_CDM %g\n",params.m_omega_cdm);
@@ -209,6 +243,7 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
     out.m_f_nu_massive = out.m_neff_massive*7.0/8.0*pow(4.0/11.0,4.0/3.0);
 
     print_params(out);
+    save_params(out);
 
     return out;
 }

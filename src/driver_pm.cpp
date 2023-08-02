@@ -14,6 +14,11 @@
 #define GIT_HASH_STR TOSTRING(GIT_HASH)
 #endif
 
+#ifndef GIT_MODIFIED
+#define GIT_MODIFIED_STR "none"
+#else
+#define GIT_MODIFIED_STR TOSTRING(GIT_MODIFIED)
+#endif
 
 void minutes_remaining(CPUTimer_t timestepper_start, int step, int lastStep, int world_rank = 0){
     CPUTimer_t timestepper_im = CPUTimer();
@@ -271,12 +276,23 @@ int main(int argc, char** argv){
             params_file = argv[i];
         }
     }
-
-    //printf("Params: %s\n N_PROC %s\n",params_file,n_proc_flag);
-
-    //char static_array[256];
-    //setvbuf(stdout, static_array, _IOFBF, sizeof(static_array));
-    printf("git hash: %s\n",GIT_HASH_STR);
+    printf("GIT:\n");
+    printf("   hash: %s\n",GIT_HASH_STR);
+    printf("   status:\n");
+    char git_status[] = GIT_MODIFIED_STR;
+    for (int i = 0; i < strlen(git_status); i++){
+        if ((git_status[i] == 'M') && (git_status[i+1] == ' ')){
+            if (i > 1){
+                if (git_status[i-1] == ' '){
+                    printf("\n      ");
+                }
+            } else{
+                printf("      ");
+            }
+        }
+        printf("%c",git_status[i]);
+    }
+    printf("\n");
 
     if (world_size == 1){
         if ((argc == 3) && (n_proc_flag != NULL)){
@@ -293,7 +309,6 @@ int main(int argc, char** argv){
                     args[2] = nranks;
                     args[3] = argv[0];
                     args[4] = params_file;
-                    //printf("%s %s %s %s %s\n",args[0],args[1],args[2],args[3],args[4]);
                     execvp("mpirun",args);
                     return 0;
                 }
@@ -304,7 +319,6 @@ int main(int argc, char** argv){
     } else{
         if (world_rank == 0){
             printf("\n=========\nRUNNING IN PARLLEL MODE\n=========\n");
-            //printf("   n = %d\n",world_size);
         }
         out = parallel(argv[1]);
     }

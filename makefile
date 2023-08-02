@@ -3,8 +3,9 @@ PY_LD_FLAGS := $(shell python3-config --ldflags)
 PY_NP_FLAGS := $(shell python3 -c "import numpy as np;print(np.get_include())")
 
 GIT_HASH := $(shell git rev-parse HEAD)
+GIT_MODIFIED := $(shell git status --porcelain)
 
-GIT_FLAGS := -DGIT_HASH=$(GIT_HASH)
+GIT_FLAGS := -DGIT_HASH=$(GIT_HASH) -DGIT_MODIFIED="$(GIT_MODIFIED)"
 
 SWFFT_DIR := swfft-all-to-all
 PYCOSMO_DIR := pycosmotools

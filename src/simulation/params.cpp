@@ -3,6 +3,36 @@
 #include "haccgpm.hpp"
 #include <cassert>
 
+void print_params(HACCGPM::Params params){
+    printf("Params:\n");
+    printf("   OMEGA_CDM %g\n",params.m_omega_cdm);
+    printf("   DEUT %g\n",params.m_deut);
+    printf("   OMEGA_NU %g\n",params.m_omega_nu);
+    printf("   HUBBLE %g\n",params.m_hubble);
+    printf("   SS8 %g\n",params.m_ss8);
+    printf("   NS %g\n",params.m_ns);
+    printf("   W_DE %g\n",params.m_w_de);
+    printf("   WA_DE %g\n",params.m_wa_de);
+    printf("   T_CMB %g\n",params.m_Tcmb);
+    printf("   N_EFF_MASSLESS %g\n",params.m_neff_massless);
+    printf("   N_EFF_MASSIVE %g\n",params.m_neff_massive);
+    printf("   OMEGA_BARYON %g\n",params.m_omega_baryon);
+    printf("   OMEGA_CB %g\n",params.m_omega_cb);
+    printf("   OMEGA_MATTER %g\n",params.m_omega_matter);
+    printf("   OMEGA_RADIATION %g\n",params.m_omega_radiation);
+    printf("   M_F_NU_MASSLESS %g\n",params.m_f_nu_massless);
+    printf("   M_F_NU_MASSIVE %g\n",params.m_f_nu_massive);
+    printf("   OUTPUT_BASE_NAME %s\n",params.prefix);
+    printf("   Z_IN %g\n",params.z_ini);
+    printf("   Z_FIN %g\n",params.z_fin);
+    printf("   N_STEPS %d\n",params.nsteps);
+    printf("   NG %d\n",params.ng);
+    printf("   NP %d\n",params.np);
+    printf("   RL %g\n",params.rl);
+    printf("   SEED %d\n",params.seed);
+    printf("   BLOCK_SIZE %d\n",params.blockSize);
+}
+
 HACCGPM::Params HACCGPM::read_params(const char* fname){
     FILE *fp;
     fp = fopen(fname, "r");
@@ -178,33 +208,7 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
     out.m_f_nu_massless = out.m_neff_massless*7.0/8.0*pow(4.0/11.0,4.0/3.0);
     out.m_f_nu_massive = out.m_neff_massive*7.0/8.0*pow(4.0/11.0,4.0/3.0);
 
-    return out;
-}
+    print_params(out);
 
-void print_params(HACCGPM::Params params){
-    printf("OMEGA_CDM %g\n",params.m_omega_cdm);
-    printf("DEUT %g\n",params.m_deut);
-    printf("OMEGA_NU %g\n",params.m_omega_nu);
-    printf("HUBBLE %g\n",params.m_hubble);
-    printf("SS8 %g\n",params.m_ss8);
-    printf("NS %g\n",params.m_ns);
-    printf("W_DE %g\n",params.m_w_de);
-    printf("WA_DE %g\n",params.m_wa_de);
-    printf("T_CMB %g\n",params.m_Tcmb);
-    printf("N_EFF_MASSLESS %g\n",params.m_neff_massless);
-    printf("N_EFF_MASSIVE %g\n",params.m_neff_massive);
-    printf("OMEGA_BARYON %g\n",params.m_omega_baryon);
-    printf("OMEGA_CB %g\n",params.m_omega_cb);
-    printf("OMEGA_MATTER %g\n",params.m_omega_matter);
-    printf("OMEGA_RADIATION %g\n",params.m_omega_radiation);
-    printf("M_F_NU_MASSLESS %g\n",params.m_f_nu_massless);
-    printf("M_F_NU_MASSIVE %g\n",params.m_f_nu_massive);
-    printf("OUTPUT_BASE_NAME %s\n",params.prefix);
-    printf("Z_IN %g\n",params.z_ini);
-    printf("Z_FIN %g\n",params.z_fin);
-    printf("N_STEPS %d\n",params.nsteps);
-    printf("NG %d\n",params.ng);
-    printf("RL %g\n",params.rl);
-    printf("SEED %d\n",params.seed);
-    printf("BLOCK_SIZE %d\n",params.blockSize);
+    return out;
 }

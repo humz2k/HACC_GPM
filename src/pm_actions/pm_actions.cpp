@@ -189,14 +189,15 @@ void HACCGPM::parallel::printPATimes(int world_rank){
 template<class T1, class T2>
 void HACCGPM::serial::CIC(T1* d_grid, float* d_temp, T2* d_pos, int ng, int np, int blockSize, int calls){
     CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng + (blockSize - 1))/blockSize;
+    int numBlocks = (np*np*np + (blockSize - 1))/blockSize;
     getIndent(calls);
     #ifdef VerboseUpdate
     printf("%sCIC (complex,float) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
+    float mass = ((float)(ng*ng*ng))/((float)(np*np*np));
     //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
     //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
-    CIC_KERNEL_TIME += launch_cic(d_temp,d_pos,ng,np,1.0f,numBlocks,blockSize,calls);
+    CIC_KERNEL_TIME += launch_cic(d_temp,d_pos,ng,np,mass,numBlocks,blockSize,calls);
     //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
     CIC_KERNEL_TIME += launch_f2c(d_grid,d_temp,ng,numBlocks,blockSize,calls);
     CPUTimer_t end = CPUTimer();
@@ -218,14 +219,15 @@ template void HACCGPM::serial::CIC<floatFFT_t,float3>(floatFFT_t*,float*,float3*
 template<class T1, class T2>
 void HACCGPM::serial::CIC(T1* d_grid, T2* d_pos, int ng, int np, int blockSize, int calls){
     CPUTimer_t start = CPUTimer();
-    int numBlocks = (ng*ng*ng + (blockSize - 1))/blockSize;
+    int numBlocks = (np*np*np + (blockSize - 1))/blockSize;
     getIndent(calls);
     #ifdef VerboseUpdate
     printf("%sCIC (complex) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
+    float mass = ((float)(ng*ng*ng))/((float)(np*np*np));
     //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
     //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
-    CIC_KERNEL_TIME += launch_cic(d_grid,d_pos,ng,np,1.0f,numBlocks,blockSize,calls);
+    CIC_KERNEL_TIME += launch_cic(d_grid,d_pos,ng,np,mass,numBlocks,blockSize,calls);
     //CIC_KERNEL_TIME += InvokeGPUKernel(float2complex,numBlocks,blockSize,d_grid,d_temp,ng*ng*ng);
     CPUTimer_t end = CPUTimer();
     CPUTimer_t t = end-start;

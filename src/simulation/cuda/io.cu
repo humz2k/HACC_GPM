@@ -6,11 +6,11 @@ CPUTimer_t OUTPUT_TIME = 0;
 int OUTPUT_CALLS = 0;
 
 void HACCGPM::serial::writeOutput(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, char* fname, int calls){
-    HACCGPM::serial::writeOutput(fname,mem.d_pos,mem.d_vel,params.ng,calls);
+    HACCGPM::serial::writeOutput(fname,mem.d_pos,mem.d_vel,params.ng,params.np,calls);
 }
 
 template<class T>
-void HACCGPM::serial::writeOutput(char* fname, T* d_pos, T* d_vel, int ng, int calls){
+void HACCGPM::serial::writeOutput(char* fname, T* d_pos, T* d_vel, int ng, int np, int calls){
 
     getIndent(calls);
 
@@ -18,12 +18,12 @@ void HACCGPM::serial::writeOutput(char* fname, T* d_pos, T* d_vel, int ng, int c
 
     CPUTimer_t start = CPUTimer();
 
-    int n_particles = ng*ng*ng;
+    int n_particles = np*np*np;
     T* h_pos = (T*)malloc(sizeof(T)*n_particles);
     T* h_vel = (T*)malloc(sizeof(T)*n_particles);
 
-    cudaCall(cudaMemcpy, h_pos, d_pos, sizeof(T)*ng*ng*ng, cudaMemcpyDeviceToHost);
-    cudaCall(cudaMemcpy, h_vel, d_vel, sizeof(T)*ng*ng*ng, cudaMemcpyDeviceToHost);
+    cudaCall(cudaMemcpy, h_pos, d_pos, sizeof(T)*n_particles, cudaMemcpyDeviceToHost);
+    cudaCall(cudaMemcpy, h_vel, d_vel, sizeof(T)*n_particles, cudaMemcpyDeviceToHost);
 
     FILE *fp;
     fp = fopen(fname, "w+");
@@ -43,8 +43,8 @@ void HACCGPM::serial::writeOutput(char* fname, T* d_pos, T* d_vel, int ng, int c
 
 }
 
-template void HACCGPM::serial::writeOutput<float4>(char*,float4*,float4*,int,int);
-template void HACCGPM::serial::writeOutput<float3>(char*,float3*,float3*,int,int);
+template void HACCGPM::serial::writeOutput<float4>(char*,float4*,float4*,int,int,int);
+template void HACCGPM::serial::writeOutput<float3>(char*,float3*,float3*,int,int,int);
 
 void HACCGPM::serial::printOutputTimes(){
     printf("   writeOutput        -> calls: %10d | total: %10llu us | cpu: %10llu us | gpu: %10d us | mean: %10.2f us\n",OUTPUT_CALLS,OUTPUT_TIME,OUTPUT_TIME,0,((float)OUTPUT_TIME)/((float)(OUTPUT_CALLS)));

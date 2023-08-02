@@ -438,10 +438,10 @@ namespace HACCGPM{
         void UpdateVelocities(T* d_vel, float4* d_grad, T* d_pos, HACCGPM::Timestepper ts, int ng, int np, int blockSize, int calls = 0);
 
         template<class T1, class T2>
-        void CIC(T1* d_grid, T2* d_pos, int ng, int np, int blockSize, int calls = 0);
+        void CIC(T1* d_grid, T2* d_pos, int ng, int np, int blockSize, int calls);
 
         template<class T1, class T2>
-        void CIC(T1* d_grid, float* d_temp, T2* d_pos, int ng, int np, int blockSize, int calls = 0);
+        void CIC(T1* d_grid, float* d_temp, T2* d_pos, int ng, int np, int blockSize, int calls);
 
         void CIC(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 
@@ -452,7 +452,7 @@ namespace HACCGPM{
         void writeOutput(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, char* fname, int calls = 0);
 
         template<class T>
-        void writeOutput(char* fname, T* d_pos, T* d_vel, int ng, int calls = 0);
+        void writeOutput(char* fname, T* d_pos, T* d_vel, int ng, int np, int calls = 0);
 
         void GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, const char* fname, int calls = 0);
 

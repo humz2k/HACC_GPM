@@ -87,7 +87,8 @@ int serial(const char* params_file){
 
     if (params.dump_init){
         sprintf(stepstr, "%s.particles.ini", params.prefix);
-        HACCGPM::serial::writeOutput(stepstr,mem.d_pos,mem.d_vel,params.ng);
+        HACCGPM::serial::writeOutput(params,mem,stepstr);
+        //HACCGPM::serial::writeOutput(stepstr,mem.d_pos,mem.d_vel,params.ng);
     }
 
     ts.advanceHalfStep();

@@ -2,6 +2,10 @@ PY_C_FLAGS := $(shell python3-config --cflags)
 PY_LD_FLAGS := $(shell python3-config --ldflags)
 PY_NP_FLAGS := $(shell python3 -c "import numpy as np;print(np.get_include())")
 
+GIT_HASH := $(shell git rev-parse HEAD)
+
+GIT_FLAGS := -DGIT_HASH=$(GIT_HASH)
+
 SWFFT_DIR := swfft-all-to-all
 PYCOSMO_DIR := pycosmotools
 
@@ -51,25 +55,25 @@ $(HACCGPM_NOPYTHON_DIR):
 
 $(HACCGPM_BUILD_DIR)/ccamb.o: cambTools/ccamb.c | $(HACCGPM_BUILD_DIR)
 	python3 cambTools/package_cambpy.py
-	gcc $< -o $@ $(CAMB_TOOLS_FLAGS)
+	gcc $< -o $@ $(CAMB_TOOLS_FLAGS) $(GIT_FLAGS)
 
 $(HACCGPM_BUILD_DIR)/%.o: **/%.cpp | $(HACCGPM_BUILD_DIR)
-	mpicxx $< $(MPI_OBJECT_FLAGS) -o $@
+	mpicxx $< $(MPI_OBJECT_FLAGS) $(GIT_FLAGS) -o $@
 
 $(HACCGPM_BUILD_DIR)/%.o: **/%.cu | $(HACCGPM_BUILD_DIR)
-	nvcc $< $(NVCC_OBJECT_FLAGS) -o $@ 
+	nvcc $< $(NVCC_OBJECT_FLAGS) $(GIT_FLAGS) -o $@ 
 
 $(HACCGPM_NOPYTHON_DIR)/%.o: **/%.cpp | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
-	mpicxx $< -DNOPYTHON $(MPI_OBJECT_FLAGS) -o $@
+	mpicxx $< -DNOPYTHON $(MPI_OBJECT_FLAGS) $(GIT_FLAGS) -o $@
 
 $(HACCGPM_NOPYTHON_DIR)/%.o: **/%.cu | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
-	nvcc $< -DNOPYTHON $(NVCC_OBJECT_FLAGS) -o $@ 
+	nvcc $< -DNOPYTHON $(NVCC_OBJECT_FLAGS) $(GIT_FLAGS) -o $@ 
 
 $(HACCGPM_NOPYTHON_DIR)/%.o: */*/%.cpp | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
-	mpicxx $< -DNOPYTHON $(MPI_OBJECT_FLAGS) -o $@
+	mpicxx $< -DNOPYTHON $(MPI_OBJECT_FLAGS) $(GIT_FLAGS) -o $@
 
 $(HACCGPM_NOPYTHON_DIR)/%.o: */*/%.cu | $(HACCGPM_BUILD_DIR) $(HACCGPM_NOPYTHON_DIR)
-	nvcc $< -DNOPYTHON $(NVCC_OBJECT_FLAGS) -o $@
+	nvcc $< -DNOPYTHON $(NVCC_OBJECT_FLAGS) $(GIT_FLAGS) -o $@
 
 .PHONY: clean
 clean:

@@ -8,6 +8,12 @@
 #include "../swfft-all-to-all/include/swfft.hpp"
 #include "../cambTools/ccamb.h"
 
+#ifndef GIT_HASH
+#define GIT_HASH_STR "none"
+#else
+#define GIT_HASH_STR TOSTRING(GIT_HASH)
+#endif
+
 
 void minutes_remaining(CPUTimer_t timestepper_start, int step, int lastStep, int world_rank = 0){
     CPUTimer_t timestepper_im = CPUTimer();
@@ -270,6 +276,7 @@ int main(int argc, char** argv){
 
     //char static_array[256];
     //setvbuf(stdout, static_array, _IOFBF, sizeof(static_array));
+    printf("git hash: %s\n",GIT_HASH_STR);
 
     if (world_size == 1){
         if ((argc == 3) && (n_proc_flag != NULL)){

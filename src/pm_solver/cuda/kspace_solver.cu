@@ -13,7 +13,7 @@ __device__ __forceinline__ double3 cos(float3 kmodes){
     return out;
 }
 
-__forceinline__ __device__ double calcGreens(int3 idx3d, int ng){
+__forceinline__ __device__ double calcGreens(int3 idx3d, int ng, int np){
 
     if ((idx3d.x == 0) && (idx3d.y == 0) && (idx3d.z == 0))return 0.0;
 
@@ -23,7 +23,7 @@ __forceinline__ __device__ double calcGreens(int3 idx3d, int ng){
 
     float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
-    double coeff = 0.5 / (ng*ng*ng);
+    double coeff = 0.5 / (np*np*np);
 
     double out = coeff / (c.x + c.y + c.z - 3.0);
 
@@ -80,7 +80,7 @@ __global__ void kspace_solve_gradient(T* __restrict d_grid, const float4* __rest
 }
 
 template<class T>
-__global__ void kspace_solve_gradient(T* __restrict d_grid, const float4* __restrict d_grad, int ng, int dim){
+__global__ void kspace_solve_gradient(T* __restrict d_grid, const float4* __restrict d_grad, int ng, int np, int dim){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (idx >= (ng*ng*ng))return;
@@ -90,7 +90,7 @@ __global__ void kspace_solve_gradient(T* __restrict d_grid, const float4* __rest
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
     float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
-    double greens = calcGreens(idx3d,ng);
+    double greens = calcGreens(idx3d,ng,np);
 
     float3 c;
     c.x = -get_gradient(kmodes.x) * greens;
@@ -156,7 +156,7 @@ __global__ void kspace_solve_gradient(T* __restrict d_x, T* __restrict d_y, T* _
 }
 
 template<class T>
-__global__ void kspace_solve_gradient(T* __restrict d_x, T* __restrict d_y, T* __restrict d_z, const T* __restrict d_rho, int ng){
+__global__ void kspace_solve_gradient(T* __restrict d_x, T* __restrict d_y, T* __restrict d_z, const T* __restrict d_rho, int ng, int np){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (idx >= (ng*ng*ng))return;
@@ -166,7 +166,7 @@ __global__ void kspace_solve_gradient(T* __restrict d_x, T* __restrict d_y, T* _
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
     float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
-    double greens = calcGreens(idx3d,ng);
+    double greens = calcGreens(idx3d,ng,np);
 
     float3 c;
     c.x = -get_gradient(kmodes.x) * greens;
@@ -268,22 +268,22 @@ template CPUTimer_t launch_kspace_solve_gradient<floatFFT_t,hostFFT_t>(floatFFT_
 template CPUTimer_t launch_kspace_solve_gradient<floatFFT_t,float>(floatFFT_t*,floatFFT_t*,floatFFT_t*,floatFFT_t*,float*,int,int,int,int);
 
 template<class T>
-CPUTimer_t launch_kspace_solve_gradient(T* d_grid, float4* d_grad, int dim, int ng, int numBlocks, int blockSize, int calls){
+CPUTimer_t launch_kspace_solve_gradient(T* d_grid, float4* d_grad, int dim, int ng, int np, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    return InvokeGPUKernel(kspace_solve_gradient,numBlocks,blockSize,d_grid,d_grad,ng,dim);
+    return InvokeGPUKernel(kspace_solve_gradient,numBlocks,blockSize,d_grid,d_grad,ng,np,dim);
 }
 
-template CPUTimer_t launch_kspace_solve_gradient<deviceFFT_t>(deviceFFT_t*,float4*,int,int,int,int,int);
-template CPUTimer_t launch_kspace_solve_gradient<floatFFT_t>(floatFFT_t*,float4*,int,int,int,int,int);
+template CPUTimer_t launch_kspace_solve_gradient<deviceFFT_t>(deviceFFT_t*,float4*,int,int,int,int,int,int);
+template CPUTimer_t launch_kspace_solve_gradient<floatFFT_t>(floatFFT_t*,float4*,int,int,int,int,int,int);
 
 template<class T>
-CPUTimer_t launch_kspace_solve_gradient(T* d_x, T* d_y, T* d_z, T* d_rho, int ng, int numBlocks, int blockSize, int calls){
+CPUTimer_t launch_kspace_solve_gradient(T* d_x, T* d_y, T* d_z, T* d_rho, int ng, int np, int numBlocks, int blockSize, int calls){
     getIndent(calls);
-    return InvokeGPUKernel(kspace_solve_gradient,numBlocks,blockSize,d_x,d_y,d_z,d_rho,ng);
+    return InvokeGPUKernel(kspace_solve_gradient,numBlocks,blockSize,d_x,d_y,d_z,d_rho,ng,np);
 }
 
-template CPUTimer_t launch_kspace_solve_gradient<deviceFFT_t>(deviceFFT_t*,deviceFFT_t*,deviceFFT_t*,deviceFFT_t*,int,int,int,int);
-template CPUTimer_t launch_kspace_solve_gradient<floatFFT_t>(floatFFT_t*,floatFFT_t*,floatFFT_t*,floatFFT_t*,int,int,int,int);
+template CPUTimer_t launch_kspace_solve_gradient<deviceFFT_t>(deviceFFT_t*,deviceFFT_t*,deviceFFT_t*,deviceFFT_t*,int,int,int,int,int);
+template CPUTimer_t launch_kspace_solve_gradient<floatFFT_t>(floatFFT_t*,floatFFT_t*,floatFFT_t*,floatFFT_t*,int,int,int,int,int);
 
 template<class T1, class T2>
 CPUTimer_t launch_kspace_solve_gradient(T1* d_x, T1* d_y, T1* d_z, T1* d_rho, T2* d_greens, int ng, int nlocal, int overload, int3 local_grid_size, int3 local_coords, int world_rank, int numBlocks, int blockSize, int calls){

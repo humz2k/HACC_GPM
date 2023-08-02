@@ -90,9 +90,9 @@ void HACCGPM::serial::SolveGradient(HACCGPM::Params& params, HACCGPM::serial::Me
         #endif
     #else
         #ifdef USE_ONE_GRID
-        HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,params.ng,params.blockSize,calls);
+        HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,params.ng,params.np,params.blockSize,calls);
         #else
-        HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_x,mem.d_y,mem.d_z,params.ng,params.blockSize,calls);
+        HACCGPM::serial::SolveGradient(mem.d_grad,mem.d_grid,mem.d_x,mem.d_y,mem.d_z,params.ng,params.np,params.blockSize,calls);
         #endif
     #endif
 }
@@ -142,7 +142,7 @@ template void HACCGPM::serial::SolveGradient<floatFFT_t,hostFFT_t>(float4*,float
 template void HACCGPM::serial::SolveGradient<floatFFT_t,float>(float4*,floatFFT_t*,float*,floatFFT_t*,floatFFT_t*,floatFFT_t*,int,int,int);
 
 template<class T>
-void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, int ng, int blockSize, int calls){
+void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, int ng, int np, int blockSize, int calls){
     int numBlocks = (ng*ng*ng + (blockSize - 1))/blockSize;
 
     getIndent(calls);
@@ -160,7 +160,7 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, int ng, int blockS
     launch_grid2float4(d_grad,d_rho,ng,numBlocks,blockSize,calls);
 
     for (int i = 0; i < 3; i++){
-        launch_kspace_solve_gradient(d_rho,d_grad,i,ng,numBlocks,blockSize,calls);
+        launch_kspace_solve_gradient(d_rho,d_grad,i,ng,np,numBlocks,blockSize,calls);
 
         HACCGPM::serial::backward_fft(d_rho,ng,calls+1);
 
@@ -169,8 +169,8 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, int ng, int blockS
 
 }
 
-template void HACCGPM::serial::SolveGradient<deviceFFT_t>(float4*,deviceFFT_t*,int,int,int);
-template void HACCGPM::serial::SolveGradient<floatFFT_t>(float4*,floatFFT_t*,int,int,int);
+template void HACCGPM::serial::SolveGradient<deviceFFT_t>(float4*,deviceFFT_t*,int,int,int,int);
+template void HACCGPM::serial::SolveGradient<floatFFT_t>(float4*,floatFFT_t*,int,int,int,int);
 
 template<class T1, class T2>
 void HACCGPM::serial::SolveGradient(float4* d_grad, T1* d_rho, T2* d_greens, int ng, int blockSize, int calls){
@@ -205,7 +205,7 @@ template void HACCGPM::serial::SolveGradient<floatFFT_t,hostFFT_t>(float4*,float
 template void HACCGPM::serial::SolveGradient<floatFFT_t,float>(float4*,floatFFT_t*,float*,int,int,int);
 
 template<class T>
-void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, T* d_x, T* d_y, T* d_z, int ng, int blockSize, int calls){
+void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, T* d_x, T* d_y, T* d_z, int ng, int np, int blockSize, int calls){
     int numBlocks = (ng*ng*ng + (blockSize - 1))/blockSize;
 
     getIndent(calls);
@@ -220,7 +220,7 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, T* d_x, T* d_y, T*
     printf("%s   Calling kspace_solve_gradient...\n",indent);
     #endif
 
-    launch_kspace_solve_gradient(d_x,d_y,d_z,d_rho,ng,numBlocks,blockSize,calls);
+    launch_kspace_solve_gradient(d_x,d_y,d_z,d_rho,ng,np,numBlocks,blockSize,calls);
 
     #ifdef VerboseSolver
     printf("%s      Called kspace_solve_gradient.\n",indent);
@@ -243,5 +243,5 @@ void HACCGPM::serial::SolveGradient(float4* d_grad, T* d_rho, T* d_x, T* d_y, T*
     #endif
 }
 
-template void HACCGPM::serial::SolveGradient<deviceFFT_t>(float4*,deviceFFT_t*,deviceFFT_t*,deviceFFT_t*,deviceFFT_t*,int,int,int);
-template void HACCGPM::serial::SolveGradient<floatFFT_t>(float4*,floatFFT_t*,floatFFT_t*,floatFFT_t*,floatFFT_t*,int,int,int);
+template void HACCGPM::serial::SolveGradient<deviceFFT_t>(float4*,deviceFFT_t*,deviceFFT_t*,deviceFFT_t*,deviceFFT_t*,int,int,int,int);
+template void HACCGPM::serial::SolveGradient<floatFFT_t>(float4*,floatFFT_t*,floatFFT_t*,floatFFT_t*,floatFFT_t*,int,int,int,int);

@@ -66,10 +66,10 @@ inline __device__ float3 __ldg(const float3* i){
 
 #define USE_SINGLE_FFT
 #define USE_SINGLE_GREENS
-//#define USE_FLOAT3
-//#define USE_ONE_GRID
-#define USE_TEMP_GRID
-#define USE_GREENS_CACHE
+#define USE_FLOAT3
+#define USE_ONE_GRID
+//#define USE_TEMP_GRID
+//#define USE_GREENS_CACHE
 
 //#define USE_HALF_PRECISION
 
@@ -470,10 +470,10 @@ namespace HACCGPM{
         void SolveGradient(float4* d_grad, T1* d_rho, T2* d_greens, int ng, int blockSize, int calls = 0);
 
         template<class T>
-        void SolveGradient(float4* d_grad, T* d_rho, T* d_x, T* d_y, T* d_z, int ng, int blockSize, int calls = 0);
+        void SolveGradient(float4* d_grad, T* d_rho, T* d_x, T* d_y, T* d_z, int ng, int np, int blockSize, int calls = 0);
 
         template<class T>
-        void SolveGradient(float4* d_grad, T* d_rho, int ng, int blockSize, int calls = 0);
+        void SolveGradient(float4* d_grad, T* d_rho, int ng, int np, int blockSize, int calls = 0);
 
         void InitGreens(HACCGPM::Params& params, HACCGPM::serial::MemoryManager& mem, int calls = 0);
 

@@ -2,7 +2,7 @@
 #include "haccgpm.hpp"
 
 template<class T>
-CPUTimer_t launch_getgreens(T* d_greens, int ng, int numBlocks, int blockSize, int calls);
+CPUTimer_t launch_getgreens(T* d_greens, int ng, int np, int numBlocks, int blockSize, int calls);
 
 template<class T>
 CPUTimer_t launch_getgreens(T* d_greens, int ng, int nlocal, int3 local_grid_size_vec, int3 grid_coords_vec, int world_rank, int numBlocks, int blockSize,  int calls);
@@ -27,10 +27,10 @@ template<class T1, class T2>
 CPUTimer_t launch_kspace_solve_gradient(T1* d_grid, float4* d_grad, T2* d_greens, int dim, int ng, int numBlocks, int blockSize, int calls);
 
 template<class T>
-CPUTimer_t launch_kspace_solve_gradient(T* d_grid, float4* d_grad, int dim, int ng, int numBlocks, int blockSize, int calls);
+CPUTimer_t launch_kspace_solve_gradient(T* d_grid, float4* d_grad, int dim, int ng, int np, int numBlocks, int blockSize, int calls);
 
 template<class T>
-CPUTimer_t launch_kspace_solve_gradient(T* d_x, T* d_y, T* d_z, T* d_rho, int ng, int numBlocks, int blockSize, int calls);
+CPUTimer_t launch_kspace_solve_gradient(T* d_x, T* d_y, T* d_z, T* d_rho, int ng, int np, int numBlocks, int blockSize, int calls);
 
 template<class T>
 CPUTimer_t launch_grid2float4(float4* d_grad, T* d_grid, int ng, int numBlocks, int blockSize, int calls);

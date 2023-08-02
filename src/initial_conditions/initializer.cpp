@@ -9,7 +9,7 @@
 
 template<class T>
 void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, T* d_grid1, hostFFT_t* d_pkScale, double z, int calls){
-    int numBlocks = (params.ng*params.ng*params.ng + (params.blockSize - 1))/params.blockSize;
+    int numBlocks = (params.np*params.np*params.np + (params.blockSize - 1))/params.blockSize;
 
     getIndent(calls);
 
@@ -18,14 +18,14 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
     printf("%s   Calling generate_rng...\n",indent);
     #endif
 
-    launch_generate_rng(d_grid1,params.ng,params.seed,numBlocks,params.blockSize,calls);
+    launch_generate_rng(d_grid1,params.np,params.seed,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseInitializer
     printf("%s      Called generate_rng.\n",indent);
     printf("%s   Doing Forward FFT...\n",indent);
     #endif
 
-    HACCGPM::serial::forward_fft(d_grid1,params.ng,calls+1);
+    HACCGPM::serial::forward_fft(d_grid1,params.np,calls+1);
 
     #ifdef VerboseInitializer
     printf("%s      Done Forward FFT...\n",indent);
@@ -37,14 +37,14 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
         printf("%s   Getting Pk from ipk...\n",indent);
         #endif
 
-        launch_interpolate_pk(cosmo,d_pkScale,params.ng,params.rl,numBlocks,params.blockSize,calls);
+        launch_interpolate_pk(cosmo,d_pkScale,params.np,params.rl,numBlocks,params.blockSize,calls);
 
     #else
         #ifdef VerboseInitializer
         printf("%s   Getting Pk from Camb...\n",indent);
         #endif
 
-        launch_get_pk(d_pkScale,z,params.fname,params.ng,params.rl,calls);
+        launch_get_pk(d_pkScale,z,params.fname,params.np,params.rl,calls);
 
         #ifdef VerboseInitializer
         printf("%s      Got Pk from Camb.\n",indent);
@@ -55,7 +55,7 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
     printf("%s   Scaling Amplitudes...\n",indent);
     #endif
 
-    launch_scale_amplitudes(d_grid1,d_pkScale,params.ng*params.ng*params.ng,numBlocks,params.blockSize,calls);
+    launch_scale_amplitudes(d_grid1,d_pkScale,params.np*params.np*params.np,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseInitializer
     printf("%s      Scaled Amplitudes.\n",indent);
@@ -63,7 +63,7 @@ void GenerateFourierAmplitudes(HACCGPM::CosmoClass& cosmo, HACCGPM::Params& para
 }
 
 void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem, HACCGPM::CosmoClass& cosmo, HACCGPM::Params& params, HACCGPM::Timestepper& ts, int calls){
-    int numBlocks = (params.ng*params.ng*params.ng + (params.blockSize - 1))/params.blockSize;
+    int numBlocks = (params.np*params.np*params.np + (params.blockSize - 1))/params.blockSize;
     getIndent(calls);
 
     #ifdef VerboseInitializer
@@ -91,8 +91,8 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
     printf("%s      Called get_delta_and_dotDelta.\n",indent);
     #endif
 
-    double scale_by = 1.0f/((double)(params.ng*params.ng*params.ng));
-    int scale_n = params.ng*params.ng*params.ng;
+    double scale_by = 1.0f/((double)(params.np*params.np*params.np));
+    int scale_n = params.np*params.np*params.np;
 
     #ifdef USE_ONE_GRID
 
@@ -100,7 +100,7 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
         printf("%s   Calling copyGrid...\n",indent);
         #endif
 
-        launch_copy_grid(mem.d_grid,(float2*)mem.d_pos,params.ng,numBlocks,params.blockSize,calls);
+        launch_copy_grid(mem.d_grid,(float2*)mem.d_pos,params.np,numBlocks,params.blockSize,calls);
 
         #ifdef VerboseInitializer
         printf("%s      Called copyGrid.\n",indent);
@@ -109,10 +109,10 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
 
         for (int i = 0; i < 3; i++){
 
-            launch_transform_density_field((float2*)mem.d_pos,mem.d_grid,i,delta,params.rl,params.z_ini,params.ng,numBlocks,params.blockSize,calls);
-            HACCGPM::serial::backward_fft(mem.d_grid,params.ng,calls+1);
+            launch_transform_density_field((float2*)mem.d_pos,mem.d_grid,i,delta,params.rl,params.z_ini,params.np,numBlocks,params.blockSize,calls);
+            HACCGPM::serial::backward_fft(mem.d_grid,params.np,calls+1);
             launch_scale_fft(mem.d_grid,scale_by,scale_n,numBlocks,params.blockSize,calls);
-            launch_get_real_grid(mem.d_grid,mem.d_grad,i,params.ng,numBlocks,params.blockSize,calls);
+            launch_get_real_grid(mem.d_grid,mem.d_grad,i,params.np,numBlocks,params.blockSize,calls);
 
         }
 
@@ -126,16 +126,16 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
         printf("%s   Calling transformDensityField...\n",indent);
         #endif
 
-        launch_transform_density_field(mem.d_grid,mem.d_x,mem.d_y,mem.d_z,delta,params.rl,params.z_ini,params.ng,numBlocks,params.blockSize,calls);
+        launch_transform_density_field(mem.d_grid,mem.d_x,mem.d_y,mem.d_z,delta,params.rl,params.z_ini,params.np,numBlocks,params.blockSize,calls);
 
         #ifdef VerboseInitializer
         printf("%s      Called transformDensityField.\n",indent);
         printf("%s   Doing Backward FFTs...\n",indent);
         #endif
 
-        HACCGPM::serial::backward_fft(mem.d_x,params.ng,calls+1);
-        HACCGPM::serial::backward_fft(mem.d_y,params.ng,calls+1);
-        HACCGPM::serial::backward_fft(mem.d_z,params.ng,calls+1);
+        HACCGPM::serial::backward_fft(mem.d_x,params.np,calls+1);
+        HACCGPM::serial::backward_fft(mem.d_y,params.np,calls+1);
+        HACCGPM::serial::backward_fft(mem.d_z,params.np,calls+1);
 
         launch_scale_fft(mem.d_x,scale_by,scale_n,numBlocks,params.blockSize,calls);
         launch_scale_fft(mem.d_y,scale_by,scale_n,numBlocks,params.blockSize,calls);
@@ -146,7 +146,7 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
         printf("%s   Calling combine...\n",indent);
         #endif
 
-        launch_combine(mem.d_grad,mem.d_x,mem.d_y,mem.d_z,params.ng,numBlocks,params.blockSize,calls);
+        launch_combine(mem.d_grad,mem.d_x,mem.d_y,mem.d_z,params.np,numBlocks,params.blockSize,calls);
 
         #ifdef VerboseInitializer
         printf("%s      Called combine.\n",indent);
@@ -157,8 +157,8 @@ void HACCGPM::serial::GenerateDisplacementIC(HACCGPM::serial::MemoryManager& mem
     #ifdef VerboseInitializer
     printf("%s   Calling placeParticles...\n",indent);
     #endif
-    numBlocks = (params.np*params.np*params.np + (params.blockSize - 1))/params.blockSize;
-    launch_place_particles(mem.d_pos,mem.d_vel,mem.d_grad,delta,dotDelta,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.ng,numBlocks,params.blockSize,calls);
+    //numBlocks = (params.np*params.np*params.np + (params.blockSize - 1))/params.blockSize;
+    launch_place_particles(mem.d_pos,mem.d_vel,mem.d_grad,delta,dotDelta,params.rl,params.z_ini,ts.deltaT,ts.fscal,params.ng,params.np,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseInitializer
     printf("%s      Called placeParticles.\n",indent);

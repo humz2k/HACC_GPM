@@ -17,7 +17,7 @@ void HACCGPM::serial::InitGreens(HACCGPM::Params& params, HACCGPM::serial::Memor
     printf("%s   Calling getGreens...\n",indent);
     #endif
 
-    launch_getgreens(mem.d_greens,params.ng,numBlocks,params.blockSize,calls);
+    launch_getgreens(mem.d_greens,params.ng,params.np,numBlocks,params.blockSize,calls);
 
     #ifdef VerboseGreens
     printf("%s      Called getGreens...\n",indent);

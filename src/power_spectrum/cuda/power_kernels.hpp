@@ -1,7 +1,7 @@
 #include "haccgpm.hpp"
 
 template<class T>
-__global__ void scalePower(T* __restrict data, double ng, double rl, int nlocal);
+__global__ void scalePower(T* __restrict data, double np, double ng, double rl, int nlocal);
 
 __global__ void PkCICFilter(deviceFFT_t* __restrict grid, int ng, int nlocal, int3 local_grid_size, int3 local_coords);
 
@@ -9,7 +9,7 @@ template<class T>
 __global__ void PkCICFilter(T* __restrict grid, int ng);
 
 template<class T>
-__global__ void foldParticles(T* __restrict d_pos, double ng);
+__global__ void foldParticles(T* __restrict d_pos, double ng, int np);
 
 __global__ void foldParticles(float4* __restrict d_pos, double ng, int3 local_grid_size, int3 local_coords);
 

@@ -107,15 +107,15 @@ HACCGPM::serial::MemoryManager::MemoryManager(HACCGPM::Params params){
     
     size_t total_memory = 0;
 
-    cudaCall(cudaMalloc,&d_vel,sizeof(particle_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_vel: %g MB.\n",b2mb(sizeof(particle_t)*params.ng*params.ng*params.ng));
+    cudaCall(cudaMalloc,&d_vel,sizeof(particle_t)*params.np*params.np*params.np);
+    printf("   Allocated d_vel: %g MB.\n",b2mb(sizeof(particle_t)*params.np*params.np*params.np));
 
-    total_memory += sizeof(particle_t)*params.ng*params.ng*params.ng;
+    total_memory += sizeof(particle_t)*params.np*params.np*params.np;
 
-    cudaCall(cudaMalloc,&d_pos,sizeof(particle_t)*params.ng*params.ng*params.ng);
-    printf("   Allocated d_pos: %g MB.\n",b2mb(sizeof(particle_t)*params.ng*params.ng*params.ng));
+    cudaCall(cudaMalloc,&d_pos,sizeof(particle_t)*params.np*params.np*params.np);
+    printf("   Allocated d_pos: %g MB.\n",b2mb(sizeof(particle_t)*params.np*params.np*params.np));
 
-    total_memory += sizeof(particle_t)*params.ng*params.ng*params.ng;
+    total_memory += sizeof(particle_t)*params.np*params.np*params.np;
 
     #ifdef USE_GREENS_CACHE
     cudaCall(cudaMalloc,&d_greens,sizeof(greens_t)*params.ng*params.ng*params.ng);

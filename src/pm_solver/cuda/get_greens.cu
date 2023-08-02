@@ -13,7 +13,7 @@ __device__ __forceinline__ double3 cos(float3 kmodes){
     return out;
 }
 
-__forceinline__ __device__ double calcGreens(int3 idx3d, int ng){
+__forceinline__ __device__ double calcGreens(int3 idx3d, int ng, int np){
 
     if ((idx3d.x == 0) && (idx3d.y == 0) && (idx3d.z == 0))return 0.0;
 
@@ -23,7 +23,7 @@ __forceinline__ __device__ double calcGreens(int3 idx3d, int ng){
 
     float3 kmodes = HACCGPM::get_kmodes(idx3d,ng,d);
 
-    double coeff = 0.5 / (ng*ng*ng);
+    double coeff = 0.5 / (np*np*np);
 
     double out = coeff / (c.x + c.y + c.z - 3.0);
 
@@ -32,7 +32,7 @@ __forceinline__ __device__ double calcGreens(int3 idx3d, int ng){
 }
 
 template<class T>
-__global__ void getGreensKernel(T* __restrict d_greens, int ng)
+__global__ void getGreensKernel(T* __restrict d_greens, int ng, int np)
 {
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -40,7 +40,7 @@ __global__ void getGreensKernel(T* __restrict d_greens, int ng)
 
     int3 idx3d = HACCGPM::serial::get_index(idx,ng);
 
-    d_greens[idx] = calcGreens(idx3d,ng);
+    d_greens[idx] = calcGreens(idx3d,ng,np);
 
 }
 
@@ -54,21 +54,21 @@ __global__ void getGreensParallelKernel(T* __restrict d_greens, int ng, int3 loc
 
     int3 idx3d = HACCGPM::parallel::get_global_index(idx,ng,local_grid_size,local_coords);
 
-    d_greens[idx] = calcGreens(idx3d,ng);
+    d_greens[idx] = calcGreens(idx3d,ng,ng);
 
 }
 
 template<class T>
-CPUTimer_t launch_getgreens(T* d_greens, int ng, int numBlocks, int blockSize, int calls){
+CPUTimer_t launch_getgreens(T* d_greens, int ng, int np, int numBlocks, int blockSize, int calls){
 
     getIndent(calls);
 
-    return InvokeGPUKernel(getGreensKernel,numBlocks,blockSize,d_greens,ng);
+    return InvokeGPUKernel(getGreensKernel,numBlocks,blockSize,d_greens,ng,np);
 
 }
 
-template CPUTimer_t launch_getgreens<double>(double*,int,int,int,int);
-template CPUTimer_t launch_getgreens<float>(float*,int,int,int,int);
+template CPUTimer_t launch_getgreens<double>(double*,int,int,int,int,int);
+template CPUTimer_t launch_getgreens<float>(float*,int,int,int,int,int);
 
 template<class T>
 CPUTimer_t launch_getgreens(T* d_greens, int ng, int nlocal, int3 local_grid_size_vec, int3 grid_coords_vec, int world_rank, int numBlocks, int blockSize,  int calls){

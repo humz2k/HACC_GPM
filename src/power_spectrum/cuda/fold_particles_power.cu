@@ -1,8 +1,9 @@
 #include "power_kernels.hpp"
 
 template<class T>
-__global__ void foldParticles(T* __restrict d_pos, double ng){
+__global__ void foldParticles(T* __restrict d_pos, double ng, int np){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx >= (np*np*np))return;
     T my_particle = __ldg(&d_pos[idx]);
     my_particle.x /= ng;
     if (my_particle.x >= 0.5){
@@ -25,8 +26,8 @@ __global__ void foldParticles(T* __restrict d_pos, double ng){
     d_pos[idx] = my_particle;
 }
 
-template __global__ void foldParticles<float4>(float4* __restrict,double);
-template __global__ void foldParticles<float3>(float3* __restrict,double);
+template __global__ void foldParticles<float4>(float4* __restrict,double,int);
+template __global__ void foldParticles<float3>(float3* __restrict,double,int);
 
 __global__ void foldParticles(float4* __restrict d_pos, double ng, int3 local_grid_size, int3 local_coords){
     int idx = blockDim.x * blockIdx.x + threadIdx.x;

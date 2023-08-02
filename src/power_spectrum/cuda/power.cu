@@ -112,7 +112,7 @@ void HACCGPM::parallel::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::paral
 
         HACCGPM::parallel::forward_fft(mem.d_grid,params.ng,calls+1);
 
-        InvokeGPUKernelParallel(scalePower,numBlocks,params.blockSize,mem.d_grid,(double)params.ng,params.rl,params.nlocal);
+        InvokeGPUKernelParallel(scalePower,numBlocks,params.blockSize,mem.d_grid,(double)params.ng,(double)params.ng,params.rl,params.nlocal);
         InvokeGPUKernelParallel(PkCICFilter,numBlocks,params.blockSize,mem.d_grid,params.ng,params.nlocal,params.local_grid_size_vec,params.grid_coords_vec);
         cudaCall(cudaMemset,d_binCounts,0,sizeof(int)*nbins);
         cudaCall(cudaMemset,d_binVals,0,sizeof(double)*nbins);
@@ -168,7 +168,8 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
     int* binCounts = (int*)malloc(sizeof(int)*(nbins));
     float* binVals = (float*)malloc(sizeof(float)*nbins);
 
-    POWER_KERNEL_TIME += InvokeGPUKernel(cpy,numBlocks,params.blockSize,d_temp_pos,mem.d_pos,params.ng*params.ng*params.ng);
+    numBlocks = (params.np*params.np*params.np + (params.blockSize - 1))/params.blockSize;
+    POWER_KERNEL_TIME += InvokeGPUKernel(cpy,numBlocks,params.blockSize,d_temp_pos,mem.d_pos,params.np*params.np*params.np);
 
     double new_rl = (params.rl/(pow(2,params.pkFolds)));
 
@@ -197,7 +198,8 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
         d = (2*M_PI)/(new_rl);
 
         if (current_fold > 0){
-            POWER_KERNEL_TIME += InvokeGPUKernel(foldParticles,numBlocks,params.blockSize,d_temp_pos,(double)params.ng);
+            numBlocks = (params.ng*params.ng*params.ng + (params.blockSize - 1))/params.blockSize;
+            POWER_KERNEL_TIME += InvokeGPUKernel(foldParticles,numBlocks,params.blockSize,d_temp_pos,(double)params.ng,params.np);
         }
 
         CPUTimer_t start_extras = CPUTimer();
@@ -214,7 +216,9 @@ void HACCGPM::serial::GetPowerSpectrum(HACCGPM::Params& params, HACCGPM::serial:
 
         POWER_KERNEL_TIME += end_extras - start_extras;
 
-        POWER_KERNEL_TIME += InvokeGPUKernel(scalePower,numBlocks,params.blockSize,mem.d_grid,(double)params.ng,params.rl,params.ng*params.ng*params.ng);
+        numBlocks = (params.ng*params.ng*params.ng + (params.blockSize - 1))/params.blockSize;
+
+        POWER_KERNEL_TIME += InvokeGPUKernel(scalePower,numBlocks,params.blockSize,mem.d_grid,(double)params.np,(double)params.ng,params.rl,params.ng*params.ng*params.ng);
 
         POWER_KERNEL_TIME += InvokeGPUKernel(PkCICFilter,numBlocks,params.blockSize,mem.d_grid,params.ng);
 

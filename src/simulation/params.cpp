@@ -160,7 +160,7 @@ HACCGPM::Params HACCGPM::read_params(const char* fname){
     }
 
     assert(out.np != 0);
-    assert((out.ng % out.np) == 0);
+    //assert((out.ng % out.np) == 0);
 
     if (out.lastStep == -1){
         out.lastStep = out.nsteps;

@@ -40,7 +40,7 @@ class Run:
         self.base_name = base_name
         self.params = self.read_params()
         self.pks = self.find_pks()
-        self.k_nyq = (np.pi*self.params["NP"])/self.params["RL"]
+        self.k_nyq = (np.pi*self.params["NG"])/self.params["RL"]
     
     def plot_k_nyq(self,**kwargs):
         ymin,ymax = plt.ylim()

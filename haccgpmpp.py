@@ -8,9 +8,9 @@ if __name__ == "__main__":
 
     pp.plot_pretty(dpi=300)
 
-    run = pp.Run("runs/test")
+    run = pp.Run(sys.argv[1])
 
-    to_plot = [int(i) for i in sys.argv[2:]]
+    to_plot = [int(i) for i in sys.argv[3:]]
 
     for i in to_plot:
         pk = run.pks[i]
@@ -26,4 +26,4 @@ if __name__ == "__main__":
     plt.title("Power Spectrum\n" + r"$N_g = " + str(run.params["NG"]) + r"$, $N_p = " + str(run.params["NP"]) + r"$, $L = " + str(run.params["RL"]) + r"$ Mpc",size=10)
 
     plt.tight_layout()
-    plt.savefig(sys.argv[1])
+    plt.savefig(sys.argv[2])

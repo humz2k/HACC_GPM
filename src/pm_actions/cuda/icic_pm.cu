@@ -106,8 +106,8 @@ __global__ void ICICKernel(T* __restrict d_vel, const float4* __restrict d_grad,
                 }
 
                 float4 grad = __ldg(&d_grad[indx]);
-
-                float mul = dx*dy*dz * deltaT * (fscal);//* (1.0f/((double)(ng*ng*ng)));// (1.0f/((double)(ng*ng*ng)));// * deltaT * fscal * (1.0f/((double)(ng*ng*ng)));
+                float gp_scale = (float)np/(float)ng;
+                float mul = dx*dy*dz * deltaT * (fscal);// * gp_scale * gp_scale * gp_scale;//* (1.0f/((double)(ng*ng*ng)));// (1.0f/((double)(ng*ng*ng)));// * deltaT * fscal * (1.0f/((double)(ng*ng*ng)));
                 my_deltaV.x += mul*grad.x;
                 my_deltaV.y += mul*grad.y;
                 my_deltaV.z += mul*grad.z;

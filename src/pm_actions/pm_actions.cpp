@@ -194,7 +194,7 @@ void HACCGPM::serial::CIC(T1* d_grid, float* d_temp, T2* d_pos, int ng, int np, 
     #ifdef VerboseUpdate
     printf("%sCIC (complex,float) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
-    float gpscale = (((float)ng/(float)ng));
+    float gpscale = (((float)ng/(float)np));
     float mass = gpscale * gpscale * gpscale;
     //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
     //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);
@@ -226,7 +226,7 @@ void HACCGPM::serial::CIC(T1* d_grid, T2* d_pos, int ng, int np, int blockSize, 
     #ifdef VerboseUpdate
     printf("%sCIC (complex) was called with\n%s   blockSize %d\n%s   numBlocks %d\n",indent,indent,blockSize,indent,numBlocks);
     #endif
-    float gpscale = (((float)ng/(float)ng));
+    float gpscale = (((float)ng/(float)np));
     float mass = gpscale * gpscale * gpscale;
     //cudaCall(cudaMemset,d_temp,0,sizeof(float)*ng*ng*ng);
     //CIC_KERNEL_TIME += InvokeGPUKernel(CICKernel,numBlocks,blockSize,d_temp,d_pos,ng,1.0f);

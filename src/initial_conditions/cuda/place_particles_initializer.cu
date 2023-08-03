@@ -30,7 +30,7 @@ __forceinline__ __device__ void init_vel(T s, double a, double deltaT, double do
 
 template<class T, class T1>
 __forceinline__ __device__ void init_pos(T s, int3 idx3d, double delta, float ng, float np, int idx, T1& out){
-    float4 my_particle = join(fmod(((make_float3(idx3d.x,idx3d.y,idx3d.z) + (delta * as_float3(s))) * (ng/np) + ng),ng),idx);
+    float4 my_particle = join(fmod((make_float3(idx3d.x,idx3d.y,idx3d.z) * (ng/np) + (delta * as_float3(s)) + ng),ng),idx);
     assign(my_particle,out);
 }
 
@@ -39,8 +39,8 @@ __forceinline__ __device__ void init_particle(T1* __restrict d_pos, T1* __restri
     T1 my_particle; init_pos(s,idx3d,delta,ng,np,idx,my_particle);
     T1 my_vel; init_vel(s,a,deltaT,dotDelta,fscal,idx,my_vel);
 
-    d_pos[idx] = my_particle;// * ((float)(ng/np));
-    d_vel[idx] = my_vel * (((float)ng/(float)np));
+    d_pos[idx] = my_particle;// * ((float)ng/(float)np);
+    d_vel[idx] = my_vel;// * ((float)ng/(float)np);
 
     //printf("%f %f %f\n",my_particle.x,my_particle.y,my_particle.z);
 

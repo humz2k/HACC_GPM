@@ -5,7 +5,7 @@ __global__ void scalePower(T* __restrict data, double np, double ng, double rl, 
     int idx = blockDim.x * blockIdx.x + threadIdx.x;
     if (idx >= nlocal)return;
 
-    double scale = (1.0f/(np*np*np)) * (rl/np);
+    double scale = (1.0f/(ng*ng*ng)) * (rl/ng);
     T old = __ldg(&data[idx]);
     old.x = (old.x * old.x + old.y * old.y) * scale;
     data[idx] = old;

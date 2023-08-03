@@ -24,8 +24,12 @@ class PowerSpectrum:
         plt.xscale('log')
         plt.yscale('log')
         for fold in folds:
-            ks = self.folds[fold]["k"]
-            pks = self.folds[fold]["P_0(k)"]
+            try:
+                ks = self.folds[fold]["k"]
+                pks = self.folds[fold]["P_0(k)"]
+            except:
+                print("Can't find fold " + str(fold))
+                exit()
             plt.plot(ks,pks,**kwargs)
     
     def __str__(self):

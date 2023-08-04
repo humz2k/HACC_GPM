@@ -112,7 +112,7 @@ class Run:
         out["nmodes"] = out["nmodes"].astype('int')
         return out
     
-run = Run("/home/hqureshi/HACC_GPM/runs/test")
+#run = Run("/home/hqureshi/HACC_GPM/runs/test")
 
 def plot_pretty(dpi=150,fontsize=15):
     plt.rcParams['figure.dpi']= dpi

@@ -4,6 +4,7 @@ import postprocessing as pp
 import sys
 import matplotlib.pyplot as plt
 import argparse
+import numpy as np
 
 def parse_indices(length,indices):
     ids = list(range(length))
@@ -30,27 +31,84 @@ def parse_indices(length,indices):
     return out
 
 
-def plotpk(base_name : str,out_name : str,to_plot : list,folds : list, cm : str, legend : bool) -> None:
-    pp.plot_pretty(dpi=300)
+def plotpk(base_names : str,out_name : str,to_plot_ : list,folds : list, cm : str, legend : bool) -> None:
 
-    run = pp.Run(base_name)
+    runs = []
+    ngs = []
+    nps = []
+    rls = []
+    for base_name in base_names:
+        run = pp.Run(base_name)
+        runs.append(run)
+        ngs.append(run.params["NG"])
+        nps.append(run.params["NP"])
+        rls.append(run.params["RL"])
+    
+    ngs = np.unique(np.array(ngs))
+    nps = np.unique(np.array(nps))
+    rls = np.unique(np.array(rls))
 
-    to_plot = parse_indices(len(run.pks),to_plot)
+    global_ng = None
+    if (len(ngs) == 1):
+        global_ng = ngs[0]
 
-    for i in to_plot:
-        pk = run.pks[i]
-        for f in folds:
-            if type(cm) == type(None):
-                pk.plot(folds=[f],label="z=" + str(round(pk.z,1)) + ", fold=" + str(f),linewidth=0.9)
-            else:
-                pk.plot(folds=[f],label="z=" + str(round(pk.z,1)) + ", fold=" + str(f),linewidth=0.9,c=pk.cmap(cm))
+    global_np = None
+    if (len(nps) == 1):
+        global_np = nps[0]
+    
+    global_rl = None
+    if (len(rls) == 1):
+        global_rl = rls[0]
+    
+    global_fold = None
+    if len(folds) == 1:
+        global_fold = folds[0]
+
+    for run in runs:
+        pp.plot_pretty(dpi=300)
+
+        #run = pp.Run(base_name)
+
+        to_plot = parse_indices(len(run.pks),to_plot_)
+        
+        for i in to_plot:
+            pk = run.pks[i]
+            for f in folds:
+                labels = []
+                labels.append("z = " + str(round(pk.z,1)))
+                if type(global_ng) == type(None):
+                    labels.append("ng = " + str(run.params["NG"]))
+                if type(global_np) == type(None):
+                    labels.append("np = " + str(run.params["NP"]))
+                if type(global_rl) == type(None):
+                    labels.append("box = " + str(run.params["RL"]))
+                if type(global_fold) == type(None):
+                    labels.append("fold = " + str(f))
+                label = ", ".join(labels)
+                #label = "z=" + str(round(pk.z,1)) + ", fold=" + str(f) + ", ng=" + str(run.params["NG"]) + ", np=" + str(run.params["NP"]) + ", box=" + str(run.params["RL"])
+                if type(cm) == type(None):
+                    pk.plot(folds=[f],label=label,linewidth=0.9)
+                else:
+                    pk.plot(folds=[f],label=label,linewidth=0.9,c=pk.cmap(cm))
 
     run.plot_k_nyq(color="black",linestyles="dashed",linewidth=0.5)
     run.plot_k_nyq_2(color="black",linestyles="dashed",linewidth=0.5)
     if legend:
         plt.legend()
 
-    plt.title("Power Spectrum\n" + r"$N_g = " + str(run.params["NG"]) + r"$, $N_p = " + str(run.params["NP"]) + r"$, $L = " + str(run.params["RL"]) + r"$ Mpc",size=10)
+    #plt.title("Power Spectrum\n" + r"$N_g = " + str(run.params["NG"]) + r"$, $N_p = " + str(run.params["NP"]) + r"$, $L = " + str(run.params["RL"]) + r"$ Mpc",size=10)
+    title = "Power Spectrum\n"
+    titles = []
+    if type(global_ng) != type(None):
+        titles.append(r"$N_g = " + str(global_ng) + r"$")
+    if type(global_np) != type(None):
+        titles.append(r"$N_p = " + str(global_np) + r"$")
+    if type(global_rl) != type(None):
+        titles.append(r"Box $= " + str(global_rl) + r"$ Mpc/h")
+    if type(global_fold) != type(None):
+        titles.append(r"fold $= " + str(global_fold) + r"$")
+    title += ", ".join(titles)
+    plt.title(title,size=10)
 
     plt.tight_layout()
     plt.savefig(out_name)
@@ -61,14 +119,14 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(dest="subparser_name")
 
     plotpk_parser = subparsers.add_parser('plotpk')
-    plotpk_parser.add_argument('base_name', metavar="<OUTPUT_BASE_NAME>",type=str)
-    plotpk_parser.add_argument('output', metavar="<output.jpg>",type=str)
-    plotpk_parser.add_argument('pks', metavar="<pks>",type=str,nargs='+')
+    plotpk_parser.add_argument('base_name', metavar="<OUTPUT_BASE_NAME>",type=str,nargs='+')
+    plotpk_parser.add_argument('-o', metavar="<output>",type=str)
+    plotpk_parser.add_argument('-pks', metavar="<pks>",type=str,nargs='+')
     plotpk_parser.add_argument('-f', '--folds',type=int,nargs='+',default=[0])
     plotpk_parser.add_argument('-c', '--cmap',type=str,default=None)
     plotpk_parser.add_argument('-l','--legend',action='store_true',default=False)
 
     args = parser.parse_args()
     if args.subparser_name == "plotpk":
-        plotpk(args.base_name,args.output,args.pks,args.folds,args.cmap,args.legend)
+        plotpk(args.base_name,args.o,args.pks,args.folds,args.cmap,args.legend)
     

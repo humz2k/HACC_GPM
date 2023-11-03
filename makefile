@@ -1,5 +1,5 @@
-PY_C_FLAGS := $(shell python3-config --cflags)
-PY_LD_FLAGS := $(shell python3-config --ldflags)
+PY_C_FLAGS := $(shell python3-config --cflags --embed)
+PY_LD_FLAGS := $(shell python3-config --embed --ldflags)
 PY_NP_FLAGS := $(shell python3 -c "import numpy as np;print(np.get_include())")
 
 GIT_HASH := $(shell git rev-parse HEAD)
@@ -18,7 +18,7 @@ CUDA_DIR ?= /usr/local/cuda
 
 CUDA_ARCH_FLAGS ?= -arch=sm_60 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61 -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_75,code=sm_75 -gencode=arch=compute_80,code=sm_80 -gencode=arch=compute_86,code=sm_86
 
-PY_LIB ?= -lpython3.9
+PY_LIB ?=
 
 HACCGPM_INCLUDE ?= -Isrc -Ipycosmotools/include
 

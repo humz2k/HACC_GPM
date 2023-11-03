@@ -8,6 +8,7 @@ GIT_MODIFIED := $(shell git status --porcelain)
 GIT_FLAGS := -DGIT_HASH=$(GIT_HASH) -DGIT_MODIFIED="$(GIT_MODIFIED)"
 
 SWFFT_DIR := swfft-all-to-all
+SWFFT_GPU_DIR := swfft-gpu
 PYCOSMO_DIR := pycosmotools
 
 HACCGPM_BUILD_DIR ?= build
@@ -32,17 +33,20 @@ include src/*/*.include
 
 all: main nopython
 
-main: $(HACCGPM_BUILD_DIR)/driver_pm.o $(HACCGPM_FILES) $(HACCGPM_BUILD_DIR)/ccamb.o | swfft pycosmo
+main: $(HACCGPM_BUILD_DIR)/driver_pm.o $(HACCGPM_FILES) $(HACCGPM_BUILD_DIR)/ccamb.o | swfft pycosmo swfft-gpu-lib
 	mpicxx $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft $(PY_LD_FLAGS) $(PY_LIB) -L$(PYCOSMO_DIR)/lib -lpycosmo -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpmpython
 
-nopython: $(HACCGPM_NOPYTHON_DIR)/driver_pm.o $(HACCGPM_NOPYTHON_FILES) | swfft
+nopython: $(HACCGPM_NOPYTHON_DIR)/driver_pm.o $(HACCGPM_NOPYTHON_FILES) | swfft swfft-gpu-lib
 	mpicxx $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a -L$(CUDA_DIR)/lib64 -lcudart -lcufft -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpm
 
-static: $(HACCGPM_NOPYTHON_DIR)/driver_pm.o $(HACCGPM_NOPYTHON_FILES) | swfft
+static: $(HACCGPM_NOPYTHON_DIR)/driver_pm.o $(HACCGPM_NOPYTHON_FILES) | swfft swfft-gpu-lib
 	mpicxx -static $^ $(SWFFT_DIR)/lib/swfft_a2a_gpu.a -L$(CUDA_DIR)/lib64 -lcudart_static -lcufft_static -I$(CUDA_DIR)/include $(HACCGPM_INCLUDE) -fPIC -O3 -fopenmp -g -o haccgpmnopython
 
 swfft:
 	cd $(SWFFT_DIR) && $(MAKE) alltoallgpu DFFT_MPI_CPPFLAGS="$(DFFT_MPI_CPPFLAGS)"
+
+swfft-gpu-lib:
+	cd $(SWFFT_GPU_DIR) && $(MAKE)
 
 pycosmo:
 	cd $(PYCOSMO_DIR) && $(MAKE) PY_LIB=$(PY_LIB)
@@ -82,3 +86,4 @@ clean:
 	rm -f haccgpmnopython
 	rm -rf $(HACCGPM_BUILD_DIR)
 	cd $(SWFFT_DIR) && $(MAKE) clean
+	cd $(SWFFT_GPU_DIR) && $(MAKE) clean

@@ -7,3 +7,6 @@
 [submodule "pycosmotools"]
 	path = pycosmotools
 	url = https://git.cels.anl.gov/hqureshi/pycosmotools.git
+[submodule "swfft-gpu"]
+	path = swfft-gpu
+	url = https://git.cels.anl.gov/hqureshi/swfft-gpu.git
